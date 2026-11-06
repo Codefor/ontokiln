@@ -11,7 +11,7 @@ use std::io::{self, Write};
 pub use spareval::CancellationToken;
 pub use spargebra::{Query, SparqlParser};
 
-const MAX_VISITS: usize = 20_000_000;
+const MAX_VISITS: usize = 100_000_000;
 const MAX_BYTES: usize = 4 * 1024 * 1024;
 const MAX_ROWS: usize = 100_000;
 
@@ -225,7 +225,8 @@ mod tests {
         let mut second = graph.internal_quads_for_pattern(None, None, None, Some(None));
         let message = second.next().unwrap().err().unwrap().to_string();
         assert!(
-            message.contains("attempted candidate 20000001, limit 20000000, full-scan iterators 2")
+            message
+                .contains("attempted candidate 100000001, limit 100000000, full-scan iterators 2")
         );
         assert!(second.next().is_none());
     }

@@ -45,7 +45,7 @@ python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
 
 回归比较应匹配图规模、查询写法、并发、预热和构建特性。HTTP 往返、`scenario_lab` 进程内求值、离线规则 CLI 整条命令各自计时。比较批量吞吐时记录每请求主语数和主语/秒。位图首次建索引与热查询分别报告。
 
-排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。在 11,126,095 条图的已知对照中，普通双类型 COUNT 触发 2,000 万行预算，等价的 `FILTER EXISTS` 返回预期的 125,000。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
+排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。当前每请求累计允许检查 100,000,000 条候选行。历史 v2 报告按每请求 2,000 万行测量，比较不同运行时需记录各自的预算。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
 
 亿级基准使用同一套数据生成器，运行 `python3 -B benchmarks/hundred_million.py --output data/hundred-million.json`。保持 SPARQL 查询预算默认，记录 422 的尝试行号、限额及全扫描迭代器数，并核对位图结果。[亿级报告](benchmarks/hundred-million.md)
 

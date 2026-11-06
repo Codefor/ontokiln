@@ -62,6 +62,6 @@ curl -sG http://127.0.0.1:7878/v1/query \
 
 规则集 `rdfs-hierarchy-v1` 读取显式的 `rdfs:subClassOf` 和 `rdfs:subPropertyOf` 层级边，支持多级父类、上位属性、实例类型继承及属性事实提升。按已访问事实去重，循环继承可以终止。本 demo 的范围限于该层级规则集。SPARQL 的默认图只含显式事实。条件化字段血缘仍在独立实验程序中运行，domain/range、完整 OWL 语义与热切换属于后续工作。
 
-编译阶段在内存中排序，pack 启动使用只读文件映射，单个 pack 默认上限为 256 MiB，编译与加载可用 `ONTOKILN_MAX_PACK_MIB` 提高容量上限。每条查询最多尝试生成 10 万条事实，对象及证明的词项文本预算为 1 MiB。超预算返回 HTTP 422，并发已满返回 429。亿级目标的磁盘溢写、容量预算和压测标准见[后续详细设计](docs/rust-design-v1.md)。
+编译阶段在内存中排序，pack 启动使用只读文件映射，单个 pack 默认上限为 256 MiB，编译与加载可用 `ONTOKILN_MAX_PACK_MIB` 提高容量上限。层级推理查询最多尝试生成 10 万条事实，对象及证明的词项文本预算为 1 MiB。SPARQL 查询按整次请求累计，最多检查 1 亿条候选 SPO 行。超预算返回 HTTP 422，并发已满返回 429。亿级目标的磁盘溢写、容量预算和压测标准见[后续详细设计](docs/rust-design-v1.md)。
 
 运行 `cargo test --workspace --locked` 可验证两种来源的推导一致性、循环继承、空白节点隔离和损坏 pack 拒绝加载。
