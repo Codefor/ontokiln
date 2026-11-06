@@ -1,0 +1,880 @@
+{
+  "utc_date": "2026-11-06",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "fa4a0420e8afff32544281c1b6d086d2f0d6f5ff",
+  "profile": "release",
+  "pack_version": 2,
+  "cpu": "Apple M2 Pro",
+  "pack_limit_mib": 4096,
+  "subjects": 22471664,
+  "triples": 100000000,
+  "compile": {
+    "seconds": 150.206136041,
+    "peak_rss_bytes": 7705903104
+  },
+  "ttl_bytes": 2205754869,
+  "pack_bytes": 2042955387,
+  "bitmap_total": 1123584,
+  "startups": [
+    {
+      "ready_seconds": 11.351451707999999,
+      "ready_rss_bytes": 2047410176,
+      "terms": 22475901,
+      "peak_rss_bytes": 2064629760
+    },
+    {
+      "ready_seconds": 10.057101417000002,
+      "ready_rss_bytes": 2047393792,
+      "terms": 22475901,
+      "peak_rss_bytes": 2064564224
+    },
+    {
+      "ready_seconds": 10.315720250000002,
+      "ready_rss_bytes": 2047393792,
+      "terms": 22475901,
+      "peak_rss_bytes": 2712993792
+    }
+  ],
+  "bitmap_first_ms": [
+    991.768041,
+    1019.74875,
+    1013.095083
+  ],
+  "http": [
+    {
+      "mode": "segmented_type",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.14699833400000273,
+      "ok_per_second": 27864.261373193003,
+      "p50_ms": 0.218625,
+      "p95_ms": 0.351208,
+      "p99_ms": 0.46175,
+      "trial": 1
+    },
+    {
+      "mode": "segmented_type",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.13847079099999604,
+      "ok_per_second": 29580.245555180783,
+      "p50_ms": 0.211584,
+      "p95_ms": 0.328209,
+      "p99_ms": 0.392541,
+      "trial": 2
+    },
+    {
+      "mode": "segmented_type",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.14418845800000213,
+      "ok_per_second": 28407.26682852756,
+      "p50_ms": 0.207834,
+      "p95_ms": 0.348625,
+      "p99_ms": 0.451667,
+      "trial": 3
+    },
+    {
+      "mode": "segmented_proof",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.14457308299999738,
+      "ok_per_second": 28331.691591581224,
+      "p50_ms": 0.192084,
+      "p95_ms": 0.300875,
+      "p99_ms": 0.35275,
+      "trial": 1
+    },
+    {
+      "mode": "segmented_proof",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.16334366600000294,
+      "ok_per_second": 25075.964684176528,
+      "p50_ms": 0.222834,
+      "p95_ms": 0.3495,
+      "p99_ms": 0.413625,
+      "trial": 2
+    },
+    {
+      "mode": "segmented_proof",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.1470258750000042,
+      "ok_per_second": 27859.0418183186,
+      "p50_ms": 0.197209,
+      "p95_ms": 0.309333,
+      "p99_ms": 0.36975,
+      "trial": 3
+    },
+    {
+      "mode": "hub",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.6714603750000023,
+      "ok_per_second": 6100.136586615384,
+      "p50_ms": 0.714,
+      "p95_ms": 1.015208,
+      "p99_ms": 1.287042,
+      "trial": 1
+    },
+    {
+      "mode": "hub",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.649048999999998,
+      "ok_per_second": 6310.771605841797,
+      "p50_ms": 0.713209,
+      "p95_ms": 0.9465,
+      "p99_ms": 1.233209,
+      "trial": 2
+    },
+    {
+      "mode": "hub",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.6638017499999975,
+      "ok_per_second": 6170.517025602923,
+      "p50_ms": 0.71875,
+      "p95_ms": 0.981708,
+      "p99_ms": 1.288375,
+      "trial": 3
+    },
+    {
+      "mode": "batch8",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.20650175000000104,
+      "ok_per_second": 19835.182994817136,
+      "p50_ms": 0.316166,
+      "p95_ms": 0.466167,
+      "p99_ms": 0.543041,
+      "trial": 1
+    },
+    {
+      "mode": "batch8",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.2043098330000035,
+      "ok_per_second": 20047.9827126085,
+      "p50_ms": 0.34125,
+      "p95_ms": 0.527875,
+      "p99_ms": 0.628875,
+      "trial": 2
+    },
+    {
+      "mode": "batch8",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.23446445800000504,
+      "ok_per_second": 17469.59873977962,
+      "p50_ms": 0.390792,
+      "p95_ms": 0.622125,
+      "p99_ms": 0.762834,
+      "trial": 3
+    },
+    {
+      "mode": "sparql_bound",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.16689845900000222,
+      "ok_per_second": 24541.868298496065,
+      "p50_ms": 0.247708,
+      "p95_ms": 0.411375,
+      "p99_ms": 0.597083,
+      "trial": 1
+    },
+    {
+      "mode": "sparql_bound",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.1638055410000021,
+      "ok_per_second": 25005.25913222891,
+      "p50_ms": 0.257625,
+      "p95_ms": 0.413416,
+      "p99_ms": 0.549209,
+      "trial": 2
+    },
+    {
+      "mode": "sparql_bound",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 0.1427832499999937,
+      "ok_per_second": 28686.83826709492,
+      "p50_ms": 0.224792,
+      "p95_ms": 0.342792,
+      "p99_ms": 0.403958,
+      "trial": 3
+    },
+    {
+      "mode": "bitmap",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 1.2841195419999991,
+      "ok_per_second": 3189.734184420661,
+      "p50_ms": 2.256083,
+      "p95_ms": 3.577792,
+      "p99_ms": 4.525167,
+      "trial": 1
+    },
+    {
+      "mode": "bitmap",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 1.1289181659999983,
+      "ok_per_second": 3628.2523599677875,
+      "p50_ms": 2.036417,
+      "p95_ms": 2.714375,
+      "p99_ms": 3.66625,
+      "trial": 2
+    },
+    {
+      "mode": "bitmap",
+      "clients": 8,
+      "requests": 4096,
+      "warmup_per_client": 32,
+      "errors": {},
+      "seconds": 1.3132655839999998,
+      "ok_per_second": 3118.9426189973165,
+      "p50_ms": 2.272084,
+      "p95_ms": 3.654833,
+      "p99_ms": 5.323042,
+      "trial": 3
+    }
+  ],
+  "sparql_scans": [
+    {
+      "template": "premium",
+      "expected_count": 5617916,
+      "warmup": {
+        "ms": 131.378,
+        "status": 422,
+        "error": {
+          "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+        }
+      },
+      "runs": [
+        {
+          "ms": 131.078291,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.37075,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.8025,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.579584,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.147583,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.240334,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 130.239667,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 130.808583,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 131.123333,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        }
+      ]
+    },
+    {
+      "template": "intersection",
+      "expected_count": 1123584,
+      "warmup": {
+        "ms": 539.917583,
+        "status": 422,
+        "error": {
+          "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+        }
+      },
+      "runs": [
+        {
+          "ms": 493.8675,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 497.186458,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 451.8615,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 451.745375,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 453.611666,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 450.989416,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 458.309417,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 460.205958,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 474.004458,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        }
+      ]
+    },
+    {
+      "template": "exists",
+      "expected_count": 1123584,
+      "warmup": {
+        "ms": 693.692875,
+        "status": 422,
+        "error": {
+          "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+        }
+      },
+      "runs": [
+        {
+          "ms": 699.511583,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 713.737333,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 694.766125,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 698.489042,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 709.251625,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 699.81075,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 739.241833,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 697.179625,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        },
+        {
+          "ms": 690.011791,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 1"
+          }
+        }
+      ]
+    }
+  ],
+  "health": {
+    "pack_version": 2,
+    "status": "ready",
+    "source": "pack",
+    "profile": "rdfs-hierarchy-v1",
+    "triples": 100000000,
+    "terms": 22475901
+  },
+  "scenario": {
+    "cases": [
+      {
+        "case": "L1",
+        "p50_ns": 248750,
+        "p95_ns": 279458,
+        "p99_ns": 323583,
+        "worlds": 8
+      },
+      {
+        "case": "L2",
+        "p50_ns": 88875,
+        "p95_ns": 98750,
+        "p99_ns": 130875,
+        "worlds": 8
+      },
+      {
+        "case": "L3",
+        "p50_ns": 412125,
+        "p95_ns": 468667,
+        "p99_ns": 500958,
+        "worlds": 4
+      },
+      {
+        "case": "L4",
+        "p50_ns": 805000,
+        "p95_ns": 869791,
+        "p99_ns": 936083,
+        "worlds": 8
+      },
+      {
+        "case": "V1",
+        "p50_ns": 104125,
+        "p95_ns": 114791,
+        "p99_ns": 117792,
+        "worlds": 2
+      },
+      {
+        "case": "V2",
+        "p50_ns": 51416,
+        "p95_ns": 56916,
+        "p99_ns": 61791,
+        "worlds": 1
+      },
+      {
+        "case": "V3",
+        "p50_ns": 51458,
+        "p95_ns": 56584,
+        "p99_ns": 61000,
+        "worlds": 1
+      },
+      {
+        "case": "V4",
+        "p50_ns": 62333,
+        "p95_ns": 69958,
+        "p99_ns": 76958,
+        "worlds": 1
+      },
+      {
+        "case": "V5",
+        "p50_ns": 248500,
+        "p95_ns": 269000,
+        "p99_ns": 275750,
+        "worlds": 4
+      },
+      {
+        "case": "V6",
+        "p50_ns": 101542,
+        "p95_ns": 109125,
+        "p99_ns": 119209,
+        "worlds": 2
+      },
+      {
+        "case": "V7",
+        "p50_ns": 412209,
+        "p95_ns": 429375,
+        "p99_ns": 459042,
+        "worlds": 4
+      },
+      {
+        "case": "V8",
+        "p50_ns": 822708,
+        "p95_ns": 915417,
+        "p99_ns": 1868625,
+        "worlds": 8
+      },
+      {
+        "case": "V9",
+        "p50_ns": 390667,
+        "p95_ns": 412459,
+        "p99_ns": 434583,
+        "worlds": 4
+      },
+      {
+        "case": "V10",
+        "p50_ns": 107833,
+        "p95_ns": 125291,
+        "p99_ns": 188417,
+        "worlds": 1
+      }
+    ],
+    "samples_per_case": 300,
+    "warmup_per_case": 32
+  },
+  "offline_rules": [
+    {
+      "engine": "datafrog",
+      "seconds": 10.246081750000002,
+      "derived": 25,
+      "output_sha256": "9096416c6a5d5ecf24cf8597c09036cb9325a7a47d66e725de2d61c26cec4ae0"
+    },
+    {
+      "engine": "ascent",
+      "seconds": 10.235511291999998,
+      "derived": 25,
+      "output_sha256": "9096416c6a5d5ecf24cf8597c09036cb9325a7a47d66e725de2d61c26cec4ae0"
+    },
+    {
+      "engine": "ascent",
+      "seconds": 10.407490749999994,
+      "derived": 25,
+      "output_sha256": "9096416c6a5d5ecf24cf8597c09036cb9325a7a47d66e725de2d61c26cec4ae0"
+    },
+    {
+      "engine": "datafrog",
+      "seconds": 10.340137999999996,
+      "derived": 25,
+      "output_sha256": "9096416c6a5d5ecf24cf8597c09036cb9325a7a47d66e725de2d61c26cec4ae0"
+    }
+  ],
+  "controls": [
+    {
+      "subjects": 250000,
+      "triples": 1113595,
+      "sparql_scans": [
+        {
+          "template": "intersection",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 29.317292,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 27.847042,
+              "status": 200
+            },
+            {
+              "ms": 25.185667,
+              "status": 200
+            },
+            {
+              "ms": 25.050541,
+              "status": 200
+            },
+            {
+              "ms": 26.057084,
+              "status": 200
+            },
+            {
+              "ms": 23.483375,
+              "status": 200
+            },
+            {
+              "ms": 22.971458,
+              "status": 200
+            },
+            {
+              "ms": 23.237334,
+              "status": 200
+            },
+            {
+              "ms": 22.842333,
+              "status": 200
+            },
+            {
+              "ms": 22.584917,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "exists",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 26.594375,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 26.126125,
+              "status": 200
+            },
+            {
+              "ms": 26.197833,
+              "status": 200
+            },
+            {
+              "ms": 26.421375,
+              "status": 200
+            },
+            {
+              "ms": 26.667959,
+              "status": 200
+            },
+            {
+              "ms": 26.207584,
+              "status": 200
+            },
+            {
+              "ms": 26.065458,
+              "status": 200
+            },
+            {
+              "ms": 26.01275,
+              "status": 200
+            },
+            {
+              "ms": 26.086959,
+              "status": 200
+            },
+            {
+              "ms": 27.018375,
+              "status": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "subjects": 2500000,
+      "triples": 11126095,
+      "sparql_scans": [
+        {
+          "template": "intersection",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 328.035208,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+            }
+          },
+          "runs": [
+            {
+              "ms": 316.849125,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 333.653625,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 304.146958,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 303.245208,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 304.138167,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 299.413833,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 323.551,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 317.88425,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            },
+            {
+              "ms": 314.323625,
+              "status": 422,
+              "error": {
+                "error": "SPARQL scan budget exceeded: attempted candidate 20000001, limit 20000000, full-scan iterators 2"
+              }
+            }
+          ]
+        },
+        {
+          "template": "exists",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 333.068167,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 292.402792,
+              "status": 200
+            },
+            {
+              "ms": 291.680291,
+              "status": 200
+            },
+            {
+              "ms": 293.027041,
+              "status": 200
+            },
+            {
+              "ms": 297.161458,
+              "status": 200
+            },
+            {
+              "ms": 295.007208,
+              "status": 200
+            },
+            {
+              "ms": 298.2365,
+              "status": 200
+            },
+            {
+              "ms": 295.46875,
+              "status": 200
+            },
+            {
+              "ms": 309.028167,
+              "status": 200
+            },
+            {
+              "ms": 298.225875,
+              "status": 200
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "compiler_revision": "c2310f76ba8b260cd91c6342f9d9736d4b49b8c1"
+}

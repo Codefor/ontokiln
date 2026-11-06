@@ -18,7 +18,7 @@ NS = bench.NS
 ROUNDS = 3
 
 
-def prepare(root, count):
+def generate_inputs(root, count):
     directory, pack = root / "ttl", root / "panels.pack"
     triples = bench.generate(directory, count)
     with (directory / "segments.ttl").open("w") as f:
@@ -38,6 +38,11 @@ def prepare(root, count):
         "exists": "SELECT (COUNT(?panel) AS ?n) WHERE { ?panel a b:Premium . FILTER EXISTS { ?panel a b:Badge } }",
     }.items():
         (templates / (name + ".rq")).write_text(f"PREFIX b: <{NS}>\n" + query)
+    return directory, pack, triples, templates
+
+
+def prepare(root, count):
+    directory, pack, triples, templates = generate_inputs(root, count)
     bench.compile_pack(directory, pack)
     return pack, triples, templates
 

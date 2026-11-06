@@ -1,6 +1,6 @@
 # OntoKiln 开发指南
 
-本指南适用于整个仓库。OntoKiln 将一个目录的 Turtle（`.ttl`）和 N-Triples（`.nt`）文件编译成不可变 RDF 快照，再加载到内存提供只读推理。项目目标是亿级三元组。pack v2 的常规基准覆盖到 10,001,094 条显式三元组，扩展类型图覆盖到 11,126,095 条。现有 CLI 和 HTTP 契约见 [README](README.md)，后续架构与验收目标见[设计稿](docs/rust-design-v1.md)。
+本指南适用于整个仓库。OntoKiln 将一个目录的 Turtle（`.ttl`）和 N-Triples（`.nt`）文件编译成不可变 RDF 快照，再加载到内存提供只读推理。项目目标是亿级三元组。pack v2 已在单个合成图上验证 100,000,000 条去重显式三元组的编译、装载和在线查询。现有 CLI 和 HTTP 契约见 [README](README.md)，后续架构与验收目标见[设计稿](docs/rust-design-v1.md)。
 
 ## 按任务定位代码
 
@@ -46,5 +46,7 @@ python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
 回归比较应匹配图规模、查询写法、并发、预热和构建特性。HTTP 往返、`scenario_lab` 进程内求值、离线规则 CLI 整条命令各自计时。比较批量吞吐时记录每请求主语数和主语/秒。位图首次建索引与热查询分别报告。
 
 排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。在 11,126,095 条图的已知对照中，普通双类型 COUNT 触发 2,000 万行预算，等价的 `FILTER EXISTS` 返回预期的 125,000。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
+
+亿级基准使用同一套数据生成器，运行 `python3 -B benchmarks/hundred_million.py --output data/hundred-million.json`。保持 SPARQL 查询预算默认，记录 422 的尝试行号、限额及全扫描迭代器数，并核对位图结果。[亿级报告](benchmarks/hundred-million.md)
 
 正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。单 pack 默认上限为 256 MiB，可通过进程环境变量 `ONTOKILN_MAX_PACK_MIB` 显式设置，扩大规模前先核算索引与词典占用。

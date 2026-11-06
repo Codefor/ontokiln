@@ -181,9 +181,13 @@ fn pack_size_override_is_opt_in_and_checked_on_compile_and_load() {
         assert!(!compile(limit).status.success());
         assert_eq!(fs::read(&pack).unwrap(), good);
     }
+    let query = dir.path().join("exists.rq");
+    fs::write(&query, "ASK { ?s ?p ?o }").unwrap();
     let rejected = Command::new(binary)
         .env("ONTOKILN_MAX_PACK_MIB", "1")
-        .arg("serve")
+        .arg("sparql")
+        .arg("--query")
+        .arg(query)
         .arg("--pack")
         .arg(&pack)
         .output()

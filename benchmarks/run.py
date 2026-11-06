@@ -108,13 +108,15 @@ def load_worker(job):
     rng = random.Random(20261106 + worker)
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=30)
     wide = mode == "hub"
-    proof = mode == "type_proof"
+    proof = mode in ("type_proof", "segmented_proof")
+    segmented = mode in ("segmented_type", "segmented_proof")
     predicate = NS + "dependsOn" if wide else TYPE
     expected = ({f"<{NS}f{i}>" for i in range(FANOUT)} if wide else
                 {f"<{NS}{name}>" for name in ("Panel", "View", "Component")})
 
     def request():
-        subject = NS + ("hub" if wide else f"v{rng.randrange(subjects)}")
+        idx = None if wide else rng.randrange(subjects)
+        subject = NS + ("hub" if wide else f"v{idx}")
         path = "/v1/query?" + urlencode({"subject": subject, "predicate": predicate,
                                          "explain": str(proof).lower()})
         start = time.perf_counter_ns()
@@ -125,15 +127,26 @@ def load_worker(job):
         if res.status != 200:
             return elapsed, str(res.status)
         rows = json.loads(body)["results"]
-        if len(rows) != len(expected) or {r["object"] for r in rows} != expected:
+        wanted = expected
+        if segmented:
+            wanted = expected.copy()
+            if idx % 4 == 0:
+                wanted.update((f"<{NS}Premium>", f"<{NS}Commercial>"))
+            if idx % 5 == 0:
+                wanted.add(f"<{NS}Badge>")
+        if len(rows) != len(wanted) or {r["object"] for r in rows} != wanted:
             raise RuntimeError("incorrect objects")
         for row in rows:
             direct = row["object"] == f"<{NS}Panel>"
+            if segmented and row["object"] in (f"<{NS}Premium>", f"<{NS}Badge>"):
+                direct = True
             if row["inferred"] == direct:
                 raise RuntimeError("incorrect inference status")
             if proof:
                 steps = row["proof"]
                 depth = {f"<{NS}Panel>": 1, f"<{NS}View>": 2, f"<{NS}Component>": 3}
+                if segmented:
+                    depth.update({f"<{NS}Premium>": 1, f"<{NS}Badge>": 1, f"<{NS}Commercial>": 2})
                 if (len(steps) != depth[row["object"]] or steps[0]["premise"][0] != f"<{subject}>"
                         or steps[-1]["premise"][2] != row["object"]):
                     raise RuntimeError("incorrect proof")

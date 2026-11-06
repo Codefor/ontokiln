@@ -6,6 +6,8 @@ Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 合�
 
 [Pack v2 推理能力实测](benchmarks/pack-v2.md) 包含层级与批量查询、位图、SPARQL、业务血缘和离线规则的延迟、吞吐及预算边界。[历史基准](benchmarks/README.md) 记录编译、启动和内存数据。
 
+[1 亿条实测与 HTTP 422 诊断](benchmarks/hundred-million.md) 给出了单 pack 编译、装载、在线查询和全图扫描预算的实际结果。
+
 ## 启动 demo
 
 在仓库根目录运行以下命令。开发验证使用 Rust 1.93.1。
