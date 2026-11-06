@@ -47,4 +47,4 @@ python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
 
 排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。在 11,126,095 条图的已知对照中，普通双类型 COUNT 触发 2,000 万行预算，等价的 `FILTER EXISTS` 返回预期的 125,000。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
 
-正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。当前单 pack 上限为 256 MiB，扩大规模前先核算索引与词典占用。
+正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。单 pack 默认上限为 256 MiB，可通过进程环境变量 `ONTOKILN_MAX_PACK_MIB` 显式设置，扩大规模前先核算索引与词典占用。

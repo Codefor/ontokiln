@@ -17,6 +17,27 @@ const BODY_START: usize = PREFIX_LEN + 32;
 const OFFSETS_START: usize = BODY_START + 4 + 8;
 pub const MAX_PACK_BYTES: usize = 256 * 1024 * 1024;
 
+// This is an operational memory/disk limit. The v2 layout already uses u64 offsets.
+fn max_pack_bytes() -> Result<usize> {
+    match std::env::var("ONTOKILN_MAX_PACK_MIB") {
+        Ok(value) => {
+            let mib: usize = value
+                .parse()
+                .context("ONTOKILN_MAX_PACK_MIB must be a positive integer")?;
+            let bytes = mib
+                .checked_mul(1024 * 1024)
+                .context("pack limit overflow")?;
+            ensure!(
+                bytes > 0 && bytes <= isize::MAX as usize,
+                "invalid pack limit for this platform"
+            );
+            Ok(bytes)
+        }
+        Err(std::env::VarError::NotPresent) => Ok(MAX_PACK_BYTES),
+        Err(e) => Err(e.into()),
+    }
+}
+
 // Body: u32 term count, u64 triple count, u64 offsets (including sentinel),
 // little-endian SPO rows, then packed UTF-8 terms. Both typed tables are aligned.
 #[derive(Debug)]
@@ -33,10 +54,7 @@ impl Layout {
             .checked_mul(12)
             .and_then(|bytes| spo.checked_add(bytes))
             .context("pack section size overflow")?;
-        ensure!(
-            text <= MAX_PACK_BYTES as u64,
-            "pack exceeds demo size limit"
-        );
+        ensure!(text <= isize::MAX as u64, "pack exceeds addressable size");
         Ok(Self {
             term_count: terms as usize,
             spo_start: spo as usize,
@@ -68,9 +86,13 @@ impl Pack {
     pub fn from_sorted(terms: Vec<String>, triples: Vec<Triple>) -> Result<Self> {
         let layout = Layout::new(terms.len().try_into()?, triples.len().try_into()?)?;
         let text_len = terms.iter().map(String::len).sum::<usize>();
+        let limit = max_pack_bytes()?;
         ensure!(
-            text_len <= MAX_PACK_BYTES - layout.text_start,
-            "pack exceeds demo size limit"
+            layout
+                .text_start
+                .checked_add(text_len)
+                .is_some_and(|size| size <= limit),
+            "pack exceeds configured size limit ({limit} bytes)"
         );
         ensure!(
             terms.iter().all(|term| !term.is_empty()),
@@ -215,7 +237,11 @@ impl Pack {
         );
 
         let len = source.metadata()?.len();
-        ensure!(len <= MAX_PACK_BYTES as u64, "pack exceeds demo size limit");
+        let limit = max_pack_bytes()?;
+        ensure!(
+            len <= limit as u64,
+            "pack exceeds configured size limit ({limit} bytes)"
+        );
         ensure!(len >= (OFFSETS_START + 8) as u64, "truncated pack");
         let mut backing = tempfile()?;
         backing.write_all(&prefix)?;

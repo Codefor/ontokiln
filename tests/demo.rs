@@ -152,3 +152,42 @@ fn invalid_sources_and_corrupt_packs_fail_without_replacing_previous_output() {
     fs::write(&path, b"bad").unwrap();
     assert!(Pack::load(&path).is_err());
 }
+
+#[test]
+fn pack_size_override_is_opt_in_and_checked_on_compile_and_load() {
+    let dir = tempdir().unwrap();
+    let ttl = dir.path().join("large.nt");
+    let pack = dir.path().join("large.pack");
+    fs::write(
+        ttl,
+        format!("<urn:s> <urn:p> \"{}\" .", "a".repeat(1024 * 1024)),
+    )
+    .unwrap();
+    let binary = env!("CARGO_BIN_EXE_ontokiln");
+    let compile = |limit| {
+        Command::new(binary)
+            .env("ONTOKILN_MAX_PACK_MIB", limit)
+            .arg("compile")
+            .arg("--ttl")
+            .arg(dir.path())
+            .arg("--out")
+            .arg(&pack)
+            .output()
+            .unwrap()
+    };
+    assert!(compile("2").status.success());
+    let good = fs::read(&pack).unwrap();
+    for limit in ["1", "0", "invalid", "18446744073709551615"] {
+        assert!(!compile(limit).status.success());
+        assert_eq!(fs::read(&pack).unwrap(), good);
+    }
+    let rejected = Command::new(binary)
+        .env("ONTOKILN_MAX_PACK_MIB", "1")
+        .arg("serve")
+        .arg("--pack")
+        .arg(&pack)
+        .output()
+        .unwrap();
+    assert!(!rejected.status.success());
+    assert!(String::from_utf8_lossy(&rejected.stderr).contains("configured size limit"));
+}
