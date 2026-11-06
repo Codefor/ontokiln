@@ -9,6 +9,7 @@ use oxrdf::Term;
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 const NS: &str = "urn:ontokiln:lab:";
 type Fields = BTreeSet<String>;
@@ -27,6 +28,9 @@ struct Args {
     /// Compare traversing every candidate with selecting branches (V1–V4).
     #[arg(long)]
     compare: bool,
+    /// Warm each selected case, measure in-process evaluations and emit JSON.
+    #[arg(long, conflicts_with_all = ["compare", "trace"], value_parser = clap::value_parser!(u32).range(1..=100_000))]
+    bench_samples: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -230,6 +234,38 @@ impl Counts {
     }
 }
 
+fn benchmark(lab: &Lab, cases: &[&Case], samples: u32) -> Result<()> {
+    const WARMUP: usize = 32;
+    let mut rows = Vec::new();
+    for &case in cases {
+        for _ in 0..WARMUP {
+            lab.run(case, false)?;
+        }
+        let mut ns = Vec::with_capacity(samples as usize);
+        for _ in 0..samples {
+            let start = Instant::now();
+            let (certain, possible) = lab.run(case, false)?;
+            ns.push(start.elapsed().as_nanos() as u64);
+            ensure!(
+                certain == case.certain && possible == case.possible,
+                "incorrect answer for {}",
+                case.id
+            );
+        }
+        ns.sort_unstable();
+        let percentile = |p: usize| ns[(ns.len() * p).div_ceil(100) - 1];
+        rows.push(serde_json::json!({
+            "case": case.id, "worlds": lab.worlds(&case.context)?.len(),
+            "p50_ns": percentile(50), "p95_ns": percentile(95), "p99_ns": percentile(99),
+        }));
+    }
+    println!(
+        "{}",
+        serde_json::json!({"samples_per_case": samples, "warmup_per_case": WARMUP, "cases": rows})
+    );
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let default = Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/scenarios/ontology");
@@ -244,6 +280,9 @@ fn main() -> Result<()> {
         .filter(|c| args.case.as_ref().is_none_or(|id| *id == c.id))
         .collect();
     ensure!(!selected.is_empty(), "unknown case ID");
+    if let Some(samples) = args.bench_samples {
+        return benchmark(&lab, &selected, samples);
+    }
     let mut failed = 0;
     let mut compared = 0;
     let mut all_branches = Counts::default();
