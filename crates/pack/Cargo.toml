@@ -8,3 +8,5 @@ publish.workspace = true
 anyhow.workspace = true
 sha2 = "0.10"
 tempfile.workspace = true
+memmap2 = "0.9"
+bytemuck = "1"

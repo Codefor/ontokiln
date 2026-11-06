@@ -1,0 +1,6 @@
+PREFIX lab: <urn:ontokiln:lab:>
+SELECT ?step ?field WHERE {
+    ?step (lab:arg0|lab:arg1) ?field .
+    ?field a lab:GoField .
+}
+ORDER BY ?step ?field

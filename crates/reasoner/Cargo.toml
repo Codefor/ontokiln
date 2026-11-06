@@ -7,3 +7,10 @@ publish.workspace = true
 [dependencies]
 ontokiln-pack.workspace = true
 serde.workspace = true
+oxrdf.workspace = true
+anyhow.workspace = true
+spargebra = "0.4"
+spareval = "0.2"
+sparesults = "0.3"
+roaring = "0.11"
+rayon.workspace = true

@@ -1,0 +1,6 @@
+[
+  {"head":"urn:ontokiln:lab:input", "body":["urn:ontokiln:lab:arg0"]},
+  {"head":"urn:ontokiln:lab:input", "body":["urn:ontokiln:lab:arg1"]},
+  {"head":"urn:ontokiln:lab:upstream", "body":["urn:ontokiln:lab:input"]},
+  {"head":"urn:ontokiln:lab:upstream", "body":["urn:ontokiln:lab:upstream","urn:ontokiln:lab:input"]}
+]

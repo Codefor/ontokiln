@@ -1,7 +1,12 @@
 //! Subject-bound forward chaining over the immutable SPO index.
+mod entities;
+pub mod sparql;
+pub use entities::EntityMatches;
 use ontokiln_pack::{Id, Pack, Triple};
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::HashSet;
+use std::sync::OnceLock;
 
 pub const RDF_TYPE: &str = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>";
 pub const SUB_CLASS: &str = "<http://www.w3.org/2000/01/rdf-schema#subClassOf>";
@@ -10,6 +15,7 @@ const MAX_WORK: usize = 100_000;
 const MAX_RESULT_TEXT: usize = 1_048_576;
 
 pub struct Reasoner {
+    types: OnceLock<entities::TypeIndex>,
     pack: Pack,
     rdf_type: Option<Id>,
     sub_class: Option<Id>,
@@ -41,6 +47,7 @@ struct Step {
 impl Reasoner {
     pub fn new(pack: Pack) -> Self {
         Self {
+            types: OnceLock::new(),
             rdf_type: pack.lookup(RDF_TYPE),
             sub_class: pack.lookup(SUB_CLASS),
             sub_property: pack.lookup(SUB_PROPERTY),
@@ -105,6 +112,22 @@ impl Reasoner {
         answers.sort_unstable_by(|a, b| a.object.cmp(&b.object));
         Ok(answers)
     }
+    /// Evaluate independent traversals in parallel, preserving the input order.
+    pub fn query_batch(
+        &self,
+        subjects: &[String],
+        predicate: &str,
+        explain: bool,
+    ) -> Result<Vec<Vec<Answer>>, &'static str> {
+        if !(1..=16).contains(&subjects.len()) {
+            return Err("expected 1..16 subjects");
+        }
+        subjects
+            .par_iter()
+            .map(|s| self.query(s, predicate, explain))
+            .collect()
+    }
+
     fn derive(&self, subject: Id) -> Result<Vec<Step>, &'static str> {
         let mut search = Search::default();
         for &fact in self.pack.outgoing(subject) {
