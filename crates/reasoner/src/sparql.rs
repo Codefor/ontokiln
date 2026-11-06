@@ -22,9 +22,25 @@ enum Encoded {
     External(Term),
 }
 
+#[derive(Default)]
+struct ScanStats {
+    visits: Cell<usize>,
+    full_scan_iterators: Cell<usize>,
+}
+
+impl ScanStats {
+    fn budget_error(&self) -> io::Error {
+        io::Error::other(format!(
+            "SPARQL scan budget exceeded: attempted candidate {}, limit {MAX_VISITS}, full-scan iterators {}",
+            self.visits.get(),
+            self.full_scan_iterators.get(),
+        ))
+    }
+}
+
 struct Graph<'a> {
     pack: &'a Pack,
-    visits: &'a Cell<usize>,
+    stats: &'a ScanStats,
     cancel: &'a CancellationToken,
 }
 
@@ -66,11 +82,16 @@ impl<'a> QueryableDataset<'a> for Graph<'a> {
             match ids {
                 [Some(s), Some(p), _] => self.pack.edges(s, p),
                 [Some(s), None, _] => self.pack.outgoing(s),
-                _ => self.pack.triples(),
+                _ => {
+                    self.stats
+                        .full_scan_iterators
+                        .set(self.stats.full_scan_iterators.get() + 1);
+                    self.pack.triples()
+                }
             }
         };
         let mut iter = rows.iter();
-        let visits = self.visits;
+        let stats = self.stats;
         let cancel = self.cancel;
         let mut done = false;
         std::iter::from_fn(move || {
@@ -78,13 +99,15 @@ impl<'a> QueryableDataset<'a> for Graph<'a> {
                 return None;
             }
             for &[s, p, o] in iter.by_ref() {
-                let n = visits.get() + 1;
-                visits.set(n);
-                if n > MAX_VISITS || (n.is_multiple_of(1024) && cancel.is_cancelled()) {
+                let n = stats.visits.get() + 1;
+                stats.visits.set(n);
+                if n > MAX_VISITS {
                     done = true;
-                    return Some(Err(io::Error::other(
-                        "SPARQL scan cancelled or over budget",
-                    )));
+                    return Some(Err(stats.budget_error()));
+                }
+                if n.is_multiple_of(1024) && cancel.is_cancelled() {
+                    done = true;
+                    return Some(Err(io::Error::other("SPARQL scan cancelled")));
                 }
                 if ids
                     .iter()
@@ -136,10 +159,10 @@ impl Reasoner {
         for (variable, term) in bindings {
             prepared = prepared.substitute_variable(variable, term);
         }
-        let visits = Cell::new(0);
+        let stats = ScanStats::default();
         let graph = Graph {
             pack: &self.pack,
-            visits: &visits,
+            stats: &stats,
             cancel: &cancel,
         };
         let formatter = QueryResultsSerializer::from_format(QueryResultsFormat::Json);
@@ -166,13 +189,44 @@ impl Reasoner {
                 }
             }
         }
-        ensure!(
-            visits.get() <= MAX_VISITS && !cancel.is_cancelled(),
-            "SPARQL query cancelled or over budget"
-        );
+        if stats.visits.get() > MAX_VISITS {
+            return Err(stats.budget_error().into());
+        }
+        ensure!(!cancel.is_cancelled(), "SPARQL query cancelled");
         Ok(SparqlOutput {
             media_type,
             bytes: output.0,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejected_scan_identifies_the_request_wide_budget() {
+        let pack = Pack::from_sorted(vec!["<urn:p>".into()], vec![[0, 0, 0]]).unwrap();
+        let stats = ScanStats::default();
+        stats.visits.set(MAX_VISITS - 1);
+        let token = CancellationToken::new();
+        let graph = Graph {
+            pack: &pack,
+            stats: &stats,
+            cancel: &token,
+        };
+        assert!(
+            graph
+                .internal_quads_for_pattern(None, None, None, Some(None))
+                .next()
+                .unwrap()
+                .is_ok()
+        );
+        let mut second = graph.internal_quads_for_pattern(None, None, None, Some(None));
+        let message = second.next().unwrap().err().unwrap().to_string();
+        assert!(
+            message.contains("attempted candidate 20000001, limit 20000000, full-scan iterators 2")
+        );
+        assert!(second.next().is_none());
     }
 }
