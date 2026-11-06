@@ -1,6 +1,6 @@
 # OntoKiln 开发指南
 
-本指南适用于整个仓库。OntoKiln 将一个目录的 Turtle（`.ttl`）和 N-Triples（`.nt`）文件编译成不可变 RDF 快照，再加载到内存提供只读推理。项目目标是亿级三元组，当前 demo 的实测规模到 10,001,094 条。现有 CLI 和 HTTP 契约见 [README](README.md)，后续架构与验收目标见[设计稿](docs/rust-design-v1.md)。
+本指南适用于整个仓库。OntoKiln 将一个目录的 Turtle（`.ttl`）和 N-Triples（`.nt`）文件编译成不可变 RDF 快照，再加载到内存提供只读推理。项目目标是亿级三元组。pack v2 的常规基准覆盖到 10,001,094 条显式三元组，扩展类型图覆盖到 11,126,095 条。现有 CLI 和 HTTP 契约见 [README](README.md)，后续架构与验收目标见[设计稿](docs/rust-design-v1.md)。
 
 ## 按任务定位代码
 
@@ -28,15 +28,23 @@ cargo run --locked --example scenario_lab -- --compare
 
 [引擎回归](tests/engines.rs)验证 mmap、并行确定性、SPARQL 和规则求值。使用 `--all-features` 覆盖 Ascent 与 Datafrog 的差分用例。[集成测试](tests/demo.rs)覆盖删除 TTL 后独立加载 pack、两种入口的答案与证明一致、循环继承、空白节点作用域及损坏包处理。业务语义改动可先用 `cargo run --locked --example scenario_lab -- --case V4 --trace` 查看具体选择过程，再重放全部用例。
 
-## 性能基准
+## 复现 pack v2 性能基准
 
-[基准脚本](benchmarks/run.py)需要 macOS 或 Linux、Python 3.9+ 及 release 二进制。可先用较小数据验证环境。
+在 macOS 或 Linux 上使用 Python 3.9+。先构建带 Ascent 的 release 二进制，再从仓库根目录顺序运行两套脚本，避免争用 CPU。输出写到 Git 忽略的 `data/`。快速检查环境时，可给任一脚本加 `--subjects 25000`，参数表示生成的面板数。
 
 ```sh
-cargo build --release --locked --bin ontokiln --example scenario_lab
-python3 benchmarks/run.py --subjects 25000 --output data/performance-run.json
+cargo build --release --locked --features ascent-engine --bin ontokiln --example scenario_lab
+python3 -B benchmarks/run.py --output data/pack-v2.json
+python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
 ```
 
-省略 `--subjects` 会运行全套规模。`--subjects` 指生成的面板数，实际三元组数由脚本通过服务健康检查核对。比较前确认数据规模、查询形状、并发和计时边界一致。HTTP 端到端延迟与 `scenario_lab` 进程内耗时分别报告。
+| 改动涉及 | 运行与对照 |
+|---|---|
+| 编译、pack 装载、层级推导、证明、业务血缘或反向影响 | [常规脚本](benchmarks/run.py)覆盖三档数据规模及 14 个业务用例。与 [v2 常规基准](benchmarks/pack-v2.json) 比较 |
+| 并行批量查询、位图类型过滤、SPARQL 或离线规则 | [扩展脚本](benchmarks/capabilities.py)覆盖首次与热态位图查询、两种规模的 SPARQL 聚合，以及 Datafrog / Ascent 闭包对照。与 [v2 扩展基准](benchmarks/pack-v2-capabilities.json) 比较 |
 
-日常复测输出放在 Git 忽略的 `data/`。正式更新基准时，将实测 JSON 与[性能报告](benchmarks/README.md)一起提交，注明环境和引擎版本。[已提交的基线](benchmarks/baseline.json)可用于对照。当前单 pack 上限是 256 MiB，扩大规模时先核算索引与词典占用。
+回归比较应匹配图规模、查询写法、并发、预热和构建特性。HTTP 往返、`scenario_lab` 进程内求值、离线规则 CLI 整条命令各自计时。比较批量吞吐时记录每请求主语数和主语/秒。位图首次建索引与热查询分别报告。
+
+排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。在 11,126,095 条图的已知对照中，普通双类型 COUNT 触发 2,000 万行预算，等价的 `FILTER EXISTS` 返回预期的 125,000。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
+
+正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。当前单 pack 上限为 256 MiB，扩大规模前先核算索引与词典占用。
