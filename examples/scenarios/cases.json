@@ -1,0 +1,17 @@
+[
+  {"id":"L1","sources":"Summary.address","context":{},"certain":["Order.city","Order.detail"],"possible":[]},
+  {"id":"L2","sources":"PickupCard.title","context":{},"certain":["Shop.name"],"possible":[]},
+  {"id":"L3","impact":"Order.city","context":{"partner":false},"certain":["Summary.address","DeliveryPanel.text"],"possible":[]},
+  {"id":"L4","impact":"Geo.debug","context":{},"certain":[],"possible":[]},
+
+  {"id":"V1","sources":"DeliveryPanel.text","context":{"partner":false,"badge":false},"certain":["Order.city","Order.detail"],"possible":[]},
+  {"id":"V2","sources":"DeliveryPanel.text","context":{"partner":true,"aliasReady":true,"badge":false},"certain":["Order.alias"],"possible":[]},
+  {"id":"V3","sources":"DeliveryPanel.text","context":{"partner":true,"aliasReady":false,"badge":false},"certain":["Order.postcode"],"possible":[]},
+  {"id":"V4","sources":"DeliveryPanel.text","context":{"partner":true,"aliasReady":true,"badge":true},"certain":["Order.alias","Campaign.badge"],"possible":[]},
+  {"id":"V5","sources":"DeliveryPanel.text","context":{"badge":true},"certain":["Campaign.badge"],"possible":["Order.alias","Order.postcode","Order.city","Order.detail"]},
+  {"id":"V6","sources":"DeliveryPanel.text","context":{"partner":true,"badge":false},"certain":[],"possible":["Order.alias","Order.postcode"]},
+  {"id":"V7","impact":"Order.city","context":{"partner":true},"certain":["Summary.address"],"possible":[]},
+  {"id":"V8","impact":"Order.city","context":{},"certain":["Summary.address"],"possible":["DeliveryPanel.text"]},
+  {"id":"V9","impact":"Campaign.badge","context":{"badge":false},"certain":[],"possible":[]},
+  {"id":"V10","impact":"Order.postcode","context":{"partner":true,"aliasReady":false,"badge":true},"certain":["DeliveryPanel.text"],"possible":[]}
+]

@@ -1,0 +1,6 @@
+@prefix ex: <https://example.org/shop/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:delivery a ex:DeliveryPanel ;
+    ex:readsField ex:OrderDeliveryText ;
+    rdfs:label "配送信息"@zh .

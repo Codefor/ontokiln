@@ -1,0 +1,13 @@
+[package]
+name = "ontokiln-compiler"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+ontokiln-pack.workspace = true
+oxrdf.workspace = true
+oxttl = "0.2"
+url = "2"
+walkdir = "2"

@@ -1,0 +1,9 @@
+[package]
+name = "ontokiln-reasoner"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+ontokiln-pack.workspace = true
+serde.workspace = true

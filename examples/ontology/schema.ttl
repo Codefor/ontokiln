@@ -1,0 +1,6 @@
+@prefix ex: <https://example.org/shop/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+ex:DeliveryPanel rdfs:subClassOf ex:ViewComponent .
+ex:ViewComponent rdfs:subClassOf ex:Component .
+ex:readsField rdfs:subPropertyOf ex:dependsOn .

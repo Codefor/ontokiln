@@ -1,0 +1,26 @@
+@prefix x: <urn:ontokiln:lab:> .
+
+# Context keys are independent booleans in this experiment.
+x:Checkout x:flag x:partner, x:aliasReady, x:badge .
+x:Order.alias a x:GoField .
+x:Order.postcode a x:GoField .
+x:Campaign.badge a x:GoField .
+
+x:DeliveryPanel.text a x:ComponentProperty ;
+    x:arg0 x:BadgeHook ; x:evidence "checkout.go#deliveryText" .
+x:BadgeHook a x:Extension ; x:guard x:badge ;
+    x:onTrue x:PrependBadge ; x:onFalse x:SelectBuilder ;
+    x:evidence "checkout.go#deliveryText" .
+x:PrependBadge a x:Transform ;
+    x:arg0 x:Campaign.badge ; x:arg1 x:SelectBuilder ;
+    x:evidence "checkout.go#prependBadge" .
+x:SelectBuilder a x:Override ; x:guard x:partner ;
+    x:onTrue x:PartnerAvailability ; x:onFalse x:AddressVM.text ;
+    x:evidence "checkout.go#selectBuilder" .
+x:PartnerAvailability a x:Fallback ; x:guard x:aliasReady ;
+    x:onTrue x:PartnerText ; x:onFalse x:PostcodeText ;
+    x:evidence "checkout.go#selectBuilder" .
+x:PartnerText a x:Transform ; x:arg0 x:Order.alias ;
+    x:evidence "checkout.go#partnerText" .
+x:PostcodeText a x:Transform ; x:arg0 x:Order.postcode ;
+    x:evidence "checkout.go#postcodeText" .

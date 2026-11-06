@@ -1,0 +1,21 @@
+@prefix x: <urn:ontokiln:lab:> .
+
+# Synthetic Go field mappings. arg0 and arg1 on the same node are joint inputs.
+x:Order.city a x:GoField .
+x:Order.detail a x:GoField .
+x:Shop.name a x:GoField .
+x:Geo.debug a x:GoField .
+x:FormatAddress a x:Transform ;
+    x:arg0 x:Order.city ; x:arg1 x:Order.detail ;
+    x:evidence "checkout.go#formatAddress" .
+x:AddressVM.text a x:ModelProperty ;
+    x:arg0 x:FormatAddress ; x:evidence "checkout.go#makeAddressVM" .
+x:Summary.address a x:ComponentProperty ;
+    x:arg0 x:AddressVM.text ; x:evidence "checkout.go#summaryAddress" .
+x:PickupCard.title a x:ComponentProperty ;
+    x:arg0 x:Shop.name ; x:evidence "checkout.go#pickupTitle" .
+
+# A service call has an available response field, but the caller ignores it.
+x:Summary.address x:calls x:GeoLookup .
+x:GeoLookup x:responseField x:Geo.debug .
+x:Views x:field x:Summary.address, x:PickupCard.title, x:DeliveryPanel.text .

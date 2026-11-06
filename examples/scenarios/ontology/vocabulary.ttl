@@ -1,0 +1,14 @@
+@prefix x: <urn:ontokiln:lab:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+x:ComponentProperty rdfs:subClassOf x:Property .
+x:ModelProperty rdfs:subClassOf x:Property .
+x:GoField rdfs:subClassOf x:SourceField .
+x:SourceField rdfs:subClassOf x:Property .
+x:arg0 rdfs:subPropertyOf x:input .
+x:arg1 rdfs:subPropertyOf x:input .
+x:onTrue rdfs:subPropertyOf x:candidate .
+x:onFalse rdfs:subPropertyOf x:candidate .
+x:Override rdfs:subClassOf x:Choice .
+x:Fallback rdfs:subClassOf x:Choice .
+x:Extension rdfs:subClassOf x:Choice .
