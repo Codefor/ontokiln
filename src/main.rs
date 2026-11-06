@@ -216,6 +216,7 @@ mod http_tests;
 
 #[derive(Serialize)]
 struct Health {
+    pack_version: u32,
     status: &'static str,
     source: &'static str,
     profile: &'static str,
@@ -225,6 +226,7 @@ struct Health {
 
 async fn health(State(app): State<App>) -> Json<Health> {
     Json(Health {
+        pack_version: ontokiln_pack::PACK_VERSION,
         status: "ready",
         source: app.source,
         profile: "rdfs-hierarchy-v1",

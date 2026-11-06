@@ -4,12 +4,18 @@
 |---|---|---|
 | oxrdfio / oxrdf | `compile --ttl DIR`、`serve --ttl DIR` | 递归读取 Turtle 和 N-Triples，文档内解析相对 IRI、隔离空白节点，合并成一个显式默认图 |
 | spargebra / spareval | `sparql --pack FILE --query FILE.rq`、HTTP 模板 | 使用 pack 的 SPO 索引执行 SELECT、ASK、CONSTRUCT、DESCRIBE。SELECT/ASK 使用 SPARQL Results JSON，图结果使用 N-Triples |
-| memmap2 | `serve --pack`、所有读取 pack 的 CLI | 兼容 v1 格式。小端平台直接从只读映射读词典字节和 SPO，堆中只保存词典偏移。大端平台转换字节序后使用拥有所有权的数组 |
+| memmap2 | `serve --pack`、所有读取 pack 的 CLI | 只读取 pack v2。小端平台直接从只读映射读取词典偏移、词项文本及 SPO。大端平台转换字节序后使用拥有所有权的数组 |
 | roaring | `POST /v1/entities` | 首次使用时按显式 rdf:type 建位图。每个类型可以合并其子类的实例，再对请求中的各类型求交 |
 | rayon | 编译词项排序、并行重编码、SPO 排序及 `POST /v1/query/batch` | 批量请求按主语独立遍历，按输入次序返回。文件解析保持稳定顺序。用 `RAYON_NUM_THREADS` 设置工作线程数 |
 | petgraph | `rules --program FILE` | 按规则体谓词至头谓词构图，折叠强连通分量并拓扑排序。在同一分量内算到不动点，再处理依赖它的规则 |
 | datafrog | `rules --engine datafrog`（默认） | 对用户提供的正向二元关系规则进行半朴素求值，输出新增三元组 |
 | ascent | `--features ascent-engine` 后使用 `rules --engine ascent` | 用声明式 Datalog 程序执行相同的规则与阶段，可与 Datafrog 逐条对照。仅离线命令使用 |
+
+## Pack v2
+
+编译器与所有 pack 入口统一使用 v2。升级已有部署时，从原始 `.ttl` / `.nt` 重新编译 pack，再重启服务。加载器在复制或解析正文前检查版本，错误信息包含检测到的版本、期望版本和重编提示。可通过 `GET /health` 的 `pack_version` 确认运行版本。
+
+磁盘字段均采用小端序。文件依次包含 8 字节魔数 `ONTOKILN`、4 字节版本号、32 字节正文 SHA-256，随后是正文。正文包含词项数（u32）、三元组数（u64）、相对词项文本起点的字节偏移表（词项数 + 1 个 u64，末项等于文本总长度）、有序 SPO 行（每行三个 u32）和连续 UTF-8 文本。偏移表从文件第 56 字节（从零计）开始，偏移表及 SPO 均自然对齐。加载时校验偏移边界、UTF-8、排序和 ID 引用。
 
 ## 用同一个 pack 查询
 
@@ -35,7 +41,7 @@ curl -sS -H 'Content-Type: application/json' http://127.0.0.1:7880/v1/query/batc
 * **数据集。** SPARQL 与编译输入的显式默认图一致，命名图集合为空。层级推导和证明使用 `/v1/query` 或其批量版本。服务只接受启动时解析的受信任模板，CLI 可直接执行本地查询文件。远程 SERVICE 处理器未启用。
 * **类型过滤。** `subclasses` 默认 false，设为 true 时沿显式 `rdfs:subClassOf` 反查子类并处理环。每次允许 1～32 个类型，返回总数及最多 `limit` 个实体（默认 100，上限 1,000）。该接口的成员事实来自显式 `rdf:type`。
 * **查询预算。** SPARQL 单次最多检查 2,000 万条候选 SPO 行、返回 10 万行或 4 MiB。超限时丢弃此次输出。HTTP 超过 5 秒发出协作式取消。排序和连接的中间内存仍取决于模板。批量层级查询最多 16 个主语，每个主语沿用单查询的工作量与文本预算。
-* **映射的生命周期。** 为避免外部写入或截断原文件使映射失效，加载器将输入复制到私有临时文件，完成映射后关闭写句柄，并在提供查询前校验摘要、字典及索引。启动时要预留约一份 pack 的临时磁盘空间。v1 的 256 MiB 上限继续适用。
+* **映射的生命周期。** 为避免外部写入或截断原文件使映射失效，加载器将输入复制到私有临时文件，完成映射后关闭写句柄，并在提供查询前校验摘要、字典及索引。启动时要预留约一份 pack 的临时磁盘空间。当前单 pack 上限为 256 MiB。
 
 ## 离线规则
 

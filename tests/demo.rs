@@ -141,15 +141,14 @@ fn invalid_sources_and_corrupt_packs_fail_without_replacing_previous_output() {
             .to_string()
             .contains("checksum")
     );
-    let mut newer = good;
-    newer[8] = 2;
-    fs::write(&path, newer).unwrap();
-    assert!(
-        Pack::load(&path)
-            .unwrap_err()
-            .to_string()
-            .contains("version")
-    );
+    for unsupported in [1_u32, 3] {
+        let mut bytes = good.clone();
+        bytes[8..12].copy_from_slice(&unsupported.to_le_bytes());
+        fs::write(&path, bytes).unwrap();
+        let error = Pack::load(&path).unwrap_err().to_string();
+        assert!(error.contains(&format!("unsupported pack version {unsupported}")));
+        assert!(error.contains("rebuild"));
+    }
     fs::write(&path, b"bad").unwrap();
     assert!(Pack::load(&path).is_err());
 }

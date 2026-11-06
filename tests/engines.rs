@@ -11,7 +11,7 @@ use std::{collections::BTreeSet, fs, path::Path, process::Command};
 use tempfile::tempdir;
 
 #[test]
-fn mixed_formats_and_thread_counts_preserve_v1_bytes_and_blank_scopes() {
+fn mixed_formats_and_thread_counts_preserve_v2_bytes_and_blank_scopes() {
     let d = tempdir().unwrap();
     fs::write(
         d.path().join("a.ttl"),
@@ -44,18 +44,25 @@ fn mixed_formats_and_thread_counts_preserve_v1_bytes_and_blank_scopes() {
     assert_eq!(p.triple_count(), 3);
 }
 
-// Exercise all four possible byte alignments of the variable-width v1 dictionary.
+// Variable-width text must never affect the alignment of the mapped SPO rows.
 #[test]
-fn mapped_pack_accepts_v1_and_survives_in_place_source_truncation() {
+fn mapped_v2_pack_survives_in_place_source_truncation() {
     use std::io::Write;
     let d = tempdir().unwrap();
     for n in 0..4 {
-        let file = d.path().join("old.pack");
+        let file = d.path().join("snapshot.pack");
         let term = format!("<urn:a{}>", "x".repeat(n));
         let pack = Pack::from_sorted(vec![term.clone()], vec![[0, 0, 0]]).unwrap();
         pack.save(&file).unwrap();
         let before = fs::read(&file).unwrap();
-        assert_eq!(&before[..12], b"ONTOKILN\x01\x00\x00\x00");
+        assert_eq!(&before[..12], b"ONTOKILN\x02\x00\x00\x00");
+        // One term, one row: the two offsets and the SPO row precede all text.
+        assert_eq!(&before[44..48], &1_u32.to_le_bytes());
+        assert_eq!(&before[48..56], &1_u64.to_le_bytes());
+        assert_eq!(&before[56..64], &0_u64.to_le_bytes());
+        assert_eq!(&before[64..72], &(term.len() as u64).to_le_bytes());
+        assert_eq!(&before[72..84], &[0; 12]);
+        assert_eq!(&before[84..], term.as_bytes());
         let mapped = Pack::load(&file).unwrap();
         fs::File::create(&file)
             .unwrap()

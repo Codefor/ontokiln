@@ -7,12 +7,12 @@
 | 要改什么 | 入口 | 需要保持的行为 |
 |---|---|---|
 | TTL 扫描、解析与编码 | [compiler](crates/compiler/src/lib.rs) 的 `compile_directory` | 稳定顺序扫描，按文档隔离空白节点，对词典排序、对三元组去重。同一输入可重建相同 pack |
-| 离线文件格式与索引 | [pack](crates/pack/src/lib.rs) 的 `Pack::save/load` | 词项 ID 仅在当前快照有效。SPO 索引按主语、谓词、对象排序。保存时原子替换，加载时验证版本、摘要、长度和 ID 边界。变更格式时明确旧 pack 的读取或拒绝策略 |
+| 离线文件格式与索引 | [pack](crates/pack/src/lib.rs) 的 `Pack::save/load` | 词项 ID 仅在当前快照有效。SPO 索引按主语、谓词、对象排序。保存时原子替换，加载时验证版本、摘要、长度和 ID 边界。只接受当前 pack v2，旧产物从源文件重新编译 |
 | 层级推导与证明 | [reasoner](crates/reasoner/src/lib.rs) 的 `Reasoner::query` | 当前规则集为 `rdfs-hierarchy-v1`。按主语处理类和属性继承，显式事实优先，可返回一条证明。保留循环终止、工作量和结果大小限制 |
 | CLI、启动、HTTP | [服务入口](src/main.rs) | `serve --ttl` 在启动时编译，`serve --pack` 可脱离 TTL 单独启动。二者共用同一内存推理器。除健康检查和单主语查询外，批量查询、类型交集及 SPARQL 模板的处理见 [queries](src/queries.rs) |
 | 字段血缘和业务分支 | [scenario_lab](examples/scenario_lab.rs)、[场景说明](examples/scenarios/README.md) | 跨节点血缘、反向影响、覆盖与降级在独立实验程序中执行。Go 样例和 TTL 之间是手工映射，[用例](examples/scenarios/cases.json)给出独立预期。修改语义时核对确定集、候选集和被排除的路径 |
 
-新增能力的分工与命令见[引擎说明](docs/engines.md)。可执行的规则定义由编译侧的 [rules](crates/compiler/src/rules.rs) 规划和离线求值。SPARQL 查询显式图，内存类型过滤使用按需构建的位图。修改 pack 时同时检查文件映射的生命周期、v1 字节对齐和源文件被改写时的行为。
+新增能力的分工与命令见[引擎说明](docs/engines.md)。可执行的规则定义由编译侧的 [rules](crates/compiler/src/rules.rs) 规划和离线求值。SPARQL 查询显式图，内存类型过滤使用按需构建的位图。修改 pack 时同时检查文件映射的生命周期、v2 偏移表和 SPO 的自然对齐和源文件被改写时的行为。
 
 ## 构建与验证
 
