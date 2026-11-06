@@ -62,10 +62,13 @@ def compile_pack(directory, pack):
 
 
 @contextmanager
-def serve(source, path, triples):
+def serve(source, path, triples, queries=None):
     start = time.perf_counter()
     metrics = {}
-    proc = subprocess.Popen([BIN, "serve", f"--{source}", path, "--listen", "127.0.0.1:0"],
+    args = [BIN, "serve", f"--{source}", path, "--listen", "127.0.0.1:0"]
+    if queries is not None:
+        args.extend(["--queries", queries])
+    proc = subprocess.Popen(args,
                             stderr=subprocess.PIPE, text=True)
     try:
         last_line = ""
@@ -83,7 +86,7 @@ def serve(source, path, triples):
         data = json.loads(res.read())
         elapsed = time.perf_counter() - start
         conn.close()
-        if (res.status, data["source"], data["triples"]) != (200, source, triples):
+        if (res.status, data["source"], data["triples"], data["pack_version"]) != (200, source, triples, 2):
             raise RuntimeError(f"unexpected health: {data}")
         rss = int(subprocess.check_output(["ps", "-o", "rss=", "-p", str(proc.pid)])) * 1024
         metrics.update(ready_seconds=elapsed, ready_rss_bytes=rss, terms=data["terms"])
@@ -136,6 +139,13 @@ def load_worker(job):
                     raise RuntimeError("incorrect proof")
         return elapsed, None
 
+    try:
+        return measure_requests(n, request)
+    finally:
+        conn.close()
+
+
+def measure_requests(n, request):
     samples, errors = [], {}
     try:
         for _ in range(32):
@@ -155,16 +165,14 @@ def load_worker(job):
     except BaseException:
         START_GATE.abort()
         raise
-    finally:
-        conn.close()
 
 
-def load_test(port, subjects, mode, clients, requests):
+def load_test(port, subjects, mode, clients, requests, worker_fn=load_worker):
     ctx = multiprocessing.get_context("spawn")
     gate = ctx.Barrier(clients + 1)
     jobs = [(port, subjects, mode, i, requests // clients) for i in range(clients)]
     with ProcessPoolExecutor(clients, mp_context=ctx, initializer=init_client, initargs=(gate,)) as pool:
-        futures = [pool.submit(load_worker, job) for job in jobs]
+        futures = [pool.submit(worker_fn, job) for job in jobs]
         gate.wait(timeout=60)  # Workers have warm persistent connections.
         start = time.perf_counter()
         gate.wait(timeout=60)
@@ -227,6 +235,27 @@ def view_scaling():
     return rows
 
 
+def environment():
+    report = {"utc_date": time.strftime("%Y-%m-%d", time.gmtime()), "os": platform.platform(),
+              "python": platform.python_version(), "logical_cpus": os.cpu_count(),
+              "memory_bytes": os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE"),
+              "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip(),
+              "engine_revision": subprocess.check_output(["git", "log", "-1", "--format=%H", "--", "src", "crates"],
+                                                         cwd=ROOT, text=True).strip(),
+              "profile": "release", "pack_version": 2}
+    if sys.platform == "darwin":
+        report["cpu"] = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
+    return report
+
+
+def publish(path, report):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=path.parent) as staging:
+        result = Path(staging) / "result.json"
+        result.write_text(json.dumps(report, indent=2) + "\n")
+        result.replace(path)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subjects", type=int, nargs="+", default=[25_000, 250_000, 2_500_000])
@@ -234,25 +263,13 @@ def main():
     args = parser.parse_args()
     if min(args.subjects) < 1:
         parser.error("subject counts must be positive")
-    report = {"utc_date": time.strftime("%Y-%m-%d", time.gmtime()), "os": platform.platform(),
-              "python": platform.python_version(), "logical_cpus": os.cpu_count(),
-              "memory_bytes": os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE"),
-              "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip(),
-              "engine_revision": subprocess.check_output(["git", "log", "-1", "--format=%H", "--", "src", "crates"],
-                                                         cwd=ROOT, text=True).strip(),
-              "profile": "release", "datasets": []}
-    if sys.platform == "darwin":
-        report["cpu"] = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
+    report = dict(environment(), datasets=[])
     for n in args.subjects:
         with tempfile.TemporaryDirectory(prefix="ontokiln-bench-") as tmp:
             print(f"Benchmarking {n:,} subjects", file=sys.stderr, flush=True)
             report["datasets"].append(benchmark(Path(tmp), n, n == max(args.subjects)))
     report["view_scaling"] = view_scaling()
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(dir=args.output.parent) as staging:
-        result = Path(staging) / "result.json"
-        result.write_text(json.dumps(report, indent=2) + "\n")
-        result.replace(args.output)
+    publish(args.output, report)
 
 
 if __name__ == "__main__":

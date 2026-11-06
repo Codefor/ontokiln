@@ -4,7 +4,7 @@ Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 合�
 
 [配送组件血缘与复用定制实验](examples/scenarios/README.md) 包含合成 TTL、14 个可重放用例，以及按上下文选择实现的对照结果。
 
-[性能实测](benchmarks/README.md) 包含十万至千万条三元组的编译、启动、内存和 HTTP 查询数据，以及字段血缘和实现选择的进程内耗时。
+[Pack v2 推理能力实测](benchmarks/pack-v2.md) 包含层级与批量查询、位图、SPARQL、业务血缘和离线规则的延迟、吞吐及预算边界。[历史基准](benchmarks/README.md) 记录编译、启动和内存数据。
 
 ## 启动 demo
 

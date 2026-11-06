@@ -1,0 +1,775 @@
+{
+  "utc_date": "2026-11-06",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "009517a88eb140634eaaabf7260b13a05dba34ff",
+  "profile": "release",
+  "pack_version": 2,
+  "cpu": "Apple M2 Pro",
+  "features": [
+    "ascent-engine"
+  ],
+  "online": {
+    "subjects": 2500000,
+    "triples": 11126095,
+    "pack_bytes": 225045295,
+    "bitmap_total": 125000,
+    "bitmap_first_ms": [
+      94.135166,
+      83.634167,
+      84.612875
+    ],
+    "http": [
+      {
+        "mode": "batch1",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.8958281669999977,
+        "ok_per_second": 9144.610877143832,
+        "p50_ms": 0.09425,
+        "p95_ms": 0.134708,
+        "p99_ms": 0.166708,
+        "trial": 1
+      },
+      {
+        "mode": "batch1",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.25216858299999956,
+        "ok_per_second": 32486.203882106973,
+        "p50_ms": 0.19175,
+        "p95_ms": 0.305584,
+        "p99_ms": 0.3625,
+        "trial": 1
+      },
+      {
+        "mode": "batch8",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.430862542,
+        "ok_per_second": 3369.9972164036913,
+        "p50_ms": 0.2585,
+        "p95_ms": 0.359333,
+        "p99_ms": 0.55075,
+        "trial": 1
+      },
+      {
+        "mode": "batch8",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.46688800000000086,
+        "ok_per_second": 17545.963914257776,
+        "p50_ms": 0.385875,
+        "p95_ms": 0.649458,
+        "p99_ms": 0.875667,
+        "trial": 1
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 1.1710060829999982,
+        "ok_per_second": 6995.693804606831,
+        "p50_ms": 0.117125,
+        "p95_ms": 0.183333,
+        "p99_ms": 0.29175,
+        "trial": 1
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.4025627909999976,
+        "ok_per_second": 20349.620439709364,
+        "p50_ms": 0.303666,
+        "p95_ms": 0.587709,
+        "p99_ms": 0.997542,
+        "trial": 1
+      },
+      {
+        "mode": "bitmap",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.093894916,
+        "ok_per_second": 3912.326228695996,
+        "p50_ms": 0.237875,
+        "p95_ms": 0.299958,
+        "p99_ms": 0.343333,
+        "trial": 1
+      },
+      {
+        "mode": "bitmap",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.45933575000000104,
+        "ok_per_second": 17834.44898421249,
+        "p50_ms": 0.390084,
+        "p95_ms": 0.611958,
+        "p99_ms": 0.776458,
+        "trial": 1
+      },
+      {
+        "mode": "batch8",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.333902917000003,
+        "ok_per_second": 3510.000326204652,
+        "p50_ms": 0.255416,
+        "p95_ms": 0.335417,
+        "p99_ms": 0.413208,
+        "trial": 2
+      },
+      {
+        "mode": "batch8",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.387287041999997,
+        "ok_per_second": 21152.26979373109,
+        "p50_ms": 0.321542,
+        "p95_ms": 0.501458,
+        "p99_ms": 0.612875,
+        "trial": 2
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 1.0550428330000017,
+        "ok_per_second": 7764.613666637729,
+        "p50_ms": 0.112875,
+        "p95_ms": 0.14375,
+        "p99_ms": 0.1825,
+        "trial": 2
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.27290754199999867,
+        "ok_per_second": 30017.492151243074,
+        "p50_ms": 0.223291,
+        "p95_ms": 0.356959,
+        "p99_ms": 0.440417,
+        "trial": 2
+      },
+      {
+        "mode": "bitmap",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.1124327499999964,
+        "ok_per_second": 3877.9932757622764,
+        "p50_ms": 0.238417,
+        "p95_ms": 0.30225,
+        "p99_ms": 0.348792,
+        "trial": 2
+      },
+      {
+        "mode": "bitmap",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.3923558329999963,
+        "ok_per_second": 20879.006531808274,
+        "p50_ms": 0.343459,
+        "p95_ms": 0.456042,
+        "p99_ms": 0.526625,
+        "trial": 2
+      },
+      {
+        "mode": "batch1",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.8703129589999961,
+        "ok_per_second": 9412.705987295356,
+        "p50_ms": 0.092208,
+        "p95_ms": 0.112917,
+        "p99_ms": 0.145625,
+        "trial": 2
+      },
+      {
+        "mode": "batch1",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.22833350000000507,
+        "ok_per_second": 35877.346074929075,
+        "p50_ms": 0.180083,
+        "p95_ms": 0.268334,
+        "p99_ms": 0.323334,
+        "trial": 2
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 1.0812795420000043,
+        "ok_per_second": 7576.2091871705525,
+        "p50_ms": 0.113459,
+        "p95_ms": 0.1465,
+        "p99_ms": 0.184791,
+        "trial": 3
+      },
+      {
+        "mode": "sparql_bound",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.25551591600000023,
+        "ok_per_second": 32060.62513929658,
+        "p50_ms": 0.209833,
+        "p95_ms": 0.3075,
+        "p99_ms": 0.362833,
+        "trial": 3
+      },
+      {
+        "mode": "bitmap",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.0634904590000005,
+        "ok_per_second": 3969.9723176670127,
+        "p50_ms": 0.23575,
+        "p95_ms": 0.293,
+        "p99_ms": 0.334959,
+        "trial": 3
+      },
+      {
+        "mode": "bitmap",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.400903624999998,
+        "ok_per_second": 20433.838681304118,
+        "p50_ms": 0.352375,
+        "p95_ms": 0.503375,
+        "p99_ms": 0.631333,
+        "trial": 3
+      },
+      {
+        "mode": "batch1",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.8982928749999957,
+        "ok_per_second": 9119.520178761342,
+        "p50_ms": 0.095625,
+        "p95_ms": 0.132792,
+        "p99_ms": 0.161666,
+        "trial": 3
+      },
+      {
+        "mode": "batch1",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.2330496249999996,
+        "ok_per_second": 35151.311657334845,
+        "p50_ms": 0.182041,
+        "p95_ms": 0.287166,
+        "p99_ms": 0.3475,
+        "trial": 3
+      },
+      {
+        "mode": "batch8",
+        "clients": 1,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 2.268022000000002,
+        "ok_per_second": 3611.9579086975314,
+        "p50_ms": 0.248083,
+        "p95_ms": 0.321709,
+        "p99_ms": 0.379083,
+        "trial": 3
+      },
+      {
+        "mode": "batch8",
+        "clients": 8,
+        "requests": 8192,
+        "warmup_per_client": 32,
+        "errors": {},
+        "seconds": 0.39595970799999947,
+        "ok_per_second": 20688.973737701643,
+        "p50_ms": 0.328167,
+        "p95_ms": 0.506125,
+        "p99_ms": 0.614209,
+        "trial": 3
+      }
+    ],
+    "sparql_scans": [
+      {
+        "template": "premium",
+        "expected_count": 625000,
+        "warmup": {
+          "ms": 77.268541,
+          "status": 200
+        },
+        "runs": [
+          {
+            "ms": 75.747666,
+            "status": 200
+          },
+          {
+            "ms": 76.434625,
+            "status": 200
+          },
+          {
+            "ms": 75.277042,
+            "status": 200
+          },
+          {
+            "ms": 75.214792,
+            "status": 200
+          },
+          {
+            "ms": 75.753,
+            "status": 200
+          },
+          {
+            "ms": 76.650125,
+            "status": 200
+          },
+          {
+            "ms": 75.427291,
+            "status": 200
+          },
+          {
+            "ms": 75.161209,
+            "status": 200
+          },
+          {
+            "ms": 75.715083,
+            "status": 200
+          }
+        ]
+      },
+      {
+        "template": "intersection",
+        "expected_count": 125000,
+        "warmup": {
+          "ms": 353.278333,
+          "status": 422,
+          "error": {
+            "error": "SPARQL scan cancelled or over budget"
+          }
+        },
+        "runs": [
+          {
+            "ms": 342.065959,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 342.996084,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 380.254333,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 324.454292,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 326.689542,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 328.781375,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 326.010875,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 325.364666,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          },
+          {
+            "ms": 323.441958,
+            "status": 422,
+            "error": {
+              "error": "SPARQL scan cancelled or over budget"
+            }
+          }
+        ]
+      },
+      {
+        "template": "exists",
+        "expected_count": 125000,
+        "warmup": {
+          "ms": 344.861958,
+          "status": 200
+        },
+        "runs": [
+          {
+            "ms": 308.498542,
+            "status": 200
+          },
+          {
+            "ms": 311.852375,
+            "status": 200
+          },
+          {
+            "ms": 314.481167,
+            "status": 200
+          },
+          {
+            "ms": 306.729625,
+            "status": 200
+          },
+          {
+            "ms": 314.08275,
+            "status": 200
+          },
+          {
+            "ms": 307.27875,
+            "status": 200
+          },
+          {
+            "ms": 306.663459,
+            "status": 200
+          },
+          {
+            "ms": 322.410542,
+            "status": 200
+          },
+          {
+            "ms": 304.932458,
+            "status": 200
+          }
+        ]
+      }
+    ]
+  },
+  "scan_control": {
+    "subjects": 250000,
+    "triples": 1113595,
+    "sparql_scans": [
+      {
+        "template": "intersection",
+        "expected_count": 12500,
+        "warmup": {
+          "ms": 32.241417,
+          "status": 200
+        },
+        "runs": [
+          {
+            "ms": 27.528083,
+            "status": 200
+          },
+          {
+            "ms": 26.326375,
+            "status": 200
+          },
+          {
+            "ms": 27.770792,
+            "status": 200
+          },
+          {
+            "ms": 28.613042,
+            "status": 200
+          },
+          {
+            "ms": 26.980958,
+            "status": 200
+          },
+          {
+            "ms": 27.047,
+            "status": 200
+          },
+          {
+            "ms": 28.14025,
+            "status": 200
+          },
+          {
+            "ms": 26.643292,
+            "status": 200
+          },
+          {
+            "ms": 27.816542,
+            "status": 200
+          }
+        ]
+      },
+      {
+        "template": "exists",
+        "expected_count": 12500,
+        "warmup": {
+          "ms": 28.082375,
+          "status": 200
+        },
+        "runs": [
+          {
+            "ms": 27.077083,
+            "status": 200
+          },
+          {
+            "ms": 27.780042,
+            "status": 200
+          },
+          {
+            "ms": 27.737083,
+            "status": 200
+          },
+          {
+            "ms": 27.69375,
+            "status": 200
+          },
+          {
+            "ms": 28.024625,
+            "status": 200
+          },
+          {
+            "ms": 27.518917,
+            "status": 200
+          },
+          {
+            "ms": 27.068625,
+            "status": 200
+          },
+          {
+            "ms": 27.859167,
+            "status": 200
+          },
+          {
+            "ms": 27.689583,
+            "status": 200
+          }
+        ]
+      }
+    ]
+  },
+  "rules": [
+    {
+      "nodes": 32,
+      "input_edges": 31,
+      "derived_triples": 496,
+      "output_sha256": "9675da3526bbcb4483c0c46767f70e7aa1d7a414e3199efd5379e0f61b1b80a8",
+      "warmups_per_engine": 3,
+      "wall_ms": {
+        "datafrog": [
+          4.79725,
+          4.489666,
+          4.371417,
+          4.148208,
+          3.917375,
+          4.091084,
+          4.231542,
+          4.527125,
+          4.68625,
+          4.732875,
+          4.385791,
+          4.221125,
+          3.990834,
+          4.27175,
+          4.523875,
+          4.245958,
+          4.017709,
+          4.322666,
+          4.221833,
+          3.951875,
+          4.023209
+        ],
+        "ascent": [
+          4.501667,
+          4.643875,
+          4.793958,
+          4.071375,
+          4.058959,
+          4.435,
+          4.296417,
+          4.315958,
+          4.101667,
+          4.146667,
+          4.30425,
+          4.229416,
+          4.1615,
+          3.904542,
+          4.465167,
+          4.235459,
+          4.008959,
+          4.730542,
+          4.102084,
+          4.153875,
+          4.131709
+        ]
+      }
+    },
+    {
+      "nodes": 128,
+      "input_edges": 127,
+      "derived_triples": 8128,
+      "output_sha256": "3ed2fc693698428f81e50a06709138062bf5507126176ad8f27d254d75c66cc3",
+      "warmups_per_engine": 3,
+      "wall_ms": {
+        "datafrog": [
+          9.056083,
+          9.087708,
+          9.660291,
+          9.264667,
+          9.429542,
+          9.251625,
+          9.053375,
+          9.293125,
+          9.949208,
+          9.682666,
+          9.229042,
+          9.358291,
+          9.192625,
+          8.943167,
+          9.927416,
+          9.236708,
+          9.046667,
+          9.151625,
+          9.013,
+          9.276792,
+          9.194792
+        ],
+        "ascent": [
+          10.855291,
+          10.750417,
+          10.571459,
+          10.447833,
+          10.568167,
+          10.780375,
+          11.019791,
+          11.0045,
+          13.56725,
+          10.977417,
+          11.166625,
+          10.656584,
+          10.741375,
+          10.407292,
+          10.91,
+          10.726625,
+          10.436167,
+          10.526375,
+          10.645625,
+          10.963708,
+          11.2955
+        ]
+      }
+    },
+    {
+      "nodes": 256,
+      "input_edges": 255,
+      "derived_triples": 32640,
+      "output_sha256": "9606f3465a02d9016f3f51e70c0a686cce21a340b3b9ea3e245a3dacfc75c916",
+      "warmups_per_engine": 3,
+      "wall_ms": {
+        "datafrog": [
+          25.6135,
+          25.869459,
+          26.235125,
+          25.934166,
+          24.710042,
+          28.012583,
+          26.240125,
+          26.169083,
+          25.954,
+          26.414042,
+          25.777708,
+          26.004042,
+          26.800084,
+          26.591084,
+          26.242375,
+          25.932584,
+          25.694334,
+          25.760916,
+          25.953958,
+          25.588625,
+          26.102416
+        ],
+        "ascent": [
+          37.592292,
+          38.287375,
+          38.941708,
+          38.98075,
+          37.997209,
+          38.195125,
+          38.95375,
+          38.126125,
+          38.771,
+          38.848,
+          40.055375,
+          39.864625,
+          38.479417,
+          39.505834,
+          38.139,
+          38.884084,
+          38.8005,
+          38.048667,
+          39.926708,
+          38.5365,
+          38.825416
+        ]
+      }
+    }
+  ]
+}

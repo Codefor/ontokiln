@@ -1,0 +1,699 @@
+{
+  "utc_date": "2026-11-06",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "009517a88eb140634eaaabf7260b13a05dba34ff",
+  "profile": "release",
+  "datasets": [
+    {
+      "subjects": 25000,
+      "triples": 101094,
+      "ttl_bytes": 2134169,
+      "compile": [
+        {
+          "seconds": 0.5916638329999999,
+          "peak_rss_bytes": 14090240
+        },
+        {
+          "seconds": 0.1464490839999999,
+          "peak_rss_bytes": 15581184
+        },
+        {
+          "seconds": 0.13946391599999997,
+          "peak_rss_bytes": 15794176
+        }
+      ],
+      "ttl_start": [
+        {
+          "ready_seconds": 0.13518275000000002,
+          "ready_rss_bytes": 12566528,
+          "terms": 29234,
+          "peak_rss_bytes": 12566528
+        },
+        {
+          "ready_seconds": 0.12943150000000014,
+          "ready_rss_bytes": 14106624,
+          "terms": 29234,
+          "peak_rss_bytes": 14106624
+        },
+        {
+          "ready_seconds": 0.12954825000000003,
+          "ready_rss_bytes": 15040512,
+          "terms": 29234,
+          "peak_rss_bytes": 15040512
+        }
+      ],
+      "pack_start": [
+        {
+          "ready_seconds": 0.015342124999999984,
+          "ready_rss_bytes": 6094848,
+          "terms": 29234,
+          "peak_rss_bytes": 6094848
+        },
+        {
+          "ready_seconds": 0.0156570840000001,
+          "ready_rss_bytes": 6111232,
+          "terms": 29234,
+          "peak_rss_bytes": 6111232
+        },
+        {
+          "ready_seconds": 0.015340665999999947,
+          "ready_rss_bytes": 6094848,
+          "terms": 29234,
+          "peak_rss_bytes": 6094848
+        }
+      ],
+      "http": [
+        {
+          "mode": "type",
+          "clients": 1,
+          "requests": 32768,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 3.489631584,
+          "ok_per_second": 9390.102998334165,
+          "p50_ms": 0.085208,
+          "p95_ms": 0.114416,
+          "p99_ms": 0.188417
+        },
+        {
+          "mode": "type",
+          "clients": 8,
+          "requests": 65536,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 1.713716959,
+          "ok_per_second": 38242.021038434505,
+          "p50_ms": 0.169292,
+          "p95_ms": 0.272125,
+          "p99_ms": 0.333583
+        }
+      ],
+      "pack_bytes": 2220174,
+      "scenario": {
+        "cases": [
+          {
+            "case": "L1",
+            "p50_ns": 230750,
+            "p95_ns": 298250,
+            "p99_ns": 320792,
+            "worlds": 8
+          },
+          {
+            "case": "L2",
+            "p50_ns": 69417,
+            "p95_ns": 81042,
+            "p99_ns": 92500,
+            "worlds": 8
+          },
+          {
+            "case": "L3",
+            "p50_ns": 325250,
+            "p95_ns": 371625,
+            "p99_ns": 470208,
+            "worlds": 4
+          },
+          {
+            "case": "L4",
+            "p50_ns": 656042,
+            "p95_ns": 708083,
+            "p99_ns": 738541,
+            "worlds": 8
+          },
+          {
+            "case": "V1",
+            "p50_ns": 82625,
+            "p95_ns": 99917,
+            "p99_ns": 108500,
+            "worlds": 2
+          },
+          {
+            "case": "V2",
+            "p50_ns": 41083,
+            "p95_ns": 48583,
+            "p99_ns": 61083,
+            "worlds": 1
+          },
+          {
+            "case": "V3",
+            "p50_ns": 41083,
+            "p95_ns": 48375,
+            "p99_ns": 54500,
+            "worlds": 1
+          },
+          {
+            "case": "V4",
+            "p50_ns": 50042,
+            "p95_ns": 59833,
+            "p99_ns": 66000,
+            "worlds": 1
+          },
+          {
+            "case": "V5",
+            "p50_ns": 198583,
+            "p95_ns": 228083,
+            "p99_ns": 240917,
+            "worlds": 4
+          },
+          {
+            "case": "V6",
+            "p50_ns": 80875,
+            "p95_ns": 93542,
+            "p99_ns": 103000,
+            "worlds": 2
+          },
+          {
+            "case": "V7",
+            "p50_ns": 322584,
+            "p95_ns": 355417,
+            "p99_ns": 415958,
+            "worlds": 4
+          },
+          {
+            "case": "V8",
+            "p50_ns": 650875,
+            "p95_ns": 705958,
+            "p99_ns": 754333,
+            "worlds": 8
+          },
+          {
+            "case": "V9",
+            "p50_ns": 306000,
+            "p95_ns": 335125,
+            "p99_ns": 353333,
+            "worlds": 4
+          },
+          {
+            "case": "V10",
+            "p50_ns": 84500,
+            "p95_ns": 96208,
+            "p99_ns": 103666,
+            "worlds": 1
+          }
+        ],
+        "samples_per_case": 300,
+        "warmup_per_case": 32
+      }
+    },
+    {
+      "subjects": 250000,
+      "triples": 1001094,
+      "ttl_bytes": 21313239,
+      "compile": [
+        {
+          "seconds": 1.3674770830000007,
+          "peak_rss_bytes": 100761600
+        },
+        {
+          "seconds": 1.402964291,
+          "peak_rss_bytes": 99614720
+        },
+        {
+          "seconds": 1.3657507090000003,
+          "peak_rss_bytes": 100712448
+        }
+      ],
+      "ttl_start": [
+        {
+          "ready_seconds": 1.30877875,
+          "ready_rss_bytes": 79249408,
+          "terms": 254234,
+          "peak_rss_bytes": 79249408
+        },
+        {
+          "ready_seconds": 1.3330129590000013,
+          "ready_rss_bytes": 78970880,
+          "terms": 254234,
+          "peak_rss_bytes": 78970880
+        },
+        {
+          "ready_seconds": 1.2950323329999982,
+          "ready_rss_bytes": 79593472,
+          "terms": 254234,
+          "peak_rss_bytes": 79593472
+        }
+      ],
+      "pack_start": [
+        {
+          "ready_seconds": 0.10464470800000036,
+          "ready_rss_bytes": 24952832,
+          "terms": 254234,
+          "peak_rss_bytes": 24952832
+        },
+        {
+          "ready_seconds": 0.10176141600000044,
+          "ready_rss_bytes": 24903680,
+          "terms": 254234,
+          "peak_rss_bytes": 24903680
+        },
+        {
+          "ready_seconds": 0.1016855000000021,
+          "ready_rss_bytes": 24920064,
+          "terms": 254234,
+          "peak_rss_bytes": 24920064
+        }
+      ],
+      "http": [
+        {
+          "mode": "type",
+          "clients": 1,
+          "requests": 32768,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 3.4707656669999984,
+          "ok_per_second": 9441.144445894974,
+          "p50_ms": 0.086959,
+          "p95_ms": 0.106958,
+          "p99_ms": 0.13925
+        },
+        {
+          "mode": "type",
+          "clients": 8,
+          "requests": 65536,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 1.6907267499999996,
+          "ok_per_second": 38762.02940540215,
+          "p50_ms": 0.168959,
+          "p95_ms": 0.262291,
+          "p99_ms": 0.318542
+        }
+      ],
+      "pack_bytes": 21045174,
+      "scenario": {
+        "cases": [
+          {
+            "case": "L1",
+            "p50_ns": 219750,
+            "p95_ns": 249208,
+            "p99_ns": 264750,
+            "worlds": 8
+          },
+          {
+            "case": "L2",
+            "p50_ns": 77125,
+            "p95_ns": 90958,
+            "p99_ns": 104333,
+            "worlds": 8
+          },
+          {
+            "case": "L3",
+            "p50_ns": 355333,
+            "p95_ns": 390625,
+            "p99_ns": 419500,
+            "worlds": 4
+          },
+          {
+            "case": "L4",
+            "p50_ns": 711834,
+            "p95_ns": 768042,
+            "p99_ns": 817250,
+            "worlds": 8
+          },
+          {
+            "case": "V1",
+            "p50_ns": 91375,
+            "p95_ns": 101417,
+            "p99_ns": 114833,
+            "worlds": 2
+          },
+          {
+            "case": "V2",
+            "p50_ns": 45459,
+            "p95_ns": 52917,
+            "p99_ns": 58166,
+            "worlds": 1
+          },
+          {
+            "case": "V3",
+            "p50_ns": 45417,
+            "p95_ns": 51250,
+            "p99_ns": 55208,
+            "worlds": 1
+          },
+          {
+            "case": "V4",
+            "p50_ns": 54959,
+            "p95_ns": 65625,
+            "p99_ns": 77125,
+            "worlds": 1
+          },
+          {
+            "case": "V5",
+            "p50_ns": 222958,
+            "p95_ns": 246542,
+            "p99_ns": 271083,
+            "worlds": 4
+          },
+          {
+            "case": "V6",
+            "p50_ns": 89834,
+            "p95_ns": 106167,
+            "p99_ns": 110417,
+            "worlds": 2
+          },
+          {
+            "case": "V7",
+            "p50_ns": 355375,
+            "p95_ns": 394042,
+            "p99_ns": 418292,
+            "worlds": 4
+          },
+          {
+            "case": "V8",
+            "p50_ns": 713333,
+            "p95_ns": 764167,
+            "p99_ns": 811250,
+            "worlds": 8
+          },
+          {
+            "case": "V9",
+            "p50_ns": 335666,
+            "p95_ns": 358791,
+            "p99_ns": 374708,
+            "worlds": 4
+          },
+          {
+            "case": "V10",
+            "p50_ns": 92583,
+            "p95_ns": 106083,
+            "p99_ns": 118792,
+            "worlds": 1
+          }
+        ],
+        "samples_per_case": 300,
+        "warmup_per_case": 32
+      }
+    },
+    {
+      "subjects": 2500000,
+      "triples": 10001094,
+      "ttl_bytes": 215351433,
+      "compile": [
+        {
+          "seconds": 14.243258832999999,
+          "peak_rss_bytes": 933953536
+        },
+        {
+          "seconds": 14.112247582999998,
+          "peak_rss_bytes": 934068224
+        },
+        {
+          "seconds": 14.361700749999997,
+          "peak_rss_bytes": 933003264
+        }
+      ],
+      "ttl_start": [
+        {
+          "ready_seconds": 13.937932124999996,
+          "ready_rss_bytes": 722206720,
+          "terms": 2504234,
+          "peak_rss_bytes": 722206720
+        },
+        {
+          "ready_seconds": 13.562988833000006,
+          "ready_rss_bytes": 723009536,
+          "terms": 2504234,
+          "peak_rss_bytes": 723009536
+        },
+        {
+          "ready_seconds": 13.776756625000004,
+          "ready_rss_bytes": 722468864,
+          "terms": 2504234,
+          "peak_rss_bytes": 722468864
+        }
+      ],
+      "pack_start": [
+        {
+          "ready_seconds": 0.9709127080000002,
+          "ready_rss_bytes": 215433216,
+          "terms": 2504234,
+          "peak_rss_bytes": 215433216
+        },
+        {
+          "ready_seconds": 0.9779478330000018,
+          "ready_rss_bytes": 215433216,
+          "terms": 2504234,
+          "peak_rss_bytes": 215433216
+        },
+        {
+          "ready_seconds": 0.9842628749999989,
+          "ready_rss_bytes": 215449600,
+          "terms": 2504234,
+          "peak_rss_bytes": 215449600
+        }
+      ],
+      "http": [
+        {
+          "mode": "type",
+          "clients": 1,
+          "requests": 32768,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 3.5742427500000105,
+          "ok_per_second": 9167.816035998088,
+          "p50_ms": 0.089583,
+          "p95_ms": 0.115208,
+          "p99_ms": 0.148708
+        },
+        {
+          "mode": "type",
+          "clients": 8,
+          "requests": 65536,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 1.7349507499999959,
+          "ok_per_second": 37773.982921417315,
+          "p50_ms": 0.174416,
+          "p95_ms": 0.272167,
+          "p99_ms": 0.330417
+        },
+        {
+          "mode": "type_proof",
+          "clients": 8,
+          "requests": 65536,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 1.8342797910000002,
+          "ok_per_second": 35728.46428421453,
+          "p50_ms": 0.1785,
+          "p95_ms": 0.279917,
+          "p99_ms": 0.361958
+        },
+        {
+          "mode": "hub",
+          "clients": 8,
+          "requests": 8192,
+          "warmup_per_client": 32,
+          "errors": {},
+          "seconds": 1.3328100410000019,
+          "ok_per_second": 6146.412277816857,
+          "p50_ms": 0.709,
+          "p95_ms": 1.077375,
+          "p99_ms": 1.277541
+        }
+      ],
+      "pack_bytes": 211545174,
+      "scenario": {
+        "cases": [
+          {
+            "case": "L1",
+            "p50_ns": 243500,
+            "p95_ns": 269291,
+            "p99_ns": 282708,
+            "worlds": 8
+          },
+          {
+            "case": "L2",
+            "p50_ns": 84208,
+            "p95_ns": 97875,
+            "p99_ns": 111125,
+            "worlds": 8
+          },
+          {
+            "case": "L3",
+            "p50_ns": 396417,
+            "p95_ns": 435000,
+            "p99_ns": 448166,
+            "worlds": 4
+          },
+          {
+            "case": "L4",
+            "p50_ns": 783833,
+            "p95_ns": 836375,
+            "p99_ns": 881000,
+            "worlds": 8
+          },
+          {
+            "case": "V1",
+            "p50_ns": 100750,
+            "p95_ns": 114791,
+            "p99_ns": 120959,
+            "worlds": 2
+          },
+          {
+            "case": "V2",
+            "p50_ns": 50042,
+            "p95_ns": 58667,
+            "p99_ns": 66083,
+            "worlds": 1
+          },
+          {
+            "case": "V3",
+            "p50_ns": 50000,
+            "p95_ns": 58708,
+            "p99_ns": 64750,
+            "worlds": 1
+          },
+          {
+            "case": "V4",
+            "p50_ns": 60500,
+            "p95_ns": 69458,
+            "p99_ns": 76166,
+            "worlds": 1
+          },
+          {
+            "case": "V5",
+            "p50_ns": 241959,
+            "p95_ns": 265041,
+            "p99_ns": 281250,
+            "worlds": 4
+          },
+          {
+            "case": "V6",
+            "p50_ns": 98416,
+            "p95_ns": 112167,
+            "p99_ns": 118833,
+            "worlds": 2
+          },
+          {
+            "case": "V7",
+            "p50_ns": 391459,
+            "p95_ns": 418625,
+            "p99_ns": 435333,
+            "worlds": 4
+          },
+          {
+            "case": "V8",
+            "p50_ns": 783167,
+            "p95_ns": 828959,
+            "p99_ns": 860417,
+            "worlds": 8
+          },
+          {
+            "case": "V9",
+            "p50_ns": 371417,
+            "p95_ns": 403333,
+            "p99_ns": 411709,
+            "worlds": 4
+          },
+          {
+            "case": "V10",
+            "p50_ns": 102208,
+            "p95_ns": 116959,
+            "p99_ns": 130166,
+            "worlds": 1
+          }
+        ],
+        "samples_per_case": 300,
+        "warmup_per_case": 32
+      }
+    }
+  ],
+  "cpu": "Apple M2 Pro",
+  "view_scaling": [
+    {
+      "registered_views": 3,
+      "triples": 67,
+      "cases": [
+        {
+          "case": "V4",
+          "p50_ns": 33458,
+          "p95_ns": 40500,
+          "p99_ns": 44792,
+          "worlds": 1
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    },
+    {
+      "registered_views": 3,
+      "triples": 67,
+      "cases": [
+        {
+          "case": "V8",
+          "p50_ns": 431333,
+          "p95_ns": 462875,
+          "p99_ns": 509917,
+          "worlds": 8
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    },
+    {
+      "registered_views": 30,
+      "triples": 175,
+      "cases": [
+        {
+          "case": "V4",
+          "p50_ns": 35208,
+          "p95_ns": 40875,
+          "p99_ns": 57875,
+          "worlds": 1
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    },
+    {
+      "registered_views": 30,
+      "triples": 175,
+      "cases": [
+        {
+          "case": "V8",
+          "p50_ns": 1756167,
+          "p95_ns": 1828625,
+          "p99_ns": 1847416,
+          "worlds": 8
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    },
+    {
+      "registered_views": 300,
+      "triples": 1255,
+      "cases": [
+        {
+          "case": "V4",
+          "p50_ns": 37708,
+          "p95_ns": 44916,
+          "p99_ns": 49333,
+          "worlds": 1
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    },
+    {
+      "registered_views": 300,
+      "triples": 1255,
+      "cases": [
+        {
+          "case": "V8",
+          "p50_ns": 16495000,
+          "p95_ns": 18083917,
+          "p99_ns": 20873917,
+          "worlds": 8
+        }
+      ],
+      "samples_per_case": 300,
+      "warmup_per_case": 32
+    }
+  ]
+}
