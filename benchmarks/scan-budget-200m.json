@@ -1,0 +1,461 @@
+{
+  "utc_date": "2026-11-06",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "066bac15d6c19dea12e3c253993b31ea42a665e0",
+  "profile": "release",
+  "pack_version": 2,
+  "cpu": "Apple M2 Pro",
+  "features": [
+    "ascent-engine"
+  ],
+  "max_visits": 200000000,
+  "http_deadline_seconds": 5,
+  "method": "One HTTP warm-up and nine sequential measured requests per template and dataset; verified integer counts for every HTTP 200.",
+  "datasets": [
+    {
+      "triples": 1113595,
+      "subjects": 250000,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 62500,
+          "warmup": {
+            "ms": 8.551792,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 7.702,
+              "status": 200
+            },
+            {
+              "ms": 7.706875,
+              "status": 200
+            },
+            {
+              "ms": 7.59575,
+              "status": 200
+            },
+            {
+              "ms": 7.678708,
+              "status": 200
+            },
+            {
+              "ms": 7.63775,
+              "status": 200
+            },
+            {
+              "ms": 7.817083,
+              "status": 200
+            },
+            {
+              "ms": 7.564708,
+              "status": 200
+            },
+            {
+              "ms": 7.492333,
+              "status": 200
+            },
+            {
+              "ms": 7.619416,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "intersection",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 29.38275,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 29.368166,
+              "status": 200
+            },
+            {
+              "ms": 28.213167,
+              "status": 200
+            },
+            {
+              "ms": 25.462291,
+              "status": 200
+            },
+            {
+              "ms": 25.17,
+              "status": 200
+            },
+            {
+              "ms": 26.145667,
+              "status": 200
+            },
+            {
+              "ms": 27.631833,
+              "status": 200
+            },
+            {
+              "ms": 27.626458,
+              "status": 200
+            },
+            {
+              "ms": 26.872,
+              "status": 200
+            },
+            {
+              "ms": 27.093541,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "exists",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 26.622041,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 26.28325,
+              "status": 200
+            },
+            {
+              "ms": 27.156458,
+              "status": 200
+            },
+            {
+              "ms": 26.7535,
+              "status": 200
+            },
+            {
+              "ms": 26.453333,
+              "status": 200
+            },
+            {
+              "ms": 26.905375,
+              "status": 200
+            },
+            {
+              "ms": 61.34325,
+              "status": 200
+            },
+            {
+              "ms": 62.974459,
+              "status": 200
+            },
+            {
+              "ms": 42.560917,
+              "status": 200
+            },
+            {
+              "ms": 28.171709,
+              "status": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triples": 11126095,
+      "subjects": 2500000,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 625000,
+          "warmup": {
+            "ms": 73.249625,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 73.358667,
+              "status": 200
+            },
+            {
+              "ms": 73.536667,
+              "status": 200
+            },
+            {
+              "ms": 72.68125,
+              "status": 200
+            },
+            {
+              "ms": 73.40125,
+              "status": 200
+            },
+            {
+              "ms": 73.413333,
+              "status": 200
+            },
+            {
+              "ms": 73.254125,
+              "status": 200
+            },
+            {
+              "ms": 73.193792,
+              "status": 200
+            },
+            {
+              "ms": 73.43425,
+              "status": 200
+            },
+            {
+              "ms": 73.103709,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "intersection",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 373.276875,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 363.528958,
+              "status": 200
+            },
+            {
+              "ms": 363.412542,
+              "status": 200
+            },
+            {
+              "ms": 342.029542,
+              "status": 200
+            },
+            {
+              "ms": 337.424,
+              "status": 200
+            },
+            {
+              "ms": 335.260792,
+              "status": 200
+            },
+            {
+              "ms": 340.018834,
+              "status": 200
+            },
+            {
+              "ms": 346.764375,
+              "status": 200
+            },
+            {
+              "ms": 342.722,
+              "status": 200
+            },
+            {
+              "ms": 344.548667,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "exists",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 292.067375,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 292.627834,
+              "status": 200
+            },
+            {
+              "ms": 293.37775,
+              "status": 200
+            },
+            {
+              "ms": 291.370041,
+              "status": 200
+            },
+            {
+              "ms": 291.962375,
+              "status": 200
+            },
+            {
+              "ms": 294.843,
+              "status": 200
+            },
+            {
+              "ms": 294.512083,
+              "status": 200
+            },
+            {
+              "ms": 295.920875,
+              "status": 200
+            },
+            {
+              "ms": 294.091917,
+              "status": 200
+            },
+            {
+              "ms": 297.649,
+              "status": 200
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "triples": 100000000,
+      "subjects": 22471664,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 5617916,
+          "warmup": {
+            "ms": 663.534833,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 656.405834,
+              "status": 200
+            },
+            {
+              "ms": 659.479875,
+              "status": 200
+            },
+            {
+              "ms": 660.516334,
+              "status": 200
+            },
+            {
+              "ms": 729.696833,
+              "status": 200
+            },
+            {
+              "ms": 657.379292,
+              "status": 200
+            },
+            {
+              "ms": 663.804083,
+              "status": 200
+            },
+            {
+              "ms": 662.968042,
+              "status": 200
+            },
+            {
+              "ms": 653.8365,
+              "status": 200
+            },
+            {
+              "ms": 655.16425,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "intersection",
+          "expected_count": 1123584,
+          "warmup": {
+            "ms": 3947.688958,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 4050.17575,
+              "status": 200
+            },
+            {
+              "ms": 3947.13825,
+              "status": 200
+            },
+            {
+              "ms": 3869.008542,
+              "status": 200
+            },
+            {
+              "ms": 4065.425917,
+              "status": 200
+            },
+            {
+              "ms": 3939.121042,
+              "status": 200
+            },
+            {
+              "ms": 3930.78875,
+              "status": 200
+            },
+            {
+              "ms": 4129.976292,
+              "status": 200
+            },
+            {
+              "ms": 3926.810708,
+              "status": 200
+            },
+            {
+              "ms": 3932.729583,
+              "status": 200
+            }
+          ]
+        },
+        {
+          "template": "exists",
+          "expected_count": 1123584,
+          "warmup": {
+            "ms": 2994.0495,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 3082.286583,
+              "status": 200
+            },
+            {
+              "ms": 2983.738,
+              "status": 200
+            },
+            {
+              "ms": 2970.00825,
+              "status": 200
+            },
+            {
+              "ms": 2966.115834,
+              "status": 200
+            },
+            {
+              "ms": 3098.900333,
+              "status": 200
+            },
+            {
+              "ms": 3070.714292,
+              "status": 200
+            },
+            {
+              "ms": 3216.65425,
+              "status": 200
+            },
+            {
+              "ms": 3064.383958,
+              "status": 200
+            },
+            {
+              "ms": 3064.862208,
+              "status": 200
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "over_budget": {
+    "query": "PREFIX b: <urn:ontokiln:bench:>\nSELECT (COUNT(*) AS ?n) WHERE {\n  { ?s b:readsField b:Premium }\n  UNION { ?s b:region b:Premium }\n  UNION { ?s b:usesBuilder b:Premium }\n}\n",
+    "triples": 100000000,
+    "http_status": 422,
+    "ms": 373.937917,
+    "body": {
+      "error": "SPARQL scan budget exceeded: attempted candidate 200000001, limit 200000000, full-scan iterators 3"
+    }
+  }
+}

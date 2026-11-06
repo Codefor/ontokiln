@@ -1,0 +1,700 @@
+{
+  "base_commit": "397acedfe89925958684604d0f15fef740fc7532",
+  "machine": "Apple M2 Pro, 12 cores, 32 GiB, macOS arm64",
+  "build": "release --locked --features ascent-engine, separate instrumented binary",
+  "dataset": "benchmarks/capabilities.py generate_inputs with 22,471,664 panels; 100,000,000 distinct explicit triples, pack v2",
+  "method": "One isolated process per treatment, warmed filesystem cache, one client, three back-to-back requests including first. ps total CPU (0.01s) measured across HTTP + worker termination, RSS sampled at 20ms + endpoints; wait4 peak covers whole process lifetime. All HTTP 200 counts independently checked.",
+  "cases": [
+    {
+      "template": "intersection",
+      "limit": 300000000,
+      "deadline_seconds": 30,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 4.148843124999999,
+          "server_cpu_seconds": 4.1,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 2047328256,
+          "sampled_peak_rss_bytes": 4589649920,
+          "post_rss_bytes": 4315938816
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.927704333000001,
+          "server_cpu_seconds": 3.92,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4315938816,
+          "sampled_peak_rss_bytes": 4729700352,
+          "post_rss_bytes": 4316200960
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.897747374999998,
+          "server_cpu_seconds": 3.89,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4316200960,
+          "sampled_peak_rss_bytes": 4732993536,
+          "post_rss_bytes": 4732993536
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047328256,
+      "lifetime_peak_rss_bytes": 4732993536
+    },
+    {
+      "template": "exists",
+      "limit": 300000000,
+      "deadline_seconds": 30,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.0117024999999984,
+          "server_cpu_seconds": 3.0,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047295488,
+          "sampled_peak_rss_bytes": 2048524288,
+          "post_rss_bytes": 2048524288
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.906022499999999,
+          "server_cpu_seconds": 2.9,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048524288,
+          "sampled_peak_rss_bytes": 2048557056,
+          "post_rss_bytes": 2048557056
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.0078108330000006,
+          "server_cpu_seconds": 2.96,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048557056,
+          "sampled_peak_rss_bytes": 2048622592,
+          "post_rss_bytes": 2048622592
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047295488,
+      "lifetime_peak_rss_bytes": 2048622592
+    },
+    {
+      "template": "intersection",
+      "limit": 200000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.4398045830000044,
+          "server_cpu_seconds": 3.44,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 2047311872,
+          "sampled_peak_rss_bytes": 4589731840,
+          "post_rss_bytes": 4316020736
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.2539362500000024,
+          "server_cpu_seconds": 3.26,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4316020736,
+          "sampled_peak_rss_bytes": 4729749504,
+          "post_rss_bytes": 4316250112
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 3.1939589159999997,
+          "server_cpu_seconds": 3.19,
+          "attempted_candidates": 200000000,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4316250112,
+          "sampled_peak_rss_bytes": 4730781696,
+          "post_rss_bytes": 4730781696
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047311872,
+      "lifetime_peak_rss_bytes": 4730781696
+    },
+    {
+      "template": "exists",
+      "limit": 150000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.701328333999996,
+          "server_cpu_seconds": 2.69,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047295488,
+          "sampled_peak_rss_bytes": 2048442368,
+          "post_rss_bytes": 2048442368
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.7332103749999987,
+          "server_cpu_seconds": 2.74,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048442368,
+          "sampled_peak_rss_bytes": 2048475136,
+          "post_rss_bytes": 2048475136
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.692029083999998,
+          "server_cpu_seconds": 2.69,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048475136,
+          "sampled_peak_rss_bytes": 2048589824,
+          "post_rss_bytes": 2048589824
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047295488,
+      "lifetime_peak_rss_bytes": 2048589824
+    },
+    {
+      "template": "intersection",
+      "limit": 100000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 2"
+          },
+          "http_seconds": 2.441675250000003,
+          "server_cpu_seconds": 2.44,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 2047279104,
+          "sampled_peak_rss_bytes": 4589568000,
+          "post_rss_bytes": 4315824128
+        },
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 2"
+          },
+          "http_seconds": 2.336019209,
+          "server_cpu_seconds": 2.33,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4315824128,
+          "sampled_peak_rss_bytes": 4729585664,
+          "post_rss_bytes": 4316086272
+        },
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 2"
+          },
+          "http_seconds": 2.2658408329999986,
+          "server_cpu_seconds": 2.27,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 2,
+          "pre_rss_bytes": 4316086272,
+          "sampled_peak_rss_bytes": 4730699776,
+          "post_rss_bytes": 4730699776
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047279104,
+      "lifetime_peak_rss_bytes": 4730699776
+    },
+    {
+      "template": "exists",
+      "limit": 100000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 1"
+          },
+          "http_seconds": 2.530824124999995,
+          "server_cpu_seconds": 2.53,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047279104,
+          "sampled_peak_rss_bytes": 2048425984,
+          "post_rss_bytes": 2048425984
+        },
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 1"
+          },
+          "http_seconds": 2.4640916660000016,
+          "server_cpu_seconds": 2.46,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048425984,
+          "sampled_peak_rss_bytes": 2048475136,
+          "post_rss_bytes": 2048475136
+        },
+        {
+          "http_status": 422,
+          "answer": null,
+          "error": {
+            "error": "SPARQL scan budget exceeded: attempted candidate 100000001, limit 100000000, full-scan iterators 1"
+          },
+          "http_seconds": 2.5319280000000077,
+          "server_cpu_seconds": 2.53,
+          "attempted_candidates": 100000001,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048475136,
+          "sampled_peak_rss_bytes": 2048540672,
+          "post_rss_bytes": 2048540672
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047279104,
+      "lifetime_peak_rss_bytes": 2048540672
+    },
+    {
+      "template": "premium",
+      "limit": 100000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.6401439579999959,
+          "server_cpu_seconds": 0.64,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047279104,
+          "sampled_peak_rss_bytes": 2048327680,
+          "post_rss_bytes": 2048327680
+        },
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.649226375000012,
+          "server_cpu_seconds": 0.64,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048327680,
+          "sampled_peak_rss_bytes": 2048409600,
+          "post_rss_bytes": 2048409600
+        },
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.6383844169999975,
+          "server_cpu_seconds": 0.64,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048409600,
+          "sampled_peak_rss_bytes": 2048425984,
+          "post_rss_bytes": 2048425984
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047279104,
+      "lifetime_peak_rss_bytes": 2048425984
+    },
+    {
+      "template": "premium",
+      "limit": 200000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.6584555420000129,
+          "server_cpu_seconds": 0.66,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047262720,
+          "sampled_peak_rss_bytes": 2048344064,
+          "post_rss_bytes": 2048344064
+        },
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.6610385830000212,
+          "server_cpu_seconds": 0.66,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048344064,
+          "sampled_peak_rss_bytes": 2048360448,
+          "post_rss_bytes": 2048360448
+        },
+        {
+          "http_status": 200,
+          "answer": 5617916,
+          "error": null,
+          "http_seconds": 0.6582149169999809,
+          "server_cpu_seconds": 0.65,
+          "attempted_candidates": 100000000,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048360448,
+          "sampled_peak_rss_bytes": 2048442368,
+          "post_rss_bytes": 2048442368
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047262720,
+      "lifetime_peak_rss_bytes": 2048442368
+    },
+    {
+      "template": "exists",
+      "limit": 120000000,
+      "deadline_seconds": 5,
+      "runs": [
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.747201790999995,
+          "server_cpu_seconds": 2.75,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2047295488,
+          "sampled_peak_rss_bytes": 2048491520,
+          "post_rss_bytes": 2048491520
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.675874915999998,
+          "server_cpu_seconds": 2.67,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048491520,
+          "sampled_peak_rss_bytes": 2048540672,
+          "post_rss_bytes": 2048540672
+        },
+        {
+          "http_status": 200,
+          "answer": 1123584,
+          "error": null,
+          "http_seconds": 2.7406919169999995,
+          "server_cpu_seconds": 2.74,
+          "attempted_candidates": 110112248,
+          "full_scan_iterators": 1,
+          "pre_rss_bytes": 2048540672,
+          "sampled_peak_rss_bytes": 2048606208,
+          "post_rss_bytes": 2048606208
+        }
+      ],
+      "health": {
+        "pack_version": 2,
+        "status": "ready",
+        "source": "pack",
+        "profile": "rdfs-hierarchy-v1",
+        "triples": 100000000,
+        "terms": 22475901
+      },
+      "ready_rss_bytes": 2047295488,
+      "lifetime_peak_rss_bytes": 2048606208
+    }
+  ],
+  "local_date": "2026-11-07",
+  "pack_version": 2,
+  "concurrent_method": "One fresh server, two simultaneous requests per wave, three consecutive waves. CPU seconds cover both server workers. After each wave, RSS was sampled after both workers completed, before idle time.",
+  "concurrent": {
+    "template": "intersection",
+    "limit": 200000000,
+    "deadline_seconds": 5,
+    "concurrency": 2,
+    "runs": [
+      {
+        "clients": [
+          {
+            "http_status": 200,
+            "seconds": 4.570703875000001,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "http_status": 200,
+            "seconds": 4.676724999999999,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "unordered_visit_counters": [
+          [
+            200000000,
+            2
+          ],
+          [
+            200000000,
+            2
+          ]
+        ],
+        "wave_seconds_to_worker_exit": 4.6769315,
+        "server_cpu_seconds": 9.11,
+        "pre_rss_bytes": 2047311872,
+        "sampled_peak_rss_bytes": 7131119616,
+        "post_rss_bytes": 6306742272
+      },
+      {
+        "clients": [
+          {
+            "http_status": 200,
+            "seconds": 4.163146334,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "http_status": 200,
+            "seconds": 4.158727125000002,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "unordered_visit_counters": [
+          [
+            200000000,
+            2
+          ],
+          [
+            200000000,
+            2
+          ]
+        ],
+        "wave_seconds_to_worker_exit": 4.163247834,
+        "server_cpu_seconds": 8.19,
+        "pre_rss_bytes": 6306742272,
+        "sampled_peak_rss_bytes": 8258420736,
+        "post_rss_bytes": 7569833984
+      },
+      {
+        "clients": [
+          {
+            "http_status": 200,
+            "seconds": 4.228352082999997,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "http_status": 200,
+            "seconds": 4.271359458000003,
+            "body": {
+              "head": {
+                "vars": [
+                  "n"
+                ]
+              },
+              "results": {
+                "bindings": [
+                  {
+                    "n": {
+                      "type": "literal",
+                      "value": "1123584",
+                      "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "unordered_visit_counters": [
+          [
+            200000000,
+            2
+          ],
+          [
+            200000000,
+            2
+          ]
+        ],
+        "wave_seconds_to_worker_exit": 4.271586249999999,
+        "server_cpu_seconds": 8.46,
+        "pre_rss_bytes": 7569833984,
+        "sampled_peak_rss_bytes": 8467005440,
+        "post_rss_bytes": 8234827776
+      }
+    ],
+    "ready_rss_bytes": 2047311872,
+    "lifetime_peak_rss_bytes": 8467382272
+  }
+}
