@@ -11,7 +11,7 @@ use std::io::{self, Write};
 pub use spareval::CancellationToken;
 pub use spargebra::{Query, SparqlParser};
 
-const MAX_VISITS: usize = 100_000_000;
+const MAX_VISITS: usize = 200_000_000;
 const MAX_BYTES: usize = 4 * 1024 * 1024;
 const MAX_ROWS: usize = 100_000;
 
@@ -226,7 +226,7 @@ mod tests {
         let message = second.next().unwrap().err().unwrap().to_string();
         assert!(
             message
-                .contains("attempted candidate 100000001, limit 100000000, full-scan iterators 2")
+                .contains("attempted candidate 200000001, limit 200000000, full-scan iterators 2")
         );
         assert!(second.next().is_none());
     }

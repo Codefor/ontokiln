@@ -45,8 +45,8 @@ python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
 
 回归比较应匹配图规模、查询写法、并发、预热和构建特性。HTTP 往返、`scenario_lab` 进程内求值、离线规则 CLI 整条命令各自计时。比较批量吞吐时记录每请求主语数和主语/秒。位图首次建索引与热查询分别报告。
 
-排查 SPARQL 聚合的 HTTP 422 时，先检查错误正文和候选行扫描预算。当前每请求累计允许检查 100,000,000 条候选行。历史 v2 报告按每请求 2,000 万行测量，比较不同运行时需记录各自的预算。修改求值器后重跑两种写法和小图对照，核对答案，并将预算拒绝耗时单列。[v2 报告及计时口径](benchmarks/pack-v2.md)
+CLI 和 HTTP 共用 [SPARQL 求值器](crates/reasoner/src/sparql.rs)。默认每次请求最多检查 **200,000,000 条候选 SPO 行**，所有图模式共用计数器，同一行再次被检查时再次计数。第 200,000,000 行包含在额度内，尝试检查第 200,000,001 行触发预算错误。HTTP 扫描超限返回 422，5 秒截止时间到期返回 408。修改预算时同步更新边界测试、README 和[引擎说明](docs/engines.md)。
 
-亿级基准使用同一套数据生成器，运行 `python3 -B benchmarks/hundred_million.py --output data/hundred-million.json`。保持 SPARQL 查询预算默认，记录 422 的尝试行号、限额及全扫描迭代器数，并核对位图结果。[亿级报告](benchmarks/hundred-million.md)
+亿级基准使用同一套数据生成器，运行 `python3 -B benchmarks/hundred_million.py --output data/hundred-million.json`。在 1 亿条显式三元组的固定样例上，普通双类型 `COUNT` 恰好检查 2 亿行，`FILTER EXISTS` 检查 110,112,248 行，两者均应得到 1,123,584。修改求值器后重跑两种模板及小图对照，按状态分别统计成功、超时与预算拒绝。比较历史数据时注明当时的扫描预算。评估并发内存时分别记录服务就绪 RSS、运行峰值和请求结束后的 RSS。[亿级报告](benchmarks/hundred-million.md)
 
 正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。单 pack 默认上限为 256 MiB，可通过进程环境变量 `ONTOKILN_MAX_PACK_MIB` 显式设置，扩大规模前先核算索引与词典占用。
