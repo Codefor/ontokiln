@@ -1,12 +1,12 @@
 # OntoKiln
 
-Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 合并成一个显式 RDF 图。服务支持带证明的类与属性继承查询、类型集合求交，以及对显式图运行只读 SPARQL 模板。[查询示例与离线规则](docs/engines.md)
+Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 编译成带文件来源与索引的只读 pack。服务可在原始或推导视图中查询，沿赋值链追溯源文件，并返回证明。[查询接口与可运行示例](docs/query-service.md) · [引擎与离线规则](docs/engines.md)
 
 [配送组件血缘与复用定制实验](examples/scenarios/README.md) 包含合成 TTL、14 个可重放用例，以及按上下文选择实现的对照结果。
 
-[Pack v2 推理能力实测](benchmarks/pack-v2.md) 包含层级与批量查询、位图、SPARQL、业务血缘和离线规则的延迟、吞吐及预算边界。[历史基准](benchmarks/README.md) 记录编译、启动和内存数据。
+[历史：Pack v2 推理能力实测](benchmarks/pack-v2.md) 包含层级与批量查询、位图、SPARQL、业务血缘和离线规则的延迟、吞吐及预算边界。[历史基准](benchmarks/README.md) 记录编译、启动和内存数据。
 
-[1 亿条实测与 HTTP 422 诊断](benchmarks/hundred-million.md) 给出了单 pack 编译、装载、在线查询和全图扫描预算的实际结果。
+[Pack v3 亿级索引实测](benchmarks/indexed-queries-v3.md)：同一亿条图的普通双类型 COUNT 与 FILTER EXISTS 均读 6,741,500 条候选行，18 次测量均得到 1,123,584。[旧版 422 诊断](benchmarks/hundred-million.md) 记录了没有 POS/OSP 索引时的对照。
 
 ## 启动 demo
 
@@ -26,7 +26,7 @@ cargo build --locked
 ./target/debug/ontokiln serve --pack data/demo.pack
 ```
 
-当前格式为 **pack v2**。已有 v1 文件请用上面的 `compile` 命令从原始 TTL 或 N-Triples 重新生成。可将生成的 pack 单独拷贝到服务机器。加载时检查格式版本、SHA-256、字典顺序和索引边界，校验成功后才开始监听。两种启动方式共享同一个只读推理内核，加载完成后查询只访问内存。使用 `--listen 127.0.0.1:7879` 可另选端口。要更新数据，重新编译并重启服务。
+当前仅支持 **pack v3**（小端 macOS / Linux）。已有 v1 或 v2 文件请用上面的 `compile` 命令从原始 TTL 或 N-Triples 重新生成。可将生成的 pack 单独拷贝到服务机器。加载时检查格式版本、SHA-256、字典顺序和索引边界，校验成功后才开始监听。两种启动方式共享同一个只读推理内核，加载完成后查询只访问内存。使用 `--listen 127.0.0.1:7879` 可另选端口。要更新数据，重新编译并重启服务。
 
 ## 查询与推导依据
 
@@ -47,7 +47,9 @@ curl -sG http://127.0.0.1:7878/v1/query \
 | `GET /v1/query` | 必填 `subject` 和 `predicate`，均为完整 IRI。可选 `explain=true` 返回证明。结果去重并排序，对象采用 N-Triples 词项写法，保留字面量的语言与数据类型。未知 IRI 返回空集合 |
 | `POST /v1/query/batch` | 给定同一个谓词及 1～16 个主语，按输入次序返回各自的答案及可选证明 |
 | `POST /v1/entities` | 对给定类型的实例集合取交集，可选择沿显式子类边扩展 |
-| `POST /v1/sparql` | 执行 `serve --queries DIR` 注册的只读 `.rq` 模板，可绑定 RDF 词项 |
+| `POST /v1/sparql` | 运行注册的只读模板；支持类型化 RDF 参数、版本和视图选择、算子剖析及 JSONL |
+| `GET /v1/sources` | 列出文件、模块、版本、摘要和命名图 |
+| `DELETE /v1/queries/{id}` | 取消活动查询。先在请求中指定 `request_id`，即可在首行返回前取消 |
 
 将上例的谓词换成 `http://www.w3.org/1999/02/22-rdf-syntax-ns#type`，可查到显式的 `DeliveryPanel`，以及推导的 `ViewComponent` 和 `Component`。URL 中含有 `#` 的谓词需经过 URL 编码，上述 curl 写法会自动处理。
 
@@ -55,13 +57,13 @@ curl -sG http://127.0.0.1:7878/v1/query \
 
 | 位置 | 职责 |
 |---|---|
-| `crates/compiler` | 顺序稳定地扫描并解析文档，编码 RDF 词项，合并重复事实，构建按主语、谓词、对象排序的整数索引 |
+| `crates/compiler` | 顺序稳定地扫描并解析文档，编码 RDF 词项，合并重复事实，生成按 SPO、POS、OSP 排序的整数索引并保存来源 |
 | `crates/pack` | 定义离线快照格式及其校验和读写。相邻临时文件写完后原子替换目标 pack。原始样例在 `examples/ontology`，生成产物默认放在 Git 忽略的 `data/` |
 | `crates/reasoner` | 在同一份快照上提供层级推理、Roaring 类型索引和 SPARQL dataset 适配器 |
 | `src/main.rs` | 提供 `compile`、`serve` 和 HTTP 参数校验，限制同时执行的查询数量 |
 
-规则集 `rdfs-hierarchy-v1` 读取显式的 `rdfs:subClassOf` 和 `rdfs:subPropertyOf` 层级边，支持多级父类、上位属性、实例类型继承及属性事实提升。按已访问事实去重，循环继承可以终止。本 demo 的范围限于该层级规则集。SPARQL 的默认图只含显式事实。条件化字段血缘仍在独立实验程序中运行，domain/range、完整 OWL 语义与热切换属于后续工作。
+规则集 `rdfs-hierarchy-v1` 读取显式的 `rdfs:subClassOf` 和 `rdfs:subPropertyOf` 层级边，支持多级父类、上位属性、实例类型继承及属性事实提升。按已访问事实去重，循环继承可以终止。本 demo 的范围限于该层级规则集。SPARQL 的默认图只含显式事实。已声明的组件赋值和读写顺序可通过版本化模板查询；上下文选择仍在独立实验程序中运行，domain/range、完整 OWL 语义与热切换属于后续工作。
 
-编译阶段在内存中排序，pack 启动使用只读文件映射，单个 pack 默认上限为 256 MiB，编译与加载可用 `ONTOKILN_MAX_PACK_MIB` 提高容量上限。层级推理查询最多尝试生成 10 万条事实，对象及证明的词项文本预算为 1 MiB。SPARQL 查询按整次请求累计，最多检查 2 亿条候选 SPO 行。尝试检查第 200,000,001 行时返回 HTTP 422，超过 5 秒返回 408，并发已满返回 429。亿级目标的磁盘溢写、容量预算和压测标准见[后续详细设计](docs/rust-design-v1.md)。
+编译阶段在内存中排序，pack 启动使用只读文件映射，单个 pack 默认上限为 256 MiB，编译与加载可用 `ONTOKILN_MAX_PACK_MIB` 提高容量上限。层级推理查询最多尝试生成 10 万条事实，对象及证明的词项文本预算为 1 MiB。SPARQL 查询按整次请求累计，最多检查 2 亿条候选索引行。尝试检查第 200,000,001 行时返回 HTTP 422，超过 5 秒返回 408，并发已满返回 429。每个查询在独立进程中执行，受堆、输出行数和字节上限约束；主动取消、断连或超时会终止进程。已开始发送的 JSONL 使用末行报告失败。亿级目标的磁盘溢写、容量预算和压测标准见[后续详细设计](docs/rust-design-v1.md)。
 
 运行 `cargo test --workspace --locked` 可验证两种来源的推导一致性、循环继承、空白节点隔离和损坏 pack 拒绝加载。

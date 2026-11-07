@@ -1,0 +1,121 @@
+{
+  "utc_date": "2026-11-07",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "05ced9d8560ffb40a40985a17f9ff13bcf04be1c",
+  "profile": "release",
+  "pack_version": 3,
+  "cpu": "Apple M2 Pro",
+  "subjects": 22471664,
+  "triples": 100000000,
+  "max_visits": 200000000,
+  "deadline_ms": 5000,
+  "features": [
+    "ascent-engine"
+  ],
+  "batches": [
+    {
+      "concurrency": 1,
+      "samples": 38,
+      "results": [
+        {
+          "ms": 2661.735541,
+          "status": 200,
+          "body": {
+            "head": {
+              "vars": [
+                "n"
+              ]
+            },
+            "results": {
+              "bindings": [
+                {
+                  "n": {
+                    "type": "literal",
+                    "value": "1123584",
+                    "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "parent_before_bytes": 3247849472,
+      "parent_peak_bytes": 3248128000,
+      "parent_after_bytes": 3248160768,
+      "peak_rss_per_worker_bytes": [
+        1204092928
+      ],
+      "remaining_workers": 0
+    },
+    {
+      "concurrency": 2,
+      "samples": 40,
+      "results": [
+        {
+          "ms": 2735.748125,
+          "status": 200,
+          "body": {
+            "head": {
+              "vars": [
+                "n"
+              ]
+            },
+            "results": {
+              "bindings": [
+                {
+                  "n": {
+                    "type": "literal",
+                    "value": "1123584",
+                    "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "ms": 2735.42575,
+          "status": 200,
+          "body": {
+            "head": {
+              "vars": [
+                "n"
+              ]
+            },
+            "results": {
+              "bindings": [
+                {
+                  "n": {
+                    "type": "literal",
+                    "value": "1123584",
+                    "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "parent_before_bytes": 3248160768,
+      "parent_peak_bytes": 3248226304,
+      "parent_after_bytes": 3248242688,
+      "peak_rss_per_worker_bytes": [
+        1197621248,
+        1197637632
+      ],
+      "remaining_workers": 0
+    }
+  ],
+  "ready_parent_rss_bytes": 3247849472,
+  "startup": {
+    "ready_seconds": 18.670202792,
+    "ready_rss_bytes": 3247849472,
+    "terms": 22475901,
+    "peak_rss_bytes": 3248242688
+  }
+}

@@ -1,0 +1,1048 @@
+{
+  "utc_date": "2026-11-07",
+  "os": "macOS-26.6.2-arm64-arm-64bit",
+  "python": "3.9.6",
+  "logical_cpus": 12,
+  "memory_bytes": 34359738368,
+  "rustc": "rustc 1.93.1 (01f6ddf75 2026-02-11)",
+  "engine_revision": "05ced9d8560ffb40a40985a17f9ff13bcf04be1c",
+  "profile": "release",
+  "pack_version": 3,
+  "cpu": "Apple M2 Pro",
+  "features": [
+    "ascent-engine"
+  ],
+  "deadline_ms": 5000,
+  "max_visits": 200000000,
+  "datasets": [
+    {
+      "subjects": 250000,
+      "triples": 1113595,
+      "pack_bytes": 35759200,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 62500,
+          "warmup": {
+            "ms": 10.712792,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 10.193958,
+              "status": 200
+            },
+            {
+              "ms": 10.220708,
+              "status": 200
+            },
+            {
+              "ms": 10.120375,
+              "status": 200
+            },
+            {
+              "ms": 10.097875,
+              "status": 200
+            },
+            {
+              "ms": 10.223667,
+              "status": 200
+            },
+            {
+              "ms": 10.18425,
+              "status": 200
+            },
+            {
+              "ms": 10.232458,
+              "status": 200
+            },
+            {
+              "ms": 10.292875,
+              "status": 200
+            },
+            {
+              "ms": 10.19675,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 10.315875,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 62500,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 62500,
+                  "SPO": 0
+                },
+                "output_bytes": 143,
+                "output_rows": 1,
+                "peak_heap_bytes": 18215
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "62500"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "intersection",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 30.674084,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 29.902542,
+              "status": 200
+            },
+            {
+              "ms": 29.905042,
+              "status": 200
+            },
+            {
+              "ms": 29.640792,
+              "status": 200
+            },
+            {
+              "ms": 30.011083,
+              "status": 200
+            },
+            {
+              "ms": 30.26325,
+              "status": 200
+            },
+            {
+              "ms": 29.934375,
+              "status": 200
+            },
+            {
+              "ms": 29.691625,
+              "status": 200
+            },
+            {
+              "ms": 30.014625,
+              "status": 200
+            },
+            {
+              "ms": 30.150958,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 30.244708,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 75000,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 62500,
+                  "SPO": 12500
+                },
+                "output_bytes": 143,
+                "output_rows": 1,
+                "peak_heap_bytes": 20392
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "12500"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "exists",
+          "expected_count": 12500,
+          "warmup": {
+            "ms": 32.309209,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 32.141334,
+              "status": 200
+            },
+            {
+              "ms": 32.445917,
+              "status": 200
+            },
+            {
+              "ms": 32.528542,
+              "status": 200
+            },
+            {
+              "ms": 32.159167,
+              "status": 200
+            },
+            {
+              "ms": 32.384417,
+              "status": 200
+            },
+            {
+              "ms": 32.384167,
+              "status": 200
+            },
+            {
+              "ms": 32.181334,
+              "status": 200
+            },
+            {
+              "ms": 32.354792,
+              "status": 200
+            },
+            {
+              "ms": 32.273375,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 32.305333,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 75000,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 62500,
+                  "SPO": 12500
+                },
+                "output_bytes": 143,
+                "output_rows": 1,
+                "peak_heap_bytes": 21568
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "12500"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "point_ms": [
+        3.14825,
+        3.139458,
+        3.004208,
+        3.176875,
+        3.072542,
+        3.027375,
+        2.987875,
+        2.907625,
+        2.923917,
+        2.797334,
+        3.024667,
+        2.863667,
+        2.970666,
+        2.937458,
+        2.951292,
+        2.877833
+      ],
+      "point_profile": {
+        "candidate_rows": 2,
+        "execution": {
+          "plan": {
+            "allocated_bytes": 3816,
+            "candidate_rows": 2,
+            "children": [
+              {
+                "allocated_bytes": 2659,
+                "candidate_rows": 2,
+                "children": [
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 1.3e-05,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>"
+                      }
+                    ]
+                  },
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 7e-06,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:region> ?region)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>",
+                        "region": "<urn:ontokiln:bench:r0>"
+                      }
+                    ]
+                  }
+                ],
+                "duration in seconds": 5.6e-05,
+                "name": "IndexBindJoin",
+                "number of results": 1,
+                "sample_bindings": [
+                  {
+                    "field": "<urn:ontokiln:bench:f1552>",
+                    "panel": "<urn:ontokiln:bench:v1552>",
+                    "region": "<urn:ontokiln:bench:r0>"
+                  }
+                ]
+              }
+            ],
+            "duration in seconds": 7.3e-05,
+            "name": "Project(?panel, ?field, ?region)",
+            "number of results": 1,
+            "sample_bindings": [
+              {
+                "field": "<urn:ontokiln:bench:f1552>",
+                "panel": "<urn:ontokiln:bench:v1552>",
+                "region": "<urn:ontokiln:bench:r0>"
+              }
+            ]
+          },
+          "planning duration in seconds": 1.8e-05
+        },
+        "index_rows": {
+          "OSP": 0,
+          "POS": 0,
+          "SPO": 2
+        },
+        "output_bytes": 243,
+        "output_rows": 1,
+        "peak_heap_bytes": 25855
+      }
+    },
+    {
+      "subjects": 2500000,
+      "triples": 11126095,
+      "pack_bytes": 358559200,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 625000,
+          "warmup": {
+            "ms": 78.426292,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 77.845125,
+              "status": 200
+            },
+            {
+              "ms": 76.817042,
+              "status": 200
+            },
+            {
+              "ms": 76.491167,
+              "status": 200
+            },
+            {
+              "ms": 76.918875,
+              "status": 200
+            },
+            {
+              "ms": 76.348625,
+              "status": 200
+            },
+            {
+              "ms": 76.186833,
+              "status": 200
+            },
+            {
+              "ms": 76.889708,
+              "status": 200
+            },
+            {
+              "ms": 80.00825,
+              "status": 200
+            },
+            {
+              "ms": 79.264625,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 78.600625,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 625000,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 625000,
+                  "SPO": 0
+                },
+                "output_bytes": 144,
+                "output_rows": 1,
+                "peak_heap_bytes": 18215
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "625000"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "intersection",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 291.408,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 297.7045,
+              "status": 200
+            },
+            {
+              "ms": 307.6375,
+              "status": 200
+            },
+            {
+              "ms": 307.32075,
+              "status": 200
+            },
+            {
+              "ms": 305.933625,
+              "status": 200
+            },
+            {
+              "ms": 297.196417,
+              "status": 200
+            },
+            {
+              "ms": 288.617958,
+              "status": 200
+            },
+            {
+              "ms": 283.402416,
+              "status": 200
+            },
+            {
+              "ms": 285.239708,
+              "status": 200
+            },
+            {
+              "ms": 284.5615,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 298.930625,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 750000,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 625000,
+                  "SPO": 125000
+                },
+                "output_bytes": 144,
+                "output_rows": 1,
+                "peak_heap_bytes": 20392
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "125000"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "exists",
+          "expected_count": 125000,
+          "warmup": {
+            "ms": 314.585834,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 310.856542,
+              "status": 200
+            },
+            {
+              "ms": 308.673042,
+              "status": 200
+            },
+            {
+              "ms": 307.742416,
+              "status": 200
+            },
+            {
+              "ms": 310.495083,
+              "status": 200
+            },
+            {
+              "ms": 308.850625,
+              "status": 200
+            },
+            {
+              "ms": 317.334375,
+              "status": 200
+            },
+            {
+              "ms": 326.226167,
+              "status": 200
+            },
+            {
+              "ms": 323.064625,
+              "status": 200
+            },
+            {
+              "ms": 319.984584,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 316.728791,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 750000,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 625000,
+                  "SPO": 125000
+                },
+                "output_bytes": 144,
+                "output_rows": 1,
+                "peak_heap_bytes": 21568
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "125000"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "point_ms": [
+        3.481291,
+        3.355416,
+        3.259084,
+        3.187375,
+        3.387708,
+        3.396083,
+        4.015042,
+        3.446125,
+        3.453167,
+        3.545958,
+        3.487709,
+        3.481375,
+        3.329125,
+        3.38125,
+        3.280667,
+        3.200375
+      ],
+      "point_profile": {
+        "candidate_rows": 2,
+        "execution": {
+          "plan": {
+            "allocated_bytes": 3816,
+            "candidate_rows": 2,
+            "children": [
+              {
+                "allocated_bytes": 2659,
+                "candidate_rows": 2,
+                "children": [
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 2.3e-05,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>"
+                      }
+                    ]
+                  },
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 7e-06,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:region> ?region)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>",
+                        "region": "<urn:ontokiln:bench:r0>"
+                      }
+                    ]
+                  }
+                ],
+                "duration in seconds": 5.8e-05,
+                "name": "IndexBindJoin",
+                "number of results": 1,
+                "sample_bindings": [
+                  {
+                    "field": "<urn:ontokiln:bench:f1552>",
+                    "panel": "<urn:ontokiln:bench:v1552>",
+                    "region": "<urn:ontokiln:bench:r0>"
+                  }
+                ]
+              }
+            ],
+            "duration in seconds": 7.5e-05,
+            "name": "Project(?panel, ?field, ?region)",
+            "number of results": 1,
+            "sample_bindings": [
+              {
+                "field": "<urn:ontokiln:bench:f1552>",
+                "panel": "<urn:ontokiln:bench:v1552>",
+                "region": "<urn:ontokiln:bench:r0>"
+              }
+            ]
+          },
+          "planning duration in seconds": 1.7e-05
+        },
+        "index_rows": {
+          "OSP": 0,
+          "POS": 0,
+          "SPO": 2
+        },
+        "output_bytes": 243,
+        "output_rows": 1,
+        "peak_heap_bytes": 25855
+      }
+    },
+    {
+      "subjects": 22471664,
+      "triples": 100000000,
+      "pack_bytes": 3242956152,
+      "queries": [
+        {
+          "template": "premium",
+          "expected_count": 5617916,
+          "warmup": {
+            "ms": 700.396792,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 673.466,
+              "status": 200
+            },
+            {
+              "ms": 673.473083,
+              "status": 200
+            },
+            {
+              "ms": 687.42925,
+              "status": 200
+            },
+            {
+              "ms": 677.427458,
+              "status": 200
+            },
+            {
+              "ms": 679.853458,
+              "status": 200
+            },
+            {
+              "ms": 680.678041,
+              "status": 200
+            },
+            {
+              "ms": 707.96225,
+              "status": 200
+            },
+            {
+              "ms": 673.163042,
+              "status": 200
+            },
+            {
+              "ms": 679.717292,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 689.611958,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 5617916,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 5617916,
+                  "SPO": 0
+                },
+                "output_bytes": 145,
+                "output_rows": 1,
+                "peak_heap_bytes": 18215
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "5617916"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "intersection",
+          "expected_count": 1123584,
+          "warmup": {
+            "ms": 2663.816583,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 2660.320875,
+              "status": 200
+            },
+            {
+              "ms": 2643.358916,
+              "status": 200
+            },
+            {
+              "ms": 2655.362209,
+              "status": 200
+            },
+            {
+              "ms": 2643.208,
+              "status": 200
+            },
+            {
+              "ms": 2653.10775,
+              "status": 200
+            },
+            {
+              "ms": 2644.866542,
+              "status": 200
+            },
+            {
+              "ms": 2642.910834,
+              "status": 200
+            },
+            {
+              "ms": 2651.394583,
+              "status": 200
+            },
+            {
+              "ms": 2646.677792,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 2726.638542,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 6741500,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 5617916,
+                  "SPO": 1123584
+                },
+                "output_bytes": 145,
+                "output_rows": 1,
+                "peak_heap_bytes": 20392
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "1123584"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "template": "exists",
+          "expected_count": 1123584,
+          "warmup": {
+            "ms": 2872.294125,
+            "status": 200
+          },
+          "runs": [
+            {
+              "ms": 2896.809375,
+              "status": 200
+            },
+            {
+              "ms": 2851.211625,
+              "status": 200
+            },
+            {
+              "ms": 2887.37525,
+              "status": 200
+            },
+            {
+              "ms": 2859.462083,
+              "status": 200
+            },
+            {
+              "ms": 2860.367333,
+              "status": 200
+            },
+            {
+              "ms": 2842.869667,
+              "status": 200
+            },
+            {
+              "ms": 2841.058875,
+              "status": 200
+            },
+            {
+              "ms": 2867.951417,
+              "status": 200
+            },
+            {
+              "ms": 2861.103,
+              "status": 200
+            }
+          ],
+          "counter_run": {
+            "ms": 2880.864,
+            "status": 200,
+            "body": {
+              "profile": {
+                "candidate_rows": 6741500,
+                "index_rows": {
+                  "OSP": 0,
+                  "POS": 5617916,
+                  "SPO": 1123584
+                },
+                "output_bytes": 145,
+                "output_rows": 1,
+                "peak_heap_bytes": 21556
+              },
+              "result": {
+                "head": {
+                  "vars": [
+                    "n"
+                  ]
+                },
+                "results": {
+                  "bindings": [
+                    {
+                      "n": {
+                        "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                        "type": "literal",
+                        "value": "1123584"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "point_ms": [
+        3.659,
+        3.736958,
+        3.565167,
+        3.55175,
+        3.644625,
+        3.498209,
+        3.4325,
+        3.490958,
+        3.385,
+        3.478709,
+        3.51025,
+        3.452917,
+        3.534208,
+        3.479209,
+        3.389291,
+        3.527
+      ],
+      "point_profile": {
+        "candidate_rows": 2,
+        "execution": {
+          "plan": {
+            "allocated_bytes": 3816,
+            "candidate_rows": 2,
+            "children": [
+              {
+                "allocated_bytes": 2659,
+                "candidate_rows": 2,
+                "children": [
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 2.3e-05,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>"
+                      }
+                    ]
+                  },
+                  {
+                    "allocated_bytes": 696,
+                    "candidate_rows": 1,
+                    "children": [],
+                    "duration in seconds": 8e-06,
+                    "name": "QuadPattern(?panel <urn:ontokiln:bench:region> ?region)",
+                    "number of results": 1,
+                    "sample_bindings": [
+                      {
+                        "field": "<urn:ontokiln:bench:f1552>",
+                        "panel": "<urn:ontokiln:bench:v1552>",
+                        "region": "<urn:ontokiln:bench:r0>"
+                      }
+                    ]
+                  }
+                ],
+                "duration in seconds": 5.9e-05,
+                "name": "IndexBindJoin",
+                "number of results": 1,
+                "sample_bindings": [
+                  {
+                    "field": "<urn:ontokiln:bench:f1552>",
+                    "panel": "<urn:ontokiln:bench:v1552>",
+                    "region": "<urn:ontokiln:bench:r0>"
+                  }
+                ]
+              }
+            ],
+            "duration in seconds": 7.6e-05,
+            "name": "Project(?panel, ?field, ?region)",
+            "number of results": 1,
+            "sample_bindings": [
+              {
+                "field": "<urn:ontokiln:bench:f1552>",
+                "panel": "<urn:ontokiln:bench:v1552>",
+                "region": "<urn:ontokiln:bench:r0>"
+              }
+            ]
+          },
+          "planning duration in seconds": 1.8e-05
+        },
+        "index_rows": {
+          "OSP": 0,
+          "POS": 0,
+          "SPO": 2
+        },
+        "output_bytes": 243,
+        "output_rows": 1,
+        "peak_heap_bytes": 25855
+      }
+    }
+  ]
+}

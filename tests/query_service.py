@@ -1,5 +1,6 @@
 """Exercise worker lifetime across real HTTP disconnects and process exits."""
 import concurrent.futures
+import hashlib
 import http.client
 import json
 from pathlib import Path
@@ -16,6 +17,16 @@ root = Path(__file__).resolve().parents[1]
 def run(tmp):
     ontology = tmp / "ontology"
     shutil.copytree(root/"examples/assignment/ontology", ontology)
+    # Same entity and explicit type in both releases, different schema edges.
+    # Each release also asserts the explicit type in two different files.
+    manifest=json.loads((ontology/"sources.json").read_text())
+    for rev, ancestor in [("v1","OldParent"),("v2","NewParent")]:
+        for name, extra in [("types",""),("schema",f"<urn:A> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <urn:{ancestor}> .")]:
+            key=f"{rev}/{name}.ttl"
+            src=ontology/key
+            src.write_text("<urn:obj> a <urn:A> .\n"+extra)
+            manifest[key]=dict(manifest[f"{rev}/model.ttl"],ttl_sha256=hashlib.sha256(src.read_bytes()).hexdigest())
+    (ontology/"sources.json").write_text(json.dumps(manifest))
     pack = tmp/"only.pack"
     subprocess.run([binary,"compile","--ttl",ontology,"--out",pack],check=True)
     code = ontology/"v2/model.go"
@@ -26,6 +37,9 @@ def run(tmp):
     queries = tmp/"queries"
     shutil.copytree(root/"examples/assignment/queries",queries)
     (queries/"ask.rq").write_text("ASK { ?s ?p ?o }")
+    (queries/"types.rq").write_text("SELECT ?c WHERE { <urn:obj> a ?c }")
+    (queries/"declared.rq").write_text("SELECT ?g WHERE { GRAPH ?g { <urn:obj> a <urn:A> } }")
+    (queries/"from.rq").write_text("SELECT ?object FROM <urn:ontokiln:param:graph> WHERE { <urn:assignment:load> <urn:assignment:input> ?object }")
     (queries/"object.rq").write_text("SELECT ?s ?p { ?s ?p <urn:ontokiln:param:object> }")
     (queries/"typed.rq").write_text('SELECT ?value ?v WHERE { VALUES ?value { <urn:ontokiln:param:v> } {SELECT ("private" AS ?v) WHERE {}} }')
     values=" ".join(str(n) for n in range(150))
@@ -63,6 +77,30 @@ def run(tmp):
             plan=profile["execution"]["plan"]
             assert len(plan["sample_bindings"])==2 and plan["sample_bindings"][0]
             assert plan["allocated_bytes"]>0 and plan["candidate_rows"]>0 and plan["number of results"]==2
+        conn=http.client.HTTPConnection("127.0.0.1",port)
+        conn.request("GET","/v1/sources")
+        docs=json.loads(conn.getresponse().read());conn.close()
+        by_file={d["file"]:d for d in docs}
+        assert set(by_file)=={f"{rev}/{module}.ttl" for rev in ("v1","v2") for module in ("model","panel","types","schema")}
+        for rev, ty in [("v1","OldParent"),("v2","NewParent")]:
+            status, inferred=request("types",options={"revision":rev,"view":"inferred"})
+            assert status==200 and [r["c"]["value"] for r in inferred["results"]["bindings"]]==["urn:"+ty]
+            _, asserted=request("types",options={"revision":rev,"view":"asserted"})
+            assert [r["c"]["value"] for r in asserted["results"]["bindings"]]==["urn:A"]
+            _, provenance=request("declared",options={"revision":rev})
+            assert {r["g"]["value"] for r in provenance["results"]["bindings"]}=={by_file[f"{rev}/{g}.ttl"]["graph"] for g in ("types","schema")}
+            conn=http.client.HTTPConnection("127.0.0.1",port)
+            conn.request("GET",f"/v1/query?subject=urn:obj&predicate=http%3A%2F%2Fwww.w3.org%2F1999%2F02%2F22-rdf-syntax-ns%23type&revision={rev}&view=inferred&explain=true")
+            ans=json.loads(conn.getresponse().read())["results"]
+            conn.close()
+            assert len(ans)==1 and ans[0]["object"]==f"<urn:{ty}>"
+            steps=ans[0]["proof"]
+            assert {d["file"] for d in steps[0]["sources"]}=={f"{rev}/types.ttl",f"{rev}/schema.ttl"}
+            assert steps[1]["sources"][0]["revision"]==rev and steps[1]["rule_version"]=="rdfs-hierarchy-v1"
+        def scoped_file(rev):
+            return request("from",parameters={"graph":{"type":"iri","value":by_file[rev+"/model.ttl"]["graph"]}})
+        assert scoped_file("v2")[1]["results"]["bindings"][0]["object"]["value"]=="urn:assignment:displayName"
+        assert not scoped_file("v1")[1]["results"]["bindings"]
         assert request("ask",options={"revision":None})[0]==400
         assert request("ask",options={"revision":"bogus"})[0]==400
         for literal in [{"value":'quote" } UNION { ?s ?p ?o } #',"language":"fr"},
@@ -111,7 +149,10 @@ def run(tmp):
             sock.sendall(b"POST /v1/sparql HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: "+str(len(data)).encode()+b"\r\n\r\n"+data)
             if streaming:
                 buf=b""
-                while b'"bindings"' not in buf:buf+=sock.recv(16384)
+                while b'"bindings"' not in buf:
+                    data=sock.recv(16384)
+                    assert data, "server closed before the first solution"
+                    buf+=data
             wait_status(429)
             sock.close()
             wait_status(200)

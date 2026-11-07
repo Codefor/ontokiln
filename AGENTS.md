@@ -1,22 +1,19 @@
 # OntoKiln 开发指南
 
-本指南适用于整个仓库。OntoKiln 将一个目录的 Turtle（`.ttl`）和 N-Triples（`.nt`）文件编译成不可变 RDF 快照，再加载到内存提供只读推理。项目目标是亿级三元组。pack v2 已在单个合成图上验证 100,000,000 条去重显式三元组的编译、装载和在线查询。现有 CLI 和 HTTP 契约见 [README](README.md)，后续架构与验收目标见[设计稿](docs/rust-design-v1.md)。
+OntoKiln 将指定目录的 Turtle / N-Triples 编译成不可变 RDF 快照，部署可只带 pack。当前仅接受 **pack v3**；升级 v1/v2 必须从源数据重编。v3 已验证一亿条去重显式三元组。[CLI 和 HTTP](README.md) · [查询、来源与证明](docs/query-service.md) · [早期设计与目标](docs/rust-design-v1.md)。
 
-## 按任务定位代码
-
-| 要改什么 | 入口 | 需要保持的行为 |
+| 工作 | 入口 | 需要保持的行为 |
 |---|---|---|
-| TTL 扫描、解析与编码 | [compiler](crates/compiler/src/lib.rs) 的 `compile_directory` | 稳定顺序扫描，按文档隔离空白节点，对词典排序、对三元组去重。同一输入可重建相同 pack |
-| 离线文件格式与索引 | [pack](crates/pack/src/lib.rs) 的 `Pack::save/load` | 词项 ID 仅在当前快照有效。SPO 索引按主语、谓词、对象排序。保存时原子替换，加载时验证版本、摘要、长度和 ID 边界。只接受当前 pack v2，旧产物从源文件重新编译 |
-| 层级推导与证明 | [reasoner](crates/reasoner/src/lib.rs) 的 `Reasoner::query` | 当前规则集为 `rdfs-hierarchy-v1`。按主语处理类和属性继承，显式事实优先，可返回一条证明。保留循环终止、工作量和结果大小限制 |
-| CLI、启动、HTTP | [服务入口](src/main.rs) | `serve --ttl` 在启动时编译，`serve --pack` 可脱离 TTL 单独启动。二者共用同一内存推理器。除健康检查和单主语查询外，批量查询、类型交集及 SPARQL 模板的处理见 [queries](src/queries.rs) |
-| 字段血缘和业务分支 | [scenario_lab](examples/scenario_lab.rs)、[场景说明](examples/scenarios/README.md) | 跨节点血缘、反向影响、覆盖与降级在独立实验程序中执行。Go 样例和 TTL 之间是手工映射，[用例](examples/scenarios/cases.json)给出独立预期。修改语义时核对确定集、候选集和被排除的路径 |
+| 编译、源码版本 | [compiler](crates/compiler/src/lib.rs) | 顺序稳定地扫描文件；文档内隔离空白节点；排序、去重但保留所有断言来源。核对 sources.json 中的源码和 TTL 摘要。相同输入重建相同 pack |
+| 离线索引 | [pack](crates/pack/src/lib.rs)、[候选区间](crates/pack/src/index.rs) | SPO 是规范行；POS/OSP 保存行号。所有 S/P/O 组合选最长前缀。写入临时文件后原子替换；加载时验证摘要、边界、排序及来源。词项 ID 不跨快照 |
+| 视图与证据 | [reasoner](crates/reasoner/src/lib.rs)、[proofs](crates/reasoner/src/proofs.rs)、[离线规则](crates/compiler/src/rules.rs) | 版本先于推导；每个前提都需在所选版本可见。区分 asserted/inferred/closure；优先显式事实，一条确定性的有根证明。RDFS 规则版本 rdfs-hierarchy-v1；自定义规则版本含程序摘要 |
+| SPARQL | [参数](crates/reasoner/src/parameters.rs)、[dataset](crates/reasoner/src/sparql.rs)、[spareval 补丁说明](vendor/spareval/ONTOKILN.md) | 显式参数槽绑定到 RDF 词项，保留变量作用域和解的重数。文件是具名图，默认图去重。不要将一般值相等改写为词项相等。算子剖析是可选项 |
+| 在线生命周期 | [HTTP](src/queries.rs)、[调度](src/execution.rs)、[工作进程](src/worker.rs)、[堆计量](src/allocation.rs) | TTL / pack 共用已验证的私有只读快照；启动时预留一份 pack 的临时磁盘。工作进程继承服务快照 FD，不按原始路径重开文件。先终止并 wait，再释放槽。JSONL 以 end 记录标志完整结果 |
+| 业务语义 | [版本化赋值链](examples/assignment/queries/assignment.rq)、[业务选择实验](examples/scenarios/README.md) | 来源为已有 RDF 声明，源码用于摘要核对。两个版本故意复用相同 IRI；结果不能跨版本。业务实验另有 14 个[独立预期](examples/scenarios/cases.json)，核对确定、候选、被排除的路径 |
 
-新增能力的分工与命令见[引擎说明](docs/engines.md)。可执行的规则定义由编译侧的 [rules](crates/compiler/src/rules.rs) 规划和离线求值。SPARQL 查询显式图，内存类型过滤使用按需构建的位图。修改 pack 时同时检查文件映射的生命周期、v2 偏移表和 SPO 的自然对齐和源文件被改写时的行为。
+服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。Rust 基准版本 1.93.1，依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。
 
 ## 构建与验证
-
-从仓库根目录执行。基准环境使用 Rust 1.93.1，Cargo 依赖版本由 `Cargo.lock` 固定。
 
 ```sh
 cargo fmt --all --check
@@ -26,27 +23,18 @@ cargo test --workspace --all-features --locked
 cargo run --locked --example scenario_lab -- --compare
 ```
 
-[引擎回归](tests/engines.rs)验证 mmap、并行确定性、SPARQL 和规则求值。使用 `--all-features` 覆盖 Ascent 与 Datafrog 的差分用例。[集成测试](tests/demo.rs)覆盖删除 TTL 后独立加载 pack、两种入口的答案与证明一致、循环继承、空白节点作用域及损坏包处理。业务语义改动可先用 `cargo run --locked --example scenario_lab -- --case V4 --trace` 查看具体选择过程，再重放全部用例。
+[引擎回归](tests/engines.rs)覆盖 mmap、并行确定性、视图、证明导出重载及 Datafrog/Ascent 差分。[集成测试](tests/demo.rs)覆盖删除 TTL 后独立加载、循环、空白节点及损坏包。[真实 HTTP 回归](tests/query_service.py)由 Cargo 集成测试启动，验证版本、参数、算子统计、输出和堆上限、超时，以及首行前和流式传输中断连。不能用仅检查取消标志的模拟测试替代。修改业务选择逻辑，可先重放 `scenario_lab -- --case V4 --trace`，再比较全部用例。
 
-## 复现 pack v2 性能基准
+## 预算与基准
 
-在 macOS 或 Linux 上使用 Python 3.9+。先构建带 Ascent 的 release 二进制，再从仓库根目录顺序运行两套脚本，避免争用 CPU。输出写到 Git 忽略的 `data/`。快速检查环境时，可给任一脚本加 `--subjects 25000`，参数表示生成的面板数。
+CLI 和 HTTP 共用 SPARQL 核心。默认一次请求总共最多查看 **200,000,000 条候选索引行**；再次检查同一行再次计数，第 200,000,001 次触发 422。二分定位的键比较和中间解数量不计入扫描数。5 秒超时为 408，主动取消为 409，槽满为 429。流已经开始时，错误在末行。改预算时同步更新测试、README 和接口文档。堆增量、累计分配、共享 mmap、进程 RSS 分开报告。
 
 ```sh
 cargo build --release --locked --features ascent-engine --bin ontokiln --example scenario_lab
-python3 -B benchmarks/run.py --output data/pack-v2.json
-python3 -B benchmarks/capabilities.py --output data/pack-v2-capabilities.json
+python3 -B benchmarks/indexed_queries.py --output data/indexed-queries-v3.json
+python3 -B benchmarks/worker_memory.py --output data/worker-memory-v3.json
 ```
 
-| 改动涉及 | 运行与对照 |
-|---|---|
-| 编译、pack 装载、层级推导、证明、业务血缘或反向影响 | [常规脚本](benchmarks/run.py)覆盖三档数据规模及 14 个业务用例。与 [v2 常规基准](benchmarks/pack-v2.json) 比较 |
-| 并行批量查询、位图类型过滤、SPARQL 或离线规则 | [扩展脚本](benchmarks/capabilities.py)覆盖首次与热态位图查询、两种规模的 SPARQL 聚合，以及 Datafrog / Ascent 闭包对照。与 [v2 扩展基准](benchmarks/pack-v2-capabilities.json) 比较 |
+[亿级 v3 报告](benchmarks/indexed-queries-v3.md)使用同一生成器：1,113,595 / 11,126,095 / 100,000,000 条显式事实。亿级双类型 COUNT 和 FILTER EXISTS 都得到 1,123,584；当前固定模板各读 6,741,500 条候选行。修改优化器后重测两种模板及小图对照；答案不能变化，扫描量应解释。每种模板预热一次、串行测九次，按状态分别报告成功、超时和拒绝。另一次 counters 请求用于记录扫描和堆；完整 profile 单列，避免计入延迟。内存测试区分父进程就绪、运行峰值、请求结束以及每个子进程的峰值；共享页不可简单相加。
 
-回归比较应匹配图规模、查询写法、并发、预热和构建特性。HTTP 往返、`scenario_lab` 进程内求值、离线规则 CLI 整条命令各自计时。比较批量吞吐时记录每请求主语数和主语/秒。位图首次建索引与热查询分别报告。
-
-CLI 和 HTTP 共用 [SPARQL 求值器](crates/reasoner/src/sparql.rs)。默认每次请求最多检查 **200,000,000 条候选 SPO 行**，所有图模式共用计数器，同一行再次被检查时再次计数。第 200,000,000 行包含在额度内，尝试检查第 200,000,001 行触发预算错误。HTTP 扫描超限返回 422，5 秒截止时间到期返回 408。修改预算时同步更新边界测试、README 和[引擎说明](docs/engines.md)。
-
-亿级基准使用同一套数据生成器，运行 `python3 -B benchmarks/hundred_million.py --output data/hundred-million.json`。在 1 亿条显式三元组的固定样例上，普通双类型 `COUNT` 恰好检查 2 亿行，`FILTER EXISTS` 检查 110,112,248 行，两者均应得到 1,123,584。修改求值器后重跑两种模板及小图对照，按状态分别统计成功、超时与预算拒绝。比较历史数据时注明当时的扫描预算。评估并发内存时分别记录服务就绪 RSS、运行峰值和请求结束后的 RSS。[亿级报告](benchmarks/hundred-million.md)
-
-正式更新基准时，将实测 JSON 和报告一起提交，注明引擎提交、机器和 pack 版本。跨版本比较可查[历史基准](benchmarks/README.md)。单 pack 默认上限为 256 MiB，可通过进程环境变量 `ONTOKILN_MAX_PACK_MIB` 显式设置，扩大规模前先核算索引与词典占用。
+常规编译、启动和层级实验运行 `benchmarks/run.py --output data/pack-v3.json`；批量、类型集合、SPARQL、离线规则运行 `benchmarks/capabilities.py --output data/pack-v3-capabilities.json`；均用 Python 3、按顺序跑，`--subjects 25000` 可快速检查。全量历史能力套件使用 `benchmarks/hundred_million.py`。v3 在线查询为每次请求新建工作进程，HTTP 类型位图不跨请求留存，不能把 v2 的热缓存成绩当作 v3。大型测试生成的 pack 不入库；正式报告应将实测 JSON 一起提交，记录引擎提交、构建特性、机器、预热和并发。[历史对照](benchmarks/README.md)

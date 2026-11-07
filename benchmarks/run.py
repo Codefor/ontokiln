@@ -62,7 +62,7 @@ def compile_pack(directory, pack):
 
 
 @contextmanager
-def serve(source, path, triples, queries=None):
+def serve(source, path, triples, queries=None, include_pid=False):
     start = time.perf_counter()
     metrics = {}
     args = [BIN, "serve", f"--{source}", path, "--listen", "127.0.0.1:0"]
@@ -90,6 +90,8 @@ def serve(source, path, triples, queries=None):
             raise RuntimeError(f"unexpected health: {data}")
         rss = int(subprocess.check_output(["ps", "-o", "rss=", "-p", str(proc.pid)])) * 1024
         metrics.update(ready_seconds=elapsed, ready_rss_bytes=rss, terms=data["terms"])
+        if include_pid:
+            metrics["pid"] = proc.pid
         yield port, metrics
     finally:
         if proc.returncode is None:
