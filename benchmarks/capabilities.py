@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Additional pack-v2 inference workloads. Build release with --features ascent-engine."""
+"""Additional pack-v3 inference workloads. Build release with --features ascent-engine."""
+import os
 import argparse
 import hashlib
 import heapq
@@ -200,6 +201,7 @@ def rule_suite(root, nodes):
 
 
 def main():
+    os.environ.setdefault("ONTOKILN_MAX_PACK_MIB", "4096")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subjects", type=int, default=2_500_000)
     parser.add_argument("--output", type=Path, required=True)
@@ -209,7 +211,7 @@ def main():
     report = dict(bench.environment(), features=["ascent-engine"])
     with tempfile.TemporaryDirectory(prefix="ontokiln-capabilities-") as tmp:
         root = Path(tmp)
-        print("Measuring v2 HTTP capabilities", file=sys.stderr, flush=True)
+        print("Measuring v3 HTTP capabilities", file=sys.stderr, flush=True)
         report["online"] = http_suite(root, args.subjects)
         report["scan_control"] = scan_control(root / "control", max(1, args.subjects // 10))
         print("Measuring offline rule engines", file=sys.stderr, flush=True)

@@ -849,6 +849,8 @@ dependencies = [
  "anyhow",
  "axum",
  "clap",
+ "futures-util",
+ "libc",
  "ontokiln-compiler",
  "ontokiln-pack",
  "ontokiln-reasoner",
@@ -873,6 +875,8 @@ dependencies = [
  "petgraph 0.8.3",
  "rayon",
  "serde",
+ "serde_json",
+ "sha2",
  "url",
  "walkdir",
 ]
@@ -884,6 +888,11 @@ dependencies = [
  "anyhow",
  "bytemuck",
  "memmap2",
+ "oxrdf",
+ "percent-encoding",
+ "rayon",
+ "serde",
+ "serde_json",
  "sha2",
  "tempfile",
 ]
@@ -898,6 +907,7 @@ dependencies = [
  "rayon",
  "roaring",
  "serde",
+ "serde_json",
  "sparesults",
  "spareval",
  "spargebra",
@@ -1379,8 +1389,6 @@ dependencies = [
 [[package]]
 name = "spareval"
 version = "0.2.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8eab80b96dc836e4cf8fda72daa67ccc0244dc5303be5d4566e8fd04adbdde5"
 dependencies = [
  "hex",
  "json-event-parser",
@@ -1524,6 +1532,7 @@ version = "1.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
 dependencies = [
+ "bytes",
  "libc",
  "mio",
  "pin-project-lite",

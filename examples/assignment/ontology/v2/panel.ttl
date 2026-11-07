@@ -1,0 +1,7 @@
+@prefix a: <urn:assignment:> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+a:Panel a:binding a:titleBinding .
+a:titleBinding a:writes a:title ; a:assignment a:render .
+a:render a a:Assignment ; a:previous a:load ; a:input a:load ; a:condition a:enabled ; a:stage a:write ; a:ordinal 2 ; prov:wasDerivedFrom a:writeSite .
+a:writeSite a:module "view" ; a:file "v2/panel.go" ; a:line 3 .

@@ -1,13 +1,32 @@
 //! Compile a directory snapshot. This crate is not needed to open a pack.
 pub mod rules;
 use anyhow::{Context, Result, ensure};
-use ontokiln_pack::{Id, Pack, Triple};
+use ontokiln_pack::{Id, Pack, Source};
 use oxrdf::{BlankNode, NamedOrBlankNode, Term};
 use oxrdfio::{RdfFormat, RdfParser};
 use rayon::prelude::*;
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Read};
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Declaration {
+    module: String,
+    revision: String,
+    source_file: String,
+    ttl_sha256: String,
+    source_sha256: String,
+}
+struct HashReader<R>(R, Sha256);
+impl<R: Read> Read for HashReader<R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let n = self.0.read(buf)?;
+        self.1.update(&buf[..n]);
+        Ok(n)
+    }
+}
 use std::path::{Path, PathBuf};
 use url::Url;
 use walkdir::WalkDir;
@@ -45,12 +64,70 @@ pub fn compile_directory(root: &Path) -> Result<Compilation> {
         root.display()
     );
 
+    let manifest = root.join("sources.json");
+    let mut declarations: std::collections::BTreeMap<String, Declaration> = if manifest.exists() {
+        serde_json::from_reader(File::open(manifest)?)?
+    } else {
+        Default::default()
+    };
+    let mut documents = Vec::new();
     let mut ids = HashMap::new();
     let mut triples = Vec::new();
     for (file_id, path) in paths.iter().enumerate() {
-        parse_file(path, file_id, &mut ids, &mut triples)
+        let sha256 = parse_file(path, file_id, &mut ids, &mut triples)
             .with_context(|| format!("parse {}", path.display()))?;
+        let relative = path.strip_prefix(&root)?;
+        let file = relative
+            .to_str()
+            .context("source path is not UTF-8")?
+            .replace(std::path::MAIN_SEPARATOR, "/");
+        let mut doc = Source {
+            module: relative
+                .parent()
+                .unwrap_or(Path::new(""))
+                .to_string_lossy()
+                .into_owned(),
+            file: file.clone(),
+            sha256,
+            revision: None,
+            source_file: None,
+            source_sha256: None,
+        };
+        if let Some(d) = declarations.remove(&file) {
+            ensure!(
+                !d.revision.is_empty() && !d.module.is_empty() && !d.source_file.is_empty(),
+                "empty declaration for {file}"
+            );
+            ensure!(
+                d.ttl_sha256 == doc.sha256,
+                "source digest mismatch for {file}"
+            );
+            {
+                let expected = d.source_sha256;
+                let path = root
+                    .join(&d.source_file)
+                    .canonicalize()
+                    .context("open declared source file")?;
+                ensure!(path.starts_with(&root), "source outside input directory");
+                let mut reader = HashReader(File::open(path)?, Sha256::new());
+                std::io::copy(&mut reader, &mut std::io::sink())?;
+                ensure!(
+                    format!("{:x}", reader.1.finalize()) == expected,
+                    "wrong source version for {}",
+                    d.source_file
+                );
+                doc.source_sha256 = Some(expected);
+            }
+            doc.module = d.module;
+            doc.source_file = Some(d.source_file);
+            doc.revision = Some(d.revision);
+        }
+        documents.push(doc);
     }
+    ensure!(
+        declarations.is_empty(),
+        "sources.json contains unknown input files"
+    );
     let parsed = triples.len();
     let mut entries: Vec<_> = ids.into_iter().collect();
     entries.par_sort_unstable_by(|a, b| a.0.cmp(&b.0));
@@ -60,13 +137,27 @@ pub fn compile_directory(root: &Path) -> Result<Compilation> {
         remap[old as usize] = terms.len() as Id;
         terms.push(term);
     }
-    triples
-        .par_iter_mut()
-        .for_each(|t| *t = t.map(|id| remap[id as usize]));
+    triples.par_iter_mut().for_each(|t| {
+        for id in &mut t[..3] {
+            *id = remap[*id as usize];
+        }
+    });
     triples.par_sort_unstable();
-    triples.dedup();
+    triples.dedup(); // includes the source file ID
+    let mut facts = Vec::with_capacity(triples.len());
+    let mut primary = Vec::with_capacity(triples.len());
+    let mut additional = Vec::new();
+    for [s, p, o, doc] in triples {
+        let fact = [s, p, o];
+        if facts.last() == Some(&fact) {
+            additional.push([Id::try_from(facts.len() - 1)?, doc]);
+        } else {
+            facts.push(fact);
+            primary.push(doc);
+        }
+    }
     Ok(Compilation {
-        pack: Pack::from_sorted(terms, triples)?,
+        pack: Pack::with_sources(terms, facts, documents, primary, additional)?,
         files: paths.len(),
         parsed,
     })
@@ -76,9 +167,11 @@ fn parse_file(
     path: &Path,
     file_id: usize,
     ids: &mut HashMap<String, Id>,
-    triples: &mut Vec<Triple>,
-) -> Result<()> {
-    let file = BufReader::new(File::open(path)?);
+    triples: &mut Vec<[Id; 4]>,
+) -> Result<String> {
+    let mut hash = HashReader(File::open(path)?, Sha256::new());
+    let file = BufReader::new(&mut hash);
+    let document = Id::try_from(file_id)?;
     let base = Url::from_file_path(path).map_err(|_| anyhow::anyhow!("invalid file URL"))?;
     let format = if path
         .extension()
@@ -111,9 +204,10 @@ fn parse_file(
             intern(ids, s)?,
             intern(ids, t.predicate.to_string())?,
             intern(ids, o)?,
+            document,
         ]);
     }
-    Ok(())
+    Ok(format!("{:x}", hash.1.finalize()))
 }
 
 fn intern(ids: &mut HashMap<String, Id>, term: String) -> Result<Id> {

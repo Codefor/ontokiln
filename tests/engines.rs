@@ -11,7 +11,7 @@ use std::{collections::BTreeSet, fs, path::Path, process::Command};
 use tempfile::tempdir;
 
 #[test]
-fn mixed_formats_and_thread_counts_preserve_v2_bytes_and_blank_scopes() {
+fn mixed_formats_and_thread_counts_preserve_v3_bytes_and_blank_scopes() {
     let d = tempdir().unwrap();
     fs::write(
         d.path().join("a.ttl"),
@@ -46,7 +46,7 @@ fn mixed_formats_and_thread_counts_preserve_v2_bytes_and_blank_scopes() {
 
 // Variable-width text must never affect the alignment of the mapped SPO rows.
 #[test]
-fn mapped_v2_pack_survives_in_place_source_truncation() {
+fn mapped_v3_pack_survives_in_place_source_truncation() {
     use std::io::Write;
     let d = tempdir().unwrap();
     for n in 0..4 {
@@ -55,14 +55,15 @@ fn mapped_v2_pack_survives_in_place_source_truncation() {
         let pack = Pack::from_sorted(vec![term.clone()], vec![[0, 0, 0]]).unwrap();
         pack.save(&file).unwrap();
         let before = fs::read(&file).unwrap();
-        assert_eq!(&before[..12], b"ONTOKILN\x02\x00\x00\x00");
+        assert_eq!(&before[..12], b"ONTOKILN\x03\x00\x00\x00");
         // One term, one row: the two offsets and the SPO row precede all text.
         assert_eq!(&before[44..48], &1_u32.to_le_bytes());
         assert_eq!(&before[48..56], &1_u64.to_le_bytes());
         assert_eq!(&before[56..64], &0_u64.to_le_bytes());
         assert_eq!(&before[64..72], &(term.len() as u64).to_le_bytes());
         assert_eq!(&before[72..84], &[0; 12]);
-        assert_eq!(&before[84..], term.as_bytes());
+        assert_eq!(&before[84..92], &[0; 8]); // two row permutations
+        assert_eq!(&before[96..96 + term.len()], term.as_bytes());
         let mapped = Pack::load(&file).unwrap();
         fs::File::create(&file)
             .unwrap()
@@ -112,7 +113,7 @@ fn sparql_matches_on_owned_and_mapped_pack_preserving_bags_values_and_graph_scop
         assert_eq!(rows[0]["o"]["value"], "urn:z");
         assert_eq!(rows[0]["v"]["value"], "3");
         assert!(rows[0].get("unbound").is_none());
-        assert_eq!(json("ASK { GRAPH ?g { ?s ?p ?o } }")["boolean"], false);
+        assert_eq!(json("ASK { GRAPH ?g { ?s ?p ?o } }")["boolean"], true);
         assert_eq!(json("ASK { <urn:x> a <urn:B> }")["boolean"], false);
         assert_eq!(
             json("ASK { <urn:x> <urn:label> \"hello\"@en }")["boolean"],
@@ -211,6 +212,38 @@ fn scheduled_recursive_rules_match_independent_closure_and_other_backend() {
     assert!(materialize(&pack, &rules, Engine::Datafrog, 2, &mut rejected).is_err());
     assert!(rejected.is_empty());
     let frog = run(Engine::Datafrog);
+    let explain = |engine| {
+        let mut proof = Vec::new();
+        ontokiln_compiler::rules::materialize_scoped(
+            &pack,
+            &rules,
+            engine,
+            256,
+            None,
+            Vec::new(),
+            Some(&mut proof),
+        )
+        .unwrap();
+        String::from_utf8(proof).unwrap()
+    };
+    let proof = explain(Engine::Datafrog);
+    assert!(
+        proof.contains("binary-rules-v1:")
+            && proof.contains("facts.ttl")
+            && proof.contains("urn:a <- urn:b, urn:p")
+    );
+    #[cfg(feature = "ascent-engine")]
+    assert_eq!(proof, explain(Engine::Ascent));
+    let proof_dir = tempdir().unwrap();
+    fs::write(proof_dir.path().join("recursive.nt"), proof).unwrap();
+    let q = SparqlParser::new().parse_query(r#"PREFIX p:<urn:ontokiln:proof:> ASK { ?fact p:subject <urn:x>;p:predicate <urn:out>;p:object <urn:x>;p:premise+ ?root . ?root p:predicate <urn:p>;p:source/p:file "facts.ttl" }"#).unwrap();
+    let result = Reasoner::new(compile_directory(proof_dir.path()).unwrap().pack)
+        .sparql(&q, vec![], CancellationToken::new())
+        .unwrap();
+    assert_eq!(
+        serde_json::from_slice::<serde_json::Value>(&result.bytes).unwrap()["boolean"],
+        true
+    );
     let mut expected = BTreeSet::new();
     for s in ["x", "y", "z"] {
         for o in ["x", "y", "z"] {
@@ -235,4 +268,61 @@ fn scheduled_recursive_rules_match_independent_closure_and_other_backend() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn derived_views_and_persisted_premises_survive_recompile() {
+    use ontokiln_reasoner::{View, sparql::Options};
+    let dir = tempdir().unwrap();
+    let engine = Reasoner::new(fixture(dir.path()));
+    let q = SparqlParser::new()
+        .parse_query("ASK { <urn:x> a <urn:B> }")
+        .unwrap();
+    for (view, expected) in [
+        (View::Asserted, false),
+        (View::Inferred, true),
+        (View::Closure, true),
+    ] {
+        let mut data = Vec::new();
+        engine
+            .write_sparql(
+                &q,
+                vec![],
+                &CancellationToken::new(),
+                &Options {
+                    view,
+                    ..Default::default()
+                },
+                false,
+                &mut data,
+            )
+            .unwrap();
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&data).unwrap()["boolean"],
+            expected
+        );
+    }
+    let dest = tempdir().unwrap();
+    let file = std::fs::File::create(dest.path().join("proof.nt")).unwrap();
+    engine.export_proofs(Some("<urn:x>"), None, file).unwrap();
+    let proof = compile_directory(dest.path()).unwrap().pack;
+    let packed = dest.path().join("offline.pack");
+    proof.save(&packed).unwrap();
+    let q=SparqlParser::new().parse_query(r#"
+        PREFIX e:<urn:ontokiln:proof:>
+        SELECT ?s ?p ?o ?file WHERE {
+          ?fact e:subject <urn:x>;e:object <urn:B>;e:rule "inherited_type";e:ruleVersion "rdfs-hierarchy-v1";e:premise ?why .
+          ?why e:subject ?s;e:predicate ?p;e:object ?o;e:source/e:file ?file
+        } ORDER BY ?s"#).unwrap();
+    let results = Reasoner::new(Pack::load(&packed).unwrap())
+        .sparql(&q, vec![], CancellationToken::new())
+        .unwrap();
+    let rows =
+        serde_json::from_slice::<serde_json::Value>(&results.bytes).unwrap()["results"]["bindings"]
+            .clone();
+    let rows = rows.as_array().unwrap();
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0]["s"]["value"], "urn:A");
+    assert_eq!(rows[1]["s"]["value"], "urn:x");
+    assert!(rows.iter().all(|r| r["file"]["value"] == "facts.ttl"));
 }

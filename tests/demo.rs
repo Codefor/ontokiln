@@ -141,7 +141,7 @@ fn invalid_sources_and_corrupt_packs_fail_without_replacing_previous_output() {
             .to_string()
             .contains("checksum")
     );
-    for unsupported in [1_u32, 3] {
+    for unsupported in [1_u32, 2, 4] {
         let mut bytes = good.clone();
         bytes[8..12].copy_from_slice(&unsupported.to_le_bytes());
         fs::write(&path, bytes).unwrap();

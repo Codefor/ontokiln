@@ -1,0 +1,5 @@
+@prefix a: <urn:assignment:> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+a:load a a:Assignment ; a:input a:displayName ; a:condition a:enabled ; a:stage a:read ; a:ordinal 1 ; prov:wasDerivedFrom a:readSite .
+a:readSite a:module "model" ; a:file "v2/model.go" ; a:line 3 .

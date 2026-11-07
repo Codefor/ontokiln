@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One 100,000,000-triple v2 pack, the same scan budget, and checked controls."""
+"""One 100,000,000-triple v3 pack, the same scan budget, and checked controls."""
 import argparse
 from contextlib import closing
 import hashlib

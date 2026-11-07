@@ -1,17 +1,24 @@
+use crate::worker::{Job, Operation};
 use crate::{ApiError, App, error};
 use anyhow::{Context, Result, ensure};
 use axum::{
     Json,
     extract::State,
-    http::{StatusCode, header},
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use ontokiln_reasoner::sparql::{CancellationToken, Query, SparqlParser};
-use oxrdf::{Term, Variable};
+use ontokiln_reasoner::{
+    parameters::Parameter,
+    sparql::{self, Options, Query, SparqlParser},
+};
 use serde::Deserialize;
-use std::{collections::BTreeMap, path::Path, sync::Arc, time::Duration};
+use std::{collections::BTreeMap, path::Path, sync::Arc};
 
-pub type Templates = BTreeMap<String, Arc<Query>>;
+pub struct Template {
+    text: String,
+    media: &'static str,
+}
+pub type Templates = BTreeMap<String, Arc<Template>>;
 
 pub fn templates(dir: Option<&Path>) -> Result<Templates> {
     let mut templates = Templates::new();
@@ -29,8 +36,17 @@ pub fn templates(dir: Option<&Path>) -> Result<Templates> {
                 .file_stem()
                 .and_then(|n| n.to_str())
                 .context("invalid template filename")?;
-            let query = read_query(&path)?;
-            templates.insert(name.to_owned(), Arc::new(query));
+            let text = std::fs::read_to_string(&path)?;
+            let parsed = SparqlParser::new()
+                .parse_query(&text)
+                .with_context(|| format!("parse {}", path.display()))?;
+            templates.insert(
+                name.to_owned(),
+                Arc::new(Template {
+                    text,
+                    media: sparql::media(&parsed, false),
+                }),
+            );
         }
         ensure!(
             !templates.is_empty(),
@@ -53,54 +69,87 @@ pub struct QueryRequest {
     template: String,
     #[serde(default)]
     bindings: BTreeMap<String, String>,
+    #[serde(default)]
+    parameters: BTreeMap<String, Parameter>,
+    #[serde(default)]
+    options: Options,
+    format: Option<String>,
+    request_id: Option<String>,
+    memory_bytes: Option<usize>,
+    deadline_ms: Option<u64>,
 }
 
-struct CancelOnDrop(CancellationToken);
-impl Drop for CancelOnDrop {
-    fn drop(&mut self) {
-        self.0.cancel();
+pub async fn cancel(
+    State(app): State<App>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<StatusCode, ApiError> {
+    if app.jobs.cancel(&id) {
+        Ok(StatusCode::ACCEPTED)
+    } else {
+        Err(error(StatusCode::NOT_FOUND, "unknown active query"))
     }
+}
+pub async fn sources(State(app): State<App>) -> impl IntoResponse {
+    Json(
+        app.engine
+            .documents()
+            .iter()
+            .map(|d| {
+                let mut v = serde_json::json!(d);
+                v["graph"] = d.graph().into();
+                v
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
 pub async fn sparql(
     State(app): State<App>,
     Json(req): Json<QueryRequest>,
 ) -> Result<Response, ApiError> {
-    let query = app
+    let deadline = crate::execution::timeout(req.deadline_ms.unwrap_or(5000))?;
+    let heap = crate::execution::heap(req.memory_bytes)?;
+    let invalid = |e: anyhow::Error| error(StatusCode::BAD_REQUEST, e.to_string());
+    let q = app
         .templates
         .get(&req.template)
-        .cloned()
         .ok_or_else(|| error(StatusCode::NOT_FOUND, "unknown SPARQL template"))?;
-    let bindings = req
-        .bindings
-        .into_iter()
-        .map(|(name, value)| {
-            let var = Variable::new(name)
-                .map_err(|_| error(StatusCode::BAD_REQUEST, "invalid variable name"))?;
-            let term = value
-                .parse::<Term>()
-                .map_err(|_| error(StatusCode::BAD_REQUEST, "binding must be an N-Triples term"))?;
-            Ok((var, term))
-        })
-        .collect::<Result<Vec<_>, ApiError>>()?;
-    let slot = app.slot()?;
-    let guard = CancelOnDrop(CancellationToken::new());
-    let token = guard.0.clone();
-    let worker = tokio::task::spawn_blocking(move || {
-        let _slot = slot;
-        app.engine.sparql(&query, bindings, token)
-    });
-    let output = tokio::time::timeout(Duration::from_secs(5), worker)
-        .await
-        .map_err(|_| error(StatusCode::REQUEST_TIMEOUT, "SPARQL deadline exceeded"))?
-        .map_err(|_| error(StatusCode::INTERNAL_SERVER_ERROR, "query worker failed"))?
-        .map_err(|e| error(StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))?;
-    Ok(([(header::CONTENT_TYPE, output.media_type)], output.bytes).into_response())
+    let jsonl = match req.format.as_deref() {
+        None | Some("json") => false,
+        Some("jsonl") => true,
+        _ => {
+            return Err(error(
+                StatusCode::BAD_REQUEST,
+                "format must be json or jsonl",
+            ));
+        }
+    };
+    req.options.validate(jsonl).map_err(invalid)?;
+    let media = if (req.options.profile || req.options.counters) && !jsonl {
+        "application/json"
+    } else if jsonl {
+        "application/x-ndjson"
+    } else {
+        q.media
+    };
+    let job = crate::worker::Job {
+        operation: Operation::Sparql {
+            query: q.text.clone(),
+            bindings: req.bindings,
+            parameters: req.parameters,
+        },
+        options: req.options,
+        jsonl,
+    };
+    crate::execution::run(app, job, req.request_id, heap, deadline, media).await
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EntityRequest {
+    #[serde(flatten)]
+    controls: Controls,
+    revision: Option<String>,
     types: Vec<String>,
     #[serde(default)]
     subclasses: bool,
@@ -126,20 +175,27 @@ pub async fn entities(
         .iter()
         .map(|s| crate::iri(s))
         .collect::<Result<Vec<_>, _>>()?;
-    let slot = app.slot()?;
-    let result = tokio::task::spawn_blocking(move || {
-        let _slot = slot;
-        app.engine.entities(&types, req.subclasses, req.limit)
-    })
+    native(
+        app,
+        Operation::Entities {
+            types,
+            subclasses: req.subclasses,
+            limit: req.limit,
+        },
+        req.revision,
+        req.controls,
+    )
     .await
-    .map_err(|_| error(StatusCode::INTERNAL_SERVER_ERROR, "query worker failed"))?
-    .map_err(|e| error(StatusCode::UNPROCESSABLE_ENTITY, e.to_string()))?;
-    Ok(Json(result))
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BatchRequest {
+    #[serde(flatten)]
+    controls: Controls,
+    #[serde(default)]
+    view: ontokiln_reasoner::View,
+    revision: Option<String>,
     subjects: Vec<String>,
     predicate: String,
     #[serde(default)]
@@ -159,18 +215,59 @@ pub async fn batch(
         .map(|s| crate::iri(s))
         .collect::<Result<Vec<_>, _>>()?;
     let predicate = crate::iri(&req.predicate)?;
-    let slot = app.slot()?;
-    let answers = tokio::task::spawn_blocking(move || {
-        let _slot = slot;
-        app.engine.query_batch(&subjects, &predicate, req.explain)
-    })
+    native(
+        app,
+        Operation::Subjects {
+            subjects,
+            predicate,
+            explain: req.explain,
+            view: req.view,
+            batch: true,
+        },
+        req.revision,
+        req.controls,
+    )
     .await
-    .map_err(|_| error(StatusCode::INTERNAL_SERVER_ERROR, "query worker failed"))?
-    .map_err(|e| error(StatusCode::UNPROCESSABLE_ENTITY, e))?;
-    Ok(Json(
-        answers
-            .into_iter()
-            .map(|results| crate::Response { results })
-            .collect::<Vec<_>>(),
-    ))
+}
+
+#[derive(Default, Deserialize)]
+pub struct Controls {
+    pub request_id: Option<String>,
+    pub deadline_ms: Option<u64>,
+    pub memory_bytes: Option<usize>,
+    pub max_bytes: Option<usize>,
+    pub max_visits: Option<usize>,
+    pub max_rows: Option<usize>,
+}
+pub async fn native(
+    app: App,
+    operation: Operation,
+    revision: Option<String>,
+    limits: Controls,
+) -> Result<Response, ApiError> {
+    let deadline = crate::execution::timeout(limits.deadline_ms.unwrap_or(5000))?;
+    let heap = crate::execution::heap(limits.memory_bytes)?;
+    let options = Options {
+        revision,
+        max_bytes: limits.max_bytes.unwrap_or(sparql::MAX_BYTES),
+        max_rows: limits.max_rows.unwrap_or(sparql::MAX_ROWS),
+        max_visits: limits.max_visits.unwrap_or(sparql::MAX_VISITS),
+        ..Default::default()
+    };
+    options
+        .validate(false)
+        .map_err(|e| error(StatusCode::BAD_REQUEST, e.to_string()))?;
+    crate::execution::run(
+        app,
+        Job {
+            operation,
+            options,
+            jsonl: false,
+        },
+        limits.request_id,
+        heap,
+        deadline,
+        "application/json",
+    )
+    .await
 }

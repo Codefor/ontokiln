@@ -1,0 +1,30 @@
+{
+  "v1/model.ttl": {
+    "module": "model",
+    "revision": "v1",
+    "source_file": "v1/model.go",
+    "source_sha256": "3a72b3d2c47312703b4fbe8e665bd4576a84cd6c321731b403e4e888937748a6",
+    "ttl_sha256": "54fe25ca84b143b73483df56fb7a3ec9fe291d9415454c6e5f6b350feb942a4a"
+  },
+  "v1/panel.ttl": {
+    "module": "view",
+    "revision": "v1",
+    "source_file": "v1/panel.go",
+    "source_sha256": "ec14c095d1b5ac405b0e762339f99efbc8df67b8c2af1ae261385d9037a65fd6",
+    "ttl_sha256": "706c040b43980d15191201dee86077c006bb46060f9e498086cf1402fd2691af"
+  },
+  "v2/model.ttl": {
+    "module": "model",
+    "revision": "v2",
+    "source_file": "v2/model.go",
+    "source_sha256": "211e0e00fb4387dc767612917b356f8a4e14be5b2c86d769f2a7cbf7c638c3ba",
+    "ttl_sha256": "40427fee9ef47c26d5aa16cd2c6434f65f59802a1784a3a5c644644dd87c9303"
+  },
+  "v2/panel.ttl": {
+    "module": "view",
+    "revision": "v2",
+    "source_file": "v2/panel.go",
+    "source_sha256": "ec14c095d1b5ac405b0e762339f99efbc8df67b8c2af1ae261385d9037a65fd6",
+    "ttl_sha256": "9e99e473f017d5ec6d849ae546d188e6581074b368f61c1ab11f9eea1b248a48"
+  }
+}

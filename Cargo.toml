@@ -30,13 +30,19 @@ ontokiln-pack.workspace = true
 ontokiln-reasoner = { path = "crates/reasoner" }
 oxrdf.workspace = true
 serde.workspace = true
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time", "process", "io-util"] }
 
 serde_json = "1"
+futures-util = {version="0.3", default-features=false,features=["std"]}
+libc="0.2"
+
+tempfile.workspace = true
 
 [features]
 ascent-engine = ["ontokiln-compiler/ascent-engine"]
 
 [dev-dependencies]
-tempfile.workspace = true
 tower = { version = "0.5", features = ["util"] }
+
+[patch.crates-io]
+spareval = { path = "vendor/spareval" }

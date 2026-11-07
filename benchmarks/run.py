@@ -86,7 +86,7 @@ def serve(source, path, triples, queries=None):
         data = json.loads(res.read())
         elapsed = time.perf_counter() - start
         conn.close()
-        if (res.status, data["source"], data["triples"], data["pack_version"]) != (200, source, triples, 2):
+        if (res.status, data["source"], data["triples"], data["pack_version"]) != (200, source, triples, 3):
             raise RuntimeError(f"unexpected health: {data}")
         rss = int(subprocess.check_output(["ps", "-o", "rss=", "-p", str(proc.pid)])) * 1024
         metrics.update(ready_seconds=elapsed, ready_rss_bytes=rss, terms=data["terms"])
@@ -253,9 +253,9 @@ def environment():
               "python": platform.python_version(), "logical_cpus": os.cpu_count(),
               "memory_bytes": os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE"),
               "rustc": subprocess.check_output(["rustc", "--version"], text=True).strip(),
-              "engine_revision": subprocess.check_output(["git", "log", "-1", "--format=%H", "--", "src", "crates"],
+              "engine_revision": subprocess.check_output(["git", "log", "-1", "--format=%H", "--", "src", "crates", "vendor", "Cargo.toml", "Cargo.lock"],
                                                          cwd=ROOT, text=True).strip(),
-              "profile": "release", "pack_version": 2}
+              "profile": "release", "pack_version": 3}
     if sys.platform == "darwin":
         report["cpu"] = subprocess.check_output(["sysctl", "-n", "machdep.cpu.brand_string"], text=True).strip()
     return report
@@ -270,6 +270,7 @@ def publish(path, report):
 
 
 def main():
+    os.environ.setdefault("ONTOKILN_MAX_PACK_MIB", "4096")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--subjects", type=int, nargs="+", default=[25_000, 250_000, 2_500_000])
     parser.add_argument("--output", type=Path, required=True)

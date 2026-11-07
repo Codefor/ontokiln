@@ -1,23 +1,53 @@
 //! Versioned offline data shared by the compiler and the read-only reasoner.
 use anyhow::{Context, Result, ensure};
 use memmap2::Mmap;
+use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
-use tempfile::{NamedTempFile, tempfile};
+use tempfile::NamedTempFile;
+mod index;
+pub mod proof;
+pub use index::{Candidates, Order};
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Source {
+    pub file: String,
+    pub module: String,
+    pub sha256: String,
+    pub revision: Option<String>,
+    pub source_file: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_sha256: Option<String>,
+}
+impl Source {
+    pub fn graph(&self) -> String {
+        format!(
+            "urn:ontokiln:file:{}",
+            percent_encoding::utf8_percent_encode(&self.file, percent_encoding::NON_ALPHANUMERIC)
+        )
+    }
+}
+#[derive(Default, Debug, Serialize, Deserialize)]
+struct Provenance {
+    documents: Vec<Source>,
+    // Extra assertions of the same fact in other source documents.
+    additional: Vec<[Id; 2]>,
+}
 
 pub type Id = u32;
 pub type Triple = [Id; 3];
 
 const MAGIC: &[u8; 8] = b"ONTOKILN";
-pub const PACK_VERSION: u32 = 2;
+pub const PACK_VERSION: u32 = 3;
 const PREFIX_LEN: usize = 8 + 4;
 const BODY_START: usize = PREFIX_LEN + 32;
 const OFFSETS_START: usize = BODY_START + 4 + 8;
 pub const MAX_PACK_BYTES: usize = 256 * 1024 * 1024;
 
-// This is an operational memory/disk limit. The v2 layout already uses u64 offsets.
+// This is an operational memory/disk limit. The v3 layout already uses u64 offsets.
 fn max_pack_bytes() -> Result<usize> {
     match std::env::var("ONTOKILN_MAX_PACK_MIB") {
         Ok(value) => {
@@ -39,25 +69,52 @@ fn max_pack_bytes() -> Result<usize> {
 }
 
 // Body: u32 term count, u64 triple count, u64 offsets (including sentinel),
-// little-endian SPO rows, then packed UTF-8 terms. Both typed tables are aligned.
+// little-endian SPO rows, POS/OSP row IDs, primary sources, UTF-8 terms, then provenance.
+struct DigestWriter<W> {
+    out: W,
+    digest: Sha256,
+    remaining: usize,
+}
+impl<W: Write> Write for DigestWriter<W> {
+    fn write(&mut self, data: &[u8]) -> std::io::Result<usize> {
+        if data.len() > self.remaining {
+            return Err(std::io::Error::other("pack exceeds configured size limit"));
+        }
+        let n = self.out.write(data)?;
+        self.digest.update(&data[..n]);
+        self.remaining -= n;
+        Ok(n)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.out.flush()
+    }
+}
 #[derive(Debug)]
 struct Layout {
     term_count: usize,
     spo_start: usize,
+    index_start: usize,
+    rows: usize,
     text_start: usize,
 }
 
 impl Layout {
     fn new(terms: u32, triples: u64) -> Result<Self> {
         let spo = OFFSETS_START as u64 + (u64::from(terms) + 1) * 8;
-        let text = triples
+        ensure!(triples <= u32::MAX as u64, "too many rows for v3 indices");
+        let index = triples
             .checked_mul(12)
             .and_then(|bytes| spo.checked_add(bytes))
             .context("pack section size overflow")?;
+        let text = index
+            .checked_add(triples * 12)
+            .context("index size overflow")?;
         ensure!(text <= isize::MAX as u64, "pack exceeds addressable size");
         Ok(Self {
             term_count: terms as usize,
             spo_start: spo as usize,
+            rows: triples as usize,
+            index_start: index as usize,
             text_start: text as usize,
         })
     }
@@ -68,22 +125,37 @@ impl Layout {
 }
 
 #[derive(Debug)]
-pub struct Pack(Storage);
+pub struct Pack(Storage, Provenance);
 
 #[derive(Debug)]
 enum Storage {
     Owned {
         terms: Vec<String>,
         triples: Vec<Triple>,
+        pos: Vec<Id>,
+        osp: Vec<Id>,
+        primary: Vec<Id>,
     },
     Mapped {
         map: Mmap,
+        snapshot: Option<File>,
         layout: Layout,
     },
 }
 
 impl Pack {
     pub fn from_sorted(terms: Vec<String>, triples: Vec<Triple>) -> Result<Self> {
+        let primary = vec![Id::MAX; triples.len()];
+        Self::with_sources(terms, triples, vec![], primary, vec![])
+    }
+
+    pub fn with_sources(
+        terms: Vec<String>,
+        triples: Vec<Triple>,
+        documents: Vec<Source>,
+        primary: Vec<Id>,
+        additional: Vec<[Id; 2]>,
+    ) -> Result<Self> {
         let layout = Layout::new(terms.len().try_into()?, triples.len().try_into()?)?;
         let text_len = terms.iter().map(String::len).sum::<usize>();
         let limit = max_pack_bytes()?;
@@ -98,7 +170,26 @@ impl Pack {
             terms.iter().all(|term| !term.is_empty()),
             "empty dictionary term"
         );
-        let pack = Self(Storage::Owned { terms, triples });
+        let build = |order: Order| {
+            let mut rows: Vec<Id> = (0..triples.len() as Id).collect();
+            rows.par_sort_unstable_by_key(|&i| order.key(triples[i as usize]));
+            rows
+        };
+        let pos = build(Order::Pos);
+        let osp = build(Order::Osp);
+        let pack = Self(
+            Storage::Owned {
+                terms,
+                triples,
+                pos,
+                osp,
+                primary,
+            },
+            Provenance {
+                documents,
+                additional,
+            },
+        );
         pack.validate()?;
         Ok(pack)
     }
@@ -127,9 +218,76 @@ impl Pack {
                 "invalid subject or predicate"
             );
         }
+        for order in [Order::Pos, Order::Osp] {
+            let mut previous = None;
+            for &id in self.permutation(order).unwrap() {
+                let key = order.key(*triples.get(id as usize).context("invalid index row")?);
+                ensure!(previous.is_none_or(|p| p < key), "invalid index order");
+                previous = Some(key);
+            }
+        }
+        let primary = self.primary();
+        ensure!(
+            primary.len() == triples.len()
+                && primary
+                    .iter()
+                    .all(|&doc| (doc as usize) < self.1.documents.len()
+                        || (doc == Id::MAX && self.1.documents.is_empty())),
+            "invalid source ID"
+        );
+        ensure!(
+            self.1.additional.windows(2).all(|w| w[0] < w[1])
+                && self
+                    .1
+                    .additional
+                    .iter()
+                    .all(|&[row, doc]| (doc as usize) < self.1.documents.len()
+                        && primary.get(row as usize).is_some_and(|&first| first < doc)),
+            "invalid additional assertion"
+        );
         Ok(())
     }
 
+    fn index_table(&self, n: usize) -> &[Id] {
+        match &self.0 {
+            Storage::Owned {
+                pos, osp, primary, ..
+            } => [pos, osp, primary][n],
+            Storage::Mapped { map, layout, .. } => {
+                let start = layout.index_start + layout.rows * 4 * n;
+                bytemuck::cast_slice(&map[start..start + layout.rows * 4])
+            }
+        }
+    }
+    fn permutation(&self, order: Order) -> Option<&[Id]> {
+        match order {
+            Order::Spo => None,
+            Order::Pos => Some(self.index_table(0)),
+            Order::Osp => Some(self.index_table(1)),
+        }
+    }
+    fn primary(&self) -> &[Id] {
+        self.index_table(2)
+    }
+    pub fn documents(&self) -> &[Source] {
+        &self.1.documents
+    }
+    pub fn sources(&self, row: usize) -> impl Iterator<Item = &Source> {
+        self.source_ids(row).map(|i| &self.1.documents[i as usize])
+    }
+    pub fn source_ids(&self, row: usize) -> impl Iterator<Item = Id> + '_ {
+        let id = self.primary()[row];
+        let first = (id != Id::MAX).then_some(id);
+        let row = row as Id;
+        let extra = &self.1.additional;
+        let begin = extra.partition_point(|t| t[0] < row);
+        first.into_iter().chain(
+            extra[begin..]
+                .iter()
+                .take_while(move |t| t[0] == row)
+                .map(|t| t[1]),
+        )
+    }
     pub fn term_count(&self) -> usize {
         match &self.0 {
             Storage::Owned { terms, .. } => terms.len(),
@@ -142,15 +300,15 @@ impl Pack {
     pub fn triples(&self) -> &[Triple] {
         match &self.0 {
             Storage::Owned { triples, .. } => triples,
-            Storage::Mapped { map, layout } => {
-                bytemuck::cast_slice(&map[layout.spo_start..layout.text_start])
+            Storage::Mapped { map, layout, .. } => {
+                bytemuck::cast_slice(&map[layout.spo_start..layout.index_start])
             }
         }
     }
     pub fn term(&self, id: Id) -> &str {
         match &self.0 {
             Storage::Owned { terms, .. } => &terms[id as usize],
-            Storage::Mapped { map, layout } => {
+            Storage::Mapped { map, layout, .. } => {
                 let offsets = layout.offsets(map);
                 let start = u64::from_le(offsets[id as usize]) as usize;
                 let end = u64::from_le(offsets[id as usize + 1]) as usize;
@@ -183,6 +341,26 @@ impl Pack {
         let len = row[first..].partition_point(|t| t[1] == p);
         &row[first..first + len]
     }
+    pub fn snapshot_file(&self) -> Option<&File> {
+        match &self.0 {
+            Storage::Mapped {
+                snapshot: Some(file),
+                ..
+            } => Some(file),
+            _ => None,
+        }
+    }
+    pub fn into_snapshot(self) -> Result<Self> {
+        if self.snapshot_file().is_some() {
+            return Ok(self);
+        }
+        let path = NamedTempFile::new()?.into_temp_path();
+        self.save(&path)?;
+        // The TempPath unlinks on return. Workers inherit only the read-only descriptor.
+        let file = File::open(&path)?;
+        let map = unsafe { Mmap::map(&file)? };
+        Self::decode(map, true, Some(file))
+    }
     pub fn save(&self, path: &Path) -> Result<()> {
         let dir = path
             .parent()
@@ -192,30 +370,56 @@ impl Pack {
         let mut file = NamedTempFile::new_in(dir)?;
         match &self.0 {
             Storage::Mapped { map, .. } => file.write_all(map)?,
-            Storage::Owned { terms, triples } => {
-                let layout = Layout::new(terms.len().try_into()?, triples.len().try_into()?)?;
-                let text_len = terms.iter().map(String::len).sum::<usize>();
-                let mut body = Vec::with_capacity(layout.text_start - BODY_START + text_len);
-                body.extend((terms.len() as u32).to_le_bytes());
-                body.extend((triples.len() as u64).to_le_bytes());
-                let mut offset = 0_u64;
-                body.extend(offset.to_le_bytes());
-                for term in terms {
-                    offset += term.len() as u64;
-                    body.extend(offset.to_le_bytes());
-                }
-                for triple in triples {
-                    for id in triple {
-                        body.extend(id.to_le_bytes());
-                    }
-                }
-                for term in terms {
-                    body.extend_from_slice(term.as_bytes());
-                }
+            Storage::Owned {
+                terms,
+                triples,
+                pos,
+                osp,
+                primary,
+            } => {
                 file.write_all(MAGIC)?;
                 file.write_all(&PACK_VERSION.to_le_bytes())?;
-                file.write_all(&Sha256::digest(&body))?;
-                file.write_all(&body)?;
+                file.write_all(&[0; 32])?;
+                let mut hashed = DigestWriter {
+                    out: file.as_file_mut(),
+                    digest: Sha256::new(),
+                    remaining: max_pack_bytes()?.saturating_sub(BODY_START),
+                };
+                {
+                    let mut body = BufWriter::with_capacity(1024 * 1024, &mut hashed);
+                    body.write_all(&(terms.len() as u32).to_le_bytes())?;
+                    body.write_all(&(triples.len() as u64).to_le_bytes())?;
+                    let mut offset = 0u64;
+                    body.write_all(&offset.to_le_bytes())?;
+                    for term in terms {
+                        offset += term.len() as u64;
+                        body.write_all(&offset.to_le_bytes())?;
+                    }
+                    if cfg!(target_endian = "little") {
+                        body.write_all(bytemuck::cast_slice(triples))?;
+                        for index in [pos, osp, primary] {
+                            body.write_all(bytemuck::cast_slice(index))?;
+                        }
+                    } else {
+                        for id in triples
+                            .iter()
+                            .flatten()
+                            .chain(pos)
+                            .chain(osp)
+                            .chain(primary)
+                        {
+                            body.write_all(&id.to_le_bytes())?;
+                        }
+                    }
+                    for term in terms {
+                        body.write_all(term.as_bytes())?;
+                    }
+                    serde_json::to_writer(&mut body, &self.1)?;
+                    body.flush()?;
+                }
+                let digest = hashed.digest.finalize();
+                file.seek(SeekFrom::Start(PREFIX_LEN as u64))?;
+                file.write_all(&digest)?;
             }
         }
         file.as_file().sync_all()?;
@@ -243,7 +447,7 @@ impl Pack {
             "pack exceeds configured size limit ({limit} bytes)"
         );
         ensure!(len >= (OFFSETS_START + 8) as u64, "truncated pack");
-        let mut backing = tempfile()?;
+        let mut backing = NamedTempFile::new()?;
         backing.write_all(&prefix)?;
         let remaining = len - PREFIX_LEN as u64;
         ensure!(
@@ -252,18 +456,54 @@ impl Pack {
         );
         // SAFETY: only this private anonymous file is mapped. The caller's source
         // may be truncated or rewritten after loading. No writable handle escapes.
-        let map = unsafe { Mmap::map(&backing)? };
-        drop(backing);
+        let map = unsafe { Mmap::map(backing.as_file())? };
+        let snapshot = Some(File::open(backing.path())?);
+        drop(backing); // unlink the private snapshot and close its sole writable FD
         ensure!(
             Sha256::digest(&map[BODY_START..]).as_slice() == &map[PREFIX_LEN..BODY_START],
             "pack checksum mismatch"
+        );
+        Self::decode(map, true, snapshot)
+    }
+
+    /// Map the private snapshot owned by the server for an isolated worker.
+    /// # Safety
+    /// The file must be the already validated, immutable server-owned copy for
+    /// the entire mapping lifetime, never a caller's source file.
+    pub unsafe fn map_validated_snapshot(file: &File) -> Result<Self> {
+        // SAFETY: delegated to the owner of the private snapshot.
+        Self::decode(unsafe { Mmap::map(file)? }, false, None)
+    }
+    fn decode(map: Mmap, validate: bool, snapshot: Option<File>) -> Result<Self> {
+        ensure!(
+            map.len() >= OFFSETS_START + 8
+                && &map[..8] == MAGIC
+                && map[8..12] == PACK_VERSION.to_le_bytes(),
+            "invalid v3 snapshot"
         );
         let terms = u32::from_le_bytes(map[BODY_START..BODY_START + 4].try_into().unwrap());
         let triples = u64::from_le_bytes(map[BODY_START + 4..OFFSETS_START].try_into().unwrap());
         let layout = Layout::new(terms, triples)?;
         ensure!(layout.text_start <= map.len(), "truncated pack sections");
         let offsets = layout.offsets(&map);
-        let text = std::str::from_utf8(&map[layout.text_start..])?;
+        let text_len = usize::try_from(u64::from_le(offsets[layout.term_count]))?;
+        let end = layout
+            .text_start
+            .checked_add(text_len)
+            .context("text overflow")?;
+        ensure!(end <= map.len(), "invalid dictionary length");
+        let provenance = serde_json::from_slice(&map[end..])?;
+        if !validate {
+            return Ok(Self(
+                Storage::Mapped {
+                    map,
+                    layout,
+                    snapshot,
+                },
+                provenance,
+            ));
+        }
+        let text = std::str::from_utf8(&map[layout.text_start..end])?;
         ensure!(
             offsets[0] == 0 && u64::from_le(offsets[layout.term_count]) == text.len() as u64,
             "invalid dictionary endpoints"
@@ -277,24 +517,20 @@ impl Pack {
             );
             previous = end;
         }
-        let mapped = Self(Storage::Mapped { map, layout });
-        #[cfg(target_endian = "big")]
-        {
-            let terms = (0..mapped.term_count())
-                .map(|id| mapped.term(id as Id).to_owned())
-                .collect();
-            let triples = mapped
-                .triples()
-                .iter()
-                .map(|t| t.map(Id::from_le))
-                .collect();
-            Self::from_sorted(terms, triples)
-        }
-        #[cfg(target_endian = "little")]
-        {
-            mapped.validate()?;
-            Ok(mapped)
-        }
+        ensure!(
+            cfg!(target_endian = "little"),
+            "v3 mapped indices require little endian"
+        );
+        let mapped = Self(
+            Storage::Mapped {
+                map,
+                layout,
+                snapshot,
+            },
+            provenance,
+        );
+        mapped.validate()?;
+        Ok(mapped)
     }
 }
 
@@ -303,7 +539,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_v2_has_a_single_dictionary_sentinel() {
+    fn empty_v3_has_a_single_dictionary_sentinel() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("empty.pack");
         Pack::from_sorted(vec![], vec![])
@@ -311,13 +547,13 @@ mod tests {
             .save(&path)
             .unwrap();
         let bytes = std::fs::read(&path).unwrap();
-        assert_eq!(&bytes[OFFSETS_START..], &[0; 8]);
+        assert_eq!(&bytes[OFFSETS_START..OFFSETS_START + 8], &[0; 8]);
         let pack = Pack::load(&path).unwrap();
         assert_eq!((pack.term_count(), pack.triple_count()), (0, 0));
     }
 
     #[test]
-    fn invalid_v2_sections_fail_even_with_a_matching_checksum() {
+    fn invalid_v3_sections_fail_even_with_a_matching_checksum() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("graph.pack");
         let terms = vec!["<urn:a>".to_string(), "<urn:é>".to_string()];
@@ -346,6 +582,9 @@ mod tests {
         reject(OFFSETS_START + 8, &u64::MAX.to_le_bytes());
         reject(OFFSETS_START + 16, &14_u64.to_le_bytes()); // wrong sentinel
         reject(layout.spo_start, &2_u32.to_le_bytes()); // missing subject
+        reject(layout.index_start, &1_u32.to_le_bytes()); // POS row out of range
+        reject(layout.index_start + 4, &1_u32.to_le_bytes()); // OSP row out of range
+        reject(layout.index_start + 8, &0_u32.to_le_bytes()); // missing document
         reject(layout.text_start, &[0xff]);
     }
 }

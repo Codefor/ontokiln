@@ -13,7 +13,7 @@ use std::{
     io::Write,
 };
 
-#[derive(Deserialize, Debug)]
+#[derive(serde::Serialize, Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct Rule {
     pub head: String,
@@ -47,8 +47,33 @@ pub fn materialize(
     rules: &[Rule],
     engine: Engine,
     max_terms: usize,
-    mut output: impl Write,
+    output: impl Write,
 ) -> Result<Summary> {
+    materialize_scoped(pack, rules, engine, max_terms, None, output, None)
+}
+
+pub fn materialize_scoped(
+    pack: &Pack,
+    rules: &[Rule],
+    engine: Engine,
+    max_terms: usize,
+    revision: Option<&str>,
+    mut output: impl Write,
+    proofs: Option<&mut dyn Write>,
+) -> Result<Summary> {
+    if let Some(v) = revision {
+        ensure!(
+            pack.documents()
+                .iter()
+                .any(|d| d.revision.as_deref() == Some(v)),
+            "unknown source revision"
+        )
+    } else {
+        ensure!(
+            !pack.documents().iter().any(|d| d.revision.is_some()),
+            "source revision required"
+        )
+    }
     ensure!(max_terms > 0, "max_terms must be positive");
     ensure!((1..=32).contains(&rules.len()), "expected 1..32 rules");
     let mut names = BTreeSet::new();
@@ -88,7 +113,10 @@ pub fn materialize(
         .collect();
     let mut initial = vec![BTreeSet::new(); names.len()];
     let mut domain = BTreeSet::new();
-    for &[s, p, o] in pack.triples() {
+    for (row, &[s, p, o]) in pack.triples().iter().enumerate() {
+        if revision.is_some_and(|r| !pack.sources(row).any(|d| d.revision.as_deref() == Some(r))) {
+            continue;
+        }
         if let Some(&rel) = predicates.get(&p) {
             domain.insert(s);
             domain.insert(o);
@@ -121,6 +149,73 @@ pub fn materialize(
             facts[id].clone_from(&solved[id]);
         }
         stages.push(group.iter().map(|&i| names[i].to_owned()).collect());
+    }
+    if let Some(out) = proofs {
+        use sha2::{Digest, Sha256};
+        let version = format!(
+            "binary-rules-v1:{:x}",
+            Sha256::digest(serde_json::to_vec(rules)?)
+        );
+        let predicates: Vec<_> = names.iter().map(|name| format!("<{name}>")).collect();
+        let mut graph = ontokiln_pack::proof::ProofGraph::new(out, &version, revision);
+        let terms =
+            |(r, s, o): (usize, Id, Id)| [pack.term(s), predicates[r].as_str(), pack.term(o)];
+        let mut known = initial.clone();
+        for (r, rows) in known.iter().enumerate() {
+            for &(s, o) in rows {
+                let p = pack.lookup(&predicates[r]).expect("asserted predicate");
+                let row = pack
+                    .triples()
+                    .binary_search(&[s, p, o])
+                    .expect("asserted fact");
+                graph.record(
+                    terms((r, s, o)),
+                    "asserted",
+                    &[],
+                    pack.sources(row)
+                        .filter(|d| revision.is_none_or(|v| d.revision.as_deref() == Some(v))),
+                )?;
+            }
+        }
+        // Only facts with a witness from an earlier round may be premises.
+        // Check completeness against the chosen engine's actual fixed point.
+        while known != facts {
+            let mut next = std::collections::BTreeMap::new();
+            for (i, op) in ops.iter().enumerate() {
+                for &(s, m) in &known[op.left] {
+                    let mut witness = |o, right| {
+                        if !known[op.head].contains(&(s, o)) {
+                            next.entry((op.head, s, o))
+                                .or_insert((i, (op.left, s, m), right));
+                        }
+                    };
+                    if let Some(r) = op.right {
+                        for &(_, o) in known[r].range((m, 0)..=(m, Id::MAX)) {
+                            witness(o, Some((r, m, o)))
+                        }
+                    } else {
+                        witness(m, None)
+                    }
+                }
+            }
+            ensure!(
+                !next.is_empty(),
+                "rule proof diverged from computed closure"
+            );
+            for (fact, (i, left, right)) in next {
+                let (r, s, o) = fact;
+                ensure!(facts[r].contains(&(s, o)), "unexpected proof conclusion");
+                known[r].insert((s, o));
+                let parents: Vec<_> = std::iter::once(left).chain(right).map(terms).collect();
+                graph.record(
+                    terms(fact),
+                    &format!("{} <- {}", rules[i].head, rules[i].body.join(", ")),
+                    &parents,
+                    [],
+                )?;
+            }
+        }
+        graph.finish()?;
     }
     let mut added = 0;
     for (i, rows) in facts.iter().enumerate() {

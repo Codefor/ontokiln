@@ -1,0 +1,14 @@
+PREFIX a: <urn:assignment:>
+PREFIX param: <urn:ontokiln:param:>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+SELECT ?component ?binding ?target ?assignment ?input ?condition ?stage ?order ?module ?file ?line ?document WHERE {
+  VALUES ?component { param:component }
+  ?component a:binding ?binding .
+  ?binding a:writes ?target ; a:assignment/a:previous* ?assignment .
+  ?assignment a:stage ?stage ; a:ordinal ?order .
+  OPTIONAL { ?assignment a:input ?input }
+  OPTIONAL { ?assignment a:condition ?condition }
+  GRAPH ?document { ?assignment prov:wasDerivedFrom ?site }
+  ?site a:module ?module ; a:file ?file ; a:line ?line .
+}
+ORDER BY ?order ?input

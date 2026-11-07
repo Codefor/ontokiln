@@ -1,0 +1,9 @@
+PREFIX proof: <urn:ontokiln:proof:>
+PREFIX param: <urn:ontokiln:param:>
+SELECT ?fact ?version ?rule ?s ?p ?o ?file WHERE {
+  ?fact proof:subject param:subject ; proof:predicate param:predicate ;
+        proof:object param:object ; proof:ruleVersion ?version ; proof:rule ?rule ;
+        proof:premise+ ?why .
+  ?why proof:subject ?s ; proof:predicate ?p ; proof:object ?o ; proof:source/proof:file ?file .
+}
+ORDER BY ?s ?p ?o ?file
