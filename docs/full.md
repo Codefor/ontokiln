@@ -81,3 +81,9 @@ resources; omitted focus uses their declared SHACL targets. An explicit empty se
 shapes. Unknown shapes and literal selectors fail. `max_validation_depth` is a positive integer
 (default 64), enforced by the evaluator. The caller owns shape and focus selection; the engine
 does not dispatch on vocabulary or application profiles.
+
+### Query input bindings and shared shape graphs
+
+`rdf_bindings` binds RDF terms before evaluating a local SELECT. Input variables may occur only in FILTER or ORDER BY; they do not become output columns. Queries with such bindings skip optimizer folding that would otherwise treat these variables as unbound. Unbound queries retain the existing optimizer. Explicit `parameters` IRI slots remain the preferred template contract.
+
+`validate` accepts `shapes_from_dataset: true` with `shapes: []` when constraints and data belong to the same compiled RDF dataset. This preserves document-scoped blank node identity, including `sh:targetNode` and `sh:hasValue`. External shape documents remain independently scoped; the two modes cannot be combined.

@@ -1133,6 +1133,18 @@ fn validate_full(v: Value) -> Result<Value> {
     let mut shapes = crate::rdf_graph::Graph {
         triples: BTreeSet::new(),
     };
+    if v["shapes_from_dataset"].as_bool() == Some(true) {
+        if v["shapes"]
+            .as_array()
+            .is_some_and(|sources| !sources.is_empty())
+        {
+            return Err(err(
+                "SOURCE_INVALID",
+                "choose dataset shapes or external shape documents",
+            ));
+        }
+        shapes = data.clone();
+    }
     for source in v["shapes"]
         .as_array()
         .ok_or_else(|| err("VALIDATION_FAILED", "shapes"))?

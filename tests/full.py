@@ -127,6 +127,21 @@ class Full(unittest.TestCase):
         self.request({**request, "max_validation_depth": 1}, "VALIDATION_FAILED")
         self.request({**request, "selected_shapes": ["<urn:unknown>"]}, "VALIDATION_FAILED")
 
+    def test_input_binding_outside_projection_keeps_filter_order_and_columns(self):
+        compiled = self.compile('<urn:a> <urn:score> 1, 2, 3 .')
+        query = 'SELECT ?score WHERE { <urn:a> <urn:score> ?score FILTER(?score > ?minimum) } ORDER BY IF(?descending, -?score, ?score)'
+        result = self.query(compiled, query, rdf_bindings={'minimum': '"1"^^<http://www.w3.org/2001/XMLSchema#integer>', 'descending': '"true"^^<http://www.w3.org/2001/XMLSchema#boolean>'})
+        self.assertEqual(result['variables'], ['score'])
+        self.assertEqual([row['score']['value'] for row in result['items']], ['3', '2'])
+        self.assertEqual(self.query(compiled, query, rdf_bindings={'minimum': '"3"^^<http://www.w3.org/2001/XMLSchema#integer>', 'descending': '"false"^^<http://www.w3.org/2001/XMLSchema#boolean>'})['items'], [])
+
+    def test_dataset_shapes_keep_shared_blank_node_identity(self):
+        compiled = self.compile('@prefix sh: <http://www.w3.org/ns/shacl#> .\n<urn:shape> a sh:NodeShape; sh:targetNode _:x; sh:property [sh:path <urn:p>; sh:hasValue _:y] .\n_:x <urn:p> _:y .')
+        result = self.request({'operation': 'validate', 'dataset': str(compiled),
+            'shapes': [], 'shapes_from_dataset': True, 'selected_shapes': ['<urn:shape>']})
+        self.assertTrue(result['conforms'], result)
+        self.assertEqual(json.loads(result['report'])['target_count'], 1)
+
     def test_domain_vocabulary_and_json_are_only_rdf(self):
         for index, namespace in enumerate(["urn:first:", "urn:second:"]):
             graph = self.compile(f'<{namespace}x> a <{namespace}FieldAssignment>; '

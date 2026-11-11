@@ -327,11 +327,23 @@ pub fn query(a: &Value) -> Result<Value> {
     );
     crate::query::local_query(text)?;
     let params = serde_json::from_value(a.get("parameters").cloned().unwrap_or(json!({})))?;
-    let parsed = ontokiln_reasoner::parameters::bind(
+    let mut parsed = ontokiln_reasoner::parameters::bind(
         spargebra::SparqlParser::new().parse_query(text)?,
         &params,
     )?;
-    let mut prepared = SparqlEvaluator::new().for_query(parsed);
+    let bindings = a["rdf_bindings"].as_object();
+    let columns = if let Some(bindings) = bindings.filter(|b| !b.is_empty()) {
+        crate::query::expose_bindings(&mut parsed, bindings.keys().cloned())?
+    } else {
+        None
+    };
+    // Do not fold FILTER/BOUND input variables to unbound before applying their values.
+    let evaluator = if bindings.is_some_and(|b| !b.is_empty()) {
+        SparqlEvaluator::new().without_optimizations()
+    } else {
+        SparqlEvaluator::new()
+    };
+    let mut prepared = evaluator.for_query(parsed);
     if let Some(bindings) = a["rdf_bindings"].as_object() {
         for (name, t) in bindings {
             prepared = prepared.substitute_variable(
@@ -346,6 +358,14 @@ pub fn query(a: &Value) -> Result<Value> {
         a["max_bytes"].as_u64().unwrap_or(64 * 1024 * 1024) as usize,
         view,
     )?;
+    if let Some(columns) = columns {
+        for row in result["items"].as_array_mut().context("query rows")? {
+            row.as_object_mut()
+                .context("query row")?
+                .retain(|name, _| columns.contains(name));
+        }
+        result["variables"] = json!(columns);
+    }
     disk.charge(
         result["items"].as_array().map_or(0, Vec::len),
         serde_json::to_vec(&result)?.len(),

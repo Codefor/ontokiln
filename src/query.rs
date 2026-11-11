@@ -3,6 +3,37 @@ use anyhow::{Context, Result, ensure};
 use oxigraph::model::Term;
 use oxigraph::sparql::QueryResults;
 use serde_json::{Map, Value, json};
+
+/// Expose fixed input variables to SEP-0007 without changing the public SELECT columns.
+pub fn expose_bindings(
+    query: &mut spargebra::Query,
+    names: impl Iterator<Item = String>,
+) -> Result<Option<Vec<String>>> {
+    use spargebra::algebra::GraphPattern;
+    fn projection(pattern: &mut GraphPattern) -> Result<&mut Vec<oxrdf::Variable>> {
+        match pattern {
+            GraphPattern::Project { variables, .. } => Ok(variables),
+            GraphPattern::OrderBy { inner, .. }
+            | GraphPattern::Slice { inner, .. }
+            | GraphPattern::Distinct { inner }
+            | GraphPattern::Reduced { inner } => projection(inner),
+            _ => anyhow::bail!("SELECT projection is unavailable"),
+        }
+    }
+    let spargebra::Query::Select { pattern, .. } = query else {
+        return Ok(None);
+    };
+    let variables = projection(pattern)?;
+    let original = variables.iter().map(|v| v.as_str().to_owned()).collect();
+    for name in names {
+        let variable = oxrdf::Variable::new(name)?;
+        if !variables.contains(&variable) {
+            variables.push(variable);
+        }
+    }
+    Ok(Some(original))
+}
+
 #[derive(Clone)]
 struct Token {
     word: String,
