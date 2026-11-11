@@ -72,3 +72,12 @@ python3 -B scripts/build.py --output /tmp/ontokiln-build
 内网 SCM 包装层可选择镜像地址，但必须验证同一个完整上游提交，并调用此入口。包装层提交和核心提交必须分别记录，不得将包装层 SHA 注入核心身份。
 
 The Rust `full_artifact::compute_with` entry point lets an embedding application adapt execution after inputs have been frozen, while retaining the core artifact lifecycle. A source may explicitly set `unchecked_turtle_terms: true` to use the Turtle parser's unchecked term mode; strict parsing remains the default. Callers own any additional validation policy. This option never changes source bytes and carries no identifier-specific exceptions.
+
+### Focused validation
+
+`validate` accepts optional `selected_shapes` (an array of N-Triples resource terms) and
+`focus_node` (one N-Triples IRI or blank node). Omitted shapes select all declared NodeShape/PropertyShape
+resources; omitted focus uses their declared SHACL targets. An explicit empty selection checks no
+shapes. Unknown shapes and literal selectors fail. `max_validation_depth` is a positive integer
+(default 64), enforced by the evaluator. The caller owns shape and focus selection; the engine
+does not dispatch on vocabulary or application profiles.

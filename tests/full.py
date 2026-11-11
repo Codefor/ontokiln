@@ -105,6 +105,28 @@ class Full(unittest.TestCase):
         self.compile(text, error="BUILD_ABORTED")
         self.assertEqual(before, (compiled / "manifest.json").read_bytes())
 
+    def test_selected_shapes_focus_and_depth_are_generic(self):
+        compiled = self.compile('<urn:a> <urn:present> "yes" .')
+        shape = self.root / "selected.ttl"
+        shape.write_text("""@prefix sh: <http://www.w3.org/ns/shacl#> .
+<urn:shape> a sh:NodeShape; sh:property [ sh:path <urn:required>; sh:minCount 1 ] .
+<urn:other> a sh:NodeShape; sh:targetNode <urn:other-data>;
+    sh:property [ sh:path <urn:absent>; sh:minCount 1 ] .""")
+        request = {"operation": "validate", "dataset": str(compiled),
+            "shapes": [{"file": str(shape), "format": "turtle"}],
+            "selected_shapes": ["<urn:shape>"], "focus_node": "<urn:a>"}
+        reply = self.request(request)
+        self.assertEqual(reply["checked_shapes"], 1)
+        self.assertFalse(reply["conforms"])
+        violations = json.loads(reply["report"])["violations"]
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(violations[0]["focus_node"], "urn:a")
+        self.assertTrue(self.request({**request, "selected_shapes": []})["conforms"])
+        self.request({**request, "focus_node": '\"literal\"'}, "SOURCE_INVALID")
+        self.request({**request, "max_validation_depth": 0}, "SOURCE_INVALID")
+        self.request({**request, "max_validation_depth": 1}, "VALIDATION_FAILED")
+        self.request({**request, "selected_shapes": ["<urn:unknown>"]}, "VALIDATION_FAILED")
+
     def test_domain_vocabulary_and_json_are_only_rdf(self):
         for index, namespace in enumerate(["urn:first:", "urn:second:"]):
             graph = self.compile(f'<{namespace}x> a <{namespace}FieldAssignment>; '

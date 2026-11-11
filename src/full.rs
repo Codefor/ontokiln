@@ -1178,12 +1178,28 @@ fn validate_full(v: Value) -> Result<Value> {
         })
         .map(|t| t[0].clone())
         .collect::<BTreeSet<_>>();
+    let selected = match v.get("selected_shapes") {
+        None => selected,
+        Some(value) => rdf_resources(value, "selected_shapes")?,
+    };
+    let focus = match v.get("focus_node") {
+        None | Some(Value::Null) => None,
+        Some(value) => Some(rdf_resource(value, "focus_node")?),
+    };
+    let max_depth = match v.get("max_validation_depth") {
+        None => 64,
+        Some(value) => value
+            .as_u64()
+            .filter(|depth| *depth > 0)
+            .ok_or_else(|| err("SOURCE_INVALID", "positive max_validation_depth required"))?
+            as usize,
+    };
     let result = crate::shacl::validate_with_depth(
         &data,
         &shapes,
         &selected,
-        None,
-        v["max_depth"].as_u64().unwrap_or(64) as usize,
+        focus.as_deref(),
+        max_depth,
         true,
     )
     .map_err(|e| {
@@ -1196,19 +1212,31 @@ fn validate_full(v: Value) -> Result<Value> {
             e,
         )
     })?;
-    let checked = shapes
-        .triples
-        .iter()
-        .filter(|t| {
-            t[1] == crate::rdf_graph::iri(&format!("{}type", crate::rdf_graph::RDF))
-                && ["NodeShape", "PropertyShape"].iter().any(|kind| {
-                    t[2] == crate::rdf_graph::iri(&format!("{}{kind}", crate::rdf_graph::SH))
-                })
-        })
-        .map(|t| t[0].clone())
-        .collect::<BTreeSet<_>>()
-        .len();
+    let checked = selected.len();
     Ok(
         json!({"conforms":result["conforms"],"checked_shapes":checked,"violations":result["violations"].as_array().map_or(0,Vec::len),"report":serde_json::to_string(&result).map_err(|e|err("VALIDATION_FAILED",e))?,"metrics":{},"kernel":crate::identity::kernel()}),
     )
+}
+
+fn rdf_resource(value: &Value, field: &str) -> Result<String> {
+    let text = value.as_str().ok_or_else(|| err("SOURCE_INVALID", field))?;
+    let term = text
+        .parse::<Term>()
+        .map_err(|error| err("SOURCE_INVALID", error))?;
+    match term {
+        Term::NamedNode(_) | Term::BlankNode(_) => Ok(term.to_string()),
+        _ => Err(err(
+            "SOURCE_INVALID",
+            format!("{field} must be an RDF resource"),
+        )),
+    }
+}
+
+fn rdf_resources(value: &Value, field: &str) -> Result<BTreeSet<String>> {
+    value
+        .as_array()
+        .ok_or_else(|| err("SOURCE_INVALID", field))?
+        .iter()
+        .map(|item| rdf_resource(item, field))
+        .collect()
 }
