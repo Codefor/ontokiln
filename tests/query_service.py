@@ -29,6 +29,16 @@ def run(tmp):
     (ontology/"sources.json").write_text(json.dumps(manifest))
     pack = tmp/"only.pack"
     subprocess.run([binary,"compile","--ttl",ontology,"--out",pack],check=True)
+    identity = json.loads(subprocess.check_output([binary, "inspect", "--pack", pack]))
+    assert identity["pack_version"] == 3 and identity["kernel"]["contract_version"] == "ontokiln-core/v3"
+    assert identity["pack_sha256"] == hashlib.sha256(pack.read_bytes()).hexdigest()
+    expected = tmp / "expected.json"
+    expected.write_text(json.dumps(identity))
+    assert json.loads(subprocess.check_output([binary, "check", "--pack", pack, "--expected", expected]))["compatible"]
+    wrong = json.loads(json.dumps(identity))
+    wrong["kernel"]["kernel_sha256"] = "0" * 64
+    expected.write_text(json.dumps(wrong))
+    assert subprocess.run([binary, "check", "--pack", pack, "--expected", expected], capture_output=True).returncode
     code = ontology/"v2/model.go"
     code.write_text(code.read_text()+"// changed\n")
     failed = subprocess.run([binary,"compile","--ttl",ontology,"--out",pack],capture_output=True)
@@ -56,6 +66,11 @@ def run(tmp):
         line=server.stderr.readline()
         assert "serving" in line,line
         port=int(line.rsplit(":",1)[1])
+        connection = http.client.HTTPConnection("127.0.0.1", port)
+        connection.request("GET", "/v1/identity")
+        response = connection.getresponse()
+        assert response.status == 200 and json.loads(response.read()) == identity
+        connection.close()
         def request(name, **args):
             opts={"revision":"v2",**args.pop("options",{})}
             conn=http.client.HTTPConnection("127.0.0.1",port,timeout=8)

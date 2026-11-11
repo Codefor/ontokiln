@@ -11,7 +11,7 @@ OntoKiln 将指定目录的 Turtle / N-Triples 编译成不可变 RDF 快照，�
 | 在线生命周期 | [HTTP](src/queries.rs)、[调度](src/execution.rs)、[工作进程](src/worker.rs)、[堆计量](src/allocation.rs) | TTL / pack 共用已验证的私有只读快照；启动时预留一份 pack 的临时磁盘。工作进程继承服务快照 FD，不按原始路径重开文件。先终止并 wait，再释放槽。JSONL 以 end 记录标志完整结果 |
 | 业务语义 | [版本化赋值链](examples/assignment/queries/assignment.rq)、[业务选择实验](examples/scenarios/README.md) | 来源为已有 RDF 声明，源码用于摘要核对。两个版本故意复用相同 IRI；结果不能跨版本。业务实验另有 14 个[独立预期](examples/scenarios/cases.json)，核对确定、候选、被排除的路径 |
 
-服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。Rust 基准版本 1.93.1，依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。
+服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。当前构建工具链固定为 Rust 1.95.0（历史基准保留原工具链记录），依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。
 
 ## 构建与验证
 

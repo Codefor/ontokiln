@@ -11,6 +11,7 @@ use axum::{
 };
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use futures_util::StreamExt;
+use ontokiln::{full, full_execution, identity};
 use ontokiln_compiler::rules::{self, Engine};
 use ontokiln_pack::Pack;
 use ontokiln_reasoner::sparql;
@@ -37,6 +38,36 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Report the generic engine and artifact contracts.
+    Identity,
+    /// Validate a pack and report its content and source identities.
+    Inspect {
+        #[arg(long)]
+        pack: PathBuf,
+    },
+    /// Require an exact engine and pack identity before consumption.
+    Check {
+        #[arg(long)]
+        pack: PathBuf,
+        #[arg(long)]
+        expected: PathBuf,
+    },
+    /// Report the disk compiler and execution contracts.
+    FullInfo,
+    /// Execute a budgeted disk compile, inference, query or SHACL request.
+    Full {
+        #[arg(long)]
+        request: PathBuf,
+        #[arg(long)]
+        result: PathBuf,
+    },
+    #[command(hide = true)]
+    FullWorker {
+        #[arg(long)]
+        request: PathBuf,
+        #[arg(long)]
+        result: PathBuf,
+    },
     #[command(hide = true)]
     QueryWorker { snapshot: i32, heap: usize },
     /// Compile every .ttl and .nt file under a directory into one offline pack.
@@ -128,6 +159,7 @@ struct Source {
 #[derive(Clone)]
 struct App {
     engine: Arc<Reasoner>,
+    identity: Arc<serde_json::Value>,
     jobs: Arc<execution::Registry>,
     worker_binary: PathBuf,
     slots: Arc<Semaphore>,
@@ -142,8 +174,11 @@ impl App {
         templates: queries::Templates,
         slots: usize,
     ) -> Result<Self> {
+        let pack = pack.into_snapshot()?;
+        let identity = Arc::new(identity::describe(&pack)?);
         Ok(Self {
-            engine: Arc::new(Reasoner::new(pack.into_snapshot()?)),
+            engine: Arc::new(Reasoner::new(pack)),
+            identity,
             source,
             templates: Arc::new(templates),
             slots: Arc::new(Semaphore::new(slots)),
@@ -175,12 +210,22 @@ fn main() -> Result<()> {
     if let Command::QueryWorker { snapshot, heap } = cmd {
         return worker::execute(snapshot, heap);
     }
-    application(cmd)
+    match cmd {
+        Command::Full { request, result } => full_execution::run_files(&request, &result),
+        Command::FullWorker { request, result } => full_execution::run_worker(&request, &result),
+        _ => application(cmd),
+    }
 }
 #[tokio::main]
 async fn application(cmd: Command) -> Result<()> {
     match cmd {
-        Command::QueryWorker { .. } => unreachable!(),
+        Command::QueryWorker { .. } | Command::Full { .. } | Command::FullWorker { .. } => {
+            unreachable!()
+        }
+        Command::Identity => println!("{}", identity::kernel()),
+        Command::Inspect { pack } => println!("{}", identity::inspect(&pack)?),
+        Command::Check { pack, expected } => println!("{}", identity::check(&pack, &expected)?),
+        Command::FullInfo => println!("{}", full::runtime_info()),
         Command::Compile { ttl, out } => {
             ensure!(
                 out.extension()
@@ -352,6 +397,7 @@ async fn application(cmd: Command) -> Result<()> {
 fn router(state: App) -> Router {
     Router::new()
         .route("/health", get(health))
+        .route("/v1/identity", get(runtime_identity))
         .route("/v1/query", get(query))
         .route("/v1/query/batch", post(queries::batch))
         .route("/v1/entities", post(queries::entities))
@@ -360,6 +406,10 @@ fn router(state: App) -> Router {
         .route("/v1/queries/{id}", delete(queries::cancel))
         .route("/v1/sparql", post(queries::sparql))
         .with_state(state)
+}
+
+async fn runtime_identity(State(app): State<App>) -> Json<serde_json::Value> {
+    Json((*app.identity).clone())
 }
 
 #[derive(Serialize)]

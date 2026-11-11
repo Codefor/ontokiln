@@ -13,7 +13,7 @@
 edition = "2024"
 rust-version = "1.87"
 name = "spareval"
-version = "0.2.6"
+version = "0.2.9"
 authors = ["Tpt <thomas@pellissier-tanon.fr>"]
 build = false
 autolib = false
@@ -57,17 +57,17 @@ version = "0.4"
 version = "0.2.3"
 
 [dependencies.md-5]
-version = "0.10"
+version = ">=0.10,<0.12"
 
 [dependencies.oxiri]
 version = "0.2.11"
 
 [dependencies.oxrdf]
-version = "=0.3.3"
+version = "=0.3.5"
 features = ["oxsdatatypes"]
 
 [dependencies.oxsdatatypes]
-version = "=0.2.2"
+version = "=0.2.4"
 
 [dependencies.rand]
 version = ">=0.8,<0.10"
@@ -79,19 +79,19 @@ version = "1.7"
 version = "2.1"
 
 [dependencies.sha1]
-version = "0.10"
+version = ">=0.10,<0.12"
 
 [dependencies.sha2]
-version = "0.10"
+version = ">=0.10,<0.12"
 
 [dependencies.sparesults]
-version = "=0.3.3"
+version = "=0.3.5"
 
 [dependencies.spargebra]
-version = "=0.4.6"
+version = "=0.4.8"
 
 [dependencies.sparopt]
-version = "=0.3.6"
+version = "=0.3.9"
 
 [dependencies.thiserror]
 version = ">=1.0.50, <3.0"
@@ -115,10 +115,12 @@ cfg_not_test = "warn"
 checked_conversions = "warn"
 clone_on_ref_ptr = "warn"
 cloned_instead_of_copied = "warn"
+collapsible_else_if = "warn"
 comparison_chain = "warn"
 copy_iterator = "warn"
 create_dir = "warn"
 dbg_macro = "warn"
+decimal_bitwise_operands = "warn"
 decimal_literal_representation = "warn"
 default_trait_access = "warn"
 default_union_representation = "warn"
@@ -128,6 +130,7 @@ doc_broken_link = "warn"
 doc_comment_double_space_linebreaks = "warn"
 doc_include_without_cfg = "warn"
 doc_link_with_quotes = "warn"
+duration_suboptimal_units = "warn"
 elidable_lifetime_names = "warn"
 empty_drop = "warn"
 empty_enum_variants_with_brackets = "warn"
@@ -149,7 +152,6 @@ fn_params_excessive_bools = "warn"
 fn_to_numeric_cast_any = "warn"
 format_collect = "warn"
 format_push_string = "warn"
-from_iter_instead_of_collect = "warn"
 get_unwrap = "warn"
 host_endian_bytes = "warn"
 if_not_else = "warn"
@@ -229,6 +231,7 @@ print_stderr = "warn"
 print_stdout = "warn"
 ptr_as_ptr = "warn"
 ptr_cast_constness = "warn"
+ptr_offset_by_literal = "warn"
 pub_underscore_fields = "warn"
 pub_without_shorthand = "warn"
 range_minus_one = "warn"
@@ -248,6 +251,7 @@ rest_pat_in_fully_bound_structs = "warn"
 return_and_then = "warn"
 return_self_not_must_use = "warn"
 same_functions_in_if_condition = "warn"
+same_length_and_capacity = "warn"
 same_name_method = "warn"
 self_only_used_in_recursion = "warn"
 semicolon_inside_block = "warn"
@@ -282,6 +286,7 @@ unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unnecessary_self_imports = "warn"
 unnecessary_semicolon = "warn"
+unnecessary_trailing_comma = "warn"
 unnecessary_wraps = "warn"
 unneeded_field_pattern = "warn"
 unnested_or_patterns = "warn"

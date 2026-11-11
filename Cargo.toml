@@ -37,6 +37,23 @@ futures-util = {version="0.3", default-features=false,features=["std"]}
 libc="0.2"
 
 tempfile.workspace = true
+oxigraph = { version = "0.5", default-features = false, features = ["rdf-12"] }
+spareval = { version = "0.2.9", features = ["sparql-12"] }
+spargebra = { version = "0.4", features = ["sparql-12"] }
+oxttl = "=0.2.5"
+rusqlite = { version = "=0.41.1", features = ["bundled", "hooks", "functions"] }
+sha2 = "0.10"
+hex = "0.4"
+walkdir = "2"
+shacl_validation = { version = "=0.2.12", default-features = false }
+shacl_ir = "=0.2.9"
+mie = "=0.2.9"
+prefixmap = "=0.2.9"
+sparql_service = { version = "=0.2.12", default-features = false }
+rudof_rdf = { version = "=0.2.12", default-features = false }
+
+[build-dependencies]
+sha2 = "0.10"
 
 [features]
 ascent-engine = ["ontokiln-compiler/ascent-engine"]

@@ -1,6 +1,6 @@
 # OntoKiln
 
-Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 编译成带文件来源与索引的只读 pack。服务可在原始或推导视图中查询，沿赋值链追溯源文件，并返回证明。[查询接口与可运行示例](docs/query-service.md) · [引擎与离线规则](docs/engines.md)
+通用 RDF 编译与推理引擎。编译器将 Turtle 和 N-Triples 编译成带文件来源与索引的只读 pack；Full 入口使用 SQLite 编译和物化大图。核心按 RDF、规则和标准 SHACL 处理输入，不解释业务词汇或嵌在字面量中的建模合同。[查询接口与可运行示例](docs/query-service.md) · [引擎与离线规则](docs/engines.md)
 
 [配送组件血缘与复用定制实验](examples/scenarios/README.md) 包含合成 TTL、14 个可重放用例，以及按上下文选择实现的对照结果。
 
@@ -10,7 +10,9 @@ Rust 本体编译与内存推理服务。编译器将 Turtle 和 N-Triples 编�
 
 ## 启动 demo
 
-在仓库根目录运行以下命令。开发验证使用 Rust 1.93.1。
+在仓库根目录运行以下命令。工具链固定为 Rust 1.95.0，依赖由 Cargo.lock 固定。
+
+[Full、SHACL、身份与构建入口](docs/full.md) 提供请求示例、能力边界和 crate 关系图。
 
 ```sh
 cargo build --locked
@@ -60,6 +62,7 @@ curl -sG http://127.0.0.1:7878/v1/query \
 | `crates/compiler` | 顺序稳定地扫描并解析文档，编码 RDF 词项，合并重复事实，生成按 SPO、POS、OSP 排序的整数索引并保存来源 |
 | `crates/pack` | 定义离线快照格式及其校验和读写。相邻临时文件写完后原子替换目标 pack。原始样例在 `examples/ontology`，生成产物默认放在 Git 忽略的 `data/` |
 | `crates/reasoner` | 在同一份快照上提供层级推理、Roaring 类型索引和 SPARQL dataset 适配器 |
+| `ontokiln` library / `src/full*.rs` | SQLite 编译、正向规则物化、进程预算与原子产物；`disk` 查询、`shacl` 标准约束校验 |
 | `src/main.rs` | 提供 `compile`、`serve` 和 HTTP 参数校验，限制同时执行的查询数量 |
 
 规则集 `rdfs-hierarchy-v1` 读取显式的 `rdfs:subClassOf` 和 `rdfs:subPropertyOf` 层级边，支持多级父类、上位属性、实例类型继承及属性事实提升。按已访问事实去重，循环继承可以终止。本 demo 的范围限于该层级规则集。SPARQL 的默认图只含显式事实。已声明的组件赋值和读写顺序可通过版本化模板查询；上下文选择仍在独立实验程序中运行，domain/range、完整 OWL 语义与热切换属于后续工作。

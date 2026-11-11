@@ -118,6 +118,8 @@ impl Slots<'_> {
                     ensure!(!subject, "subject requires an IRI");
                     l.into()
                 }
+                #[allow(unreachable_patterns)]
+                _ => bail!("parameters require an IRI or literal"),
             };
         }
         Ok(())
@@ -152,6 +154,8 @@ impl Slots<'_> {
                     *e = match v {
                         GroundTerm::NamedNode(n) => E::NamedNode(n),
                         GroundTerm::Literal(l) => E::Literal(l),
+                        #[allow(unreachable_patterns)]
+                        _ => bail!("parameters require an IRI or literal"),
                     }
                 }
             }
@@ -269,6 +273,8 @@ impl Slots<'_> {
                     }
                 }
             }
+            #[allow(unreachable_patterns)]
+            _ => bail!("unsupported SPARQL graph pattern"),
         }
         Ok(())
     }
