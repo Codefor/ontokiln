@@ -5,7 +5,7 @@
   "logical_cpus": 18,
   "memory_bytes": 51539607552,
   "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
-  "engine_revision": "e2c6d3052818140b40d05ebf41f2c7384dc9f48a",
+  "engine_revision": "881a4629e848ab636e9ed16dc7adfee5a6272398",
   "profile": "release",
   "pack_version": 3,
   "cpu": "Apple M5 Pro",
@@ -24,49 +24,49 @@
           "template": "premium",
           "expected_count": 62500,
           "warmup": {
-            "ms": 34.96925,
+            "ms": 11.823875,
             "status": 200
           },
           "runs": [
             {
-              "ms": 28.921834,
+              "ms": 10.709375,
               "status": 200
             },
             {
-              "ms": 37.447208,
+              "ms": 10.809291,
               "status": 200
             },
             {
-              "ms": 98.321083,
+              "ms": 11.072333,
               "status": 200
             },
             {
-              "ms": 88.144209,
+              "ms": 10.827834,
               "status": 200
             },
             {
-              "ms": 74.413333,
+              "ms": 10.983958,
               "status": 200
             },
             {
-              "ms": 40.973583,
+              "ms": 10.387833,
               "status": 200
             },
             {
-              "ms": 43.9605,
+              "ms": 11.280583,
               "status": 200
             },
             {
-              "ms": 270.670209,
+              "ms": 10.728417,
               "status": 200
             },
             {
-              "ms": 188.438625,
+              "ms": 10.222,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 214.49875,
+            "ms": 10.697208,
             "status": 200,
             "body": {
               "profile": {
@@ -78,7 +78,7 @@
                 },
                 "output_bytes": 143,
                 "output_rows": 1,
-                "peak_heap_bytes": 18345
+                "peak_heap_bytes": 18351
               },
               "result": {
                 "head": {
@@ -105,49 +105,49 @@
           "template": "intersection",
           "expected_count": 12500,
           "warmup": {
-            "ms": 100.276042,
+            "ms": 27.582,
             "status": 200
           },
           "runs": [
             {
-              "ms": 139.007708,
+              "ms": 26.761167,
               "status": 200
             },
             {
-              "ms": 64.270958,
+              "ms": 27.390458,
               "status": 200
             },
             {
-              "ms": 57.430875,
+              "ms": 28.162917,
               "status": 200
             },
             {
-              "ms": 73.246625,
+              "ms": 28.308958,
               "status": 200
             },
             {
-              "ms": 105.384959,
+              "ms": 28.543541,
               "status": 200
             },
             {
-              "ms": 101.25225,
+              "ms": 28.805792,
               "status": 200
             },
             {
-              "ms": 113.626542,
+              "ms": 28.165166,
               "status": 200
             },
             {
-              "ms": 77.544125,
+              "ms": 28.186833,
               "status": 200
             },
             {
-              "ms": 103.956166,
+              "ms": 28.930209,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 87.11775,
+            "ms": 28.393334,
             "status": 200,
             "body": {
               "profile": {
@@ -186,49 +186,49 @@
           "template": "exists",
           "expected_count": 12500,
           "warmup": {
-            "ms": 102.230584,
+            "ms": 30.484583,
             "status": 200
           },
           "runs": [
             {
-              "ms": 147.039875,
+              "ms": 30.884,
               "status": 200
             },
             {
-              "ms": 91.474584,
+              "ms": 30.195916,
               "status": 200
             },
             {
-              "ms": 61.669833,
+              "ms": 29.985625,
               "status": 200
             },
             {
-              "ms": 84.327166,
+              "ms": 29.114041,
               "status": 200
             },
             {
-              "ms": 110.183,
+              "ms": 29.870584,
               "status": 200
             },
             {
-              "ms": 141.283958,
+              "ms": 29.823375,
               "status": 200
             },
             {
-              "ms": 329.809458,
+              "ms": 31.085583,
               "status": 200
             },
             {
-              "ms": 488.290625,
+              "ms": 29.43375,
               "status": 200
             },
             {
-              "ms": 120.893,
+              "ms": 31.760625,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 61.4565,
+            "ms": 30.6405,
             "status": 200,
             "body": {
               "profile": {
@@ -265,22 +265,22 @@
         }
       ],
       "point_ms": [
-        46.675333,
-        42.218,
-        43.086125,
-        39.153458,
-        53.016708,
-        11.5735,
-        31.631625,
-        35.797416,
-        84.495792,
-        35.776958,
-        26.212959,
-        22.785875,
-        26.836375,
-        87.229584,
-        54.826375,
-        13.988292
+        6.312333,
+        5.671125,
+        5.087917,
+        5.236709,
+        5.549041,
+        5.227292,
+        5.256916,
+        5.663417,
+        5.445167,
+        5.32075,
+        4.995792,
+        5.237583,
+        4.940625,
+        4.795208,
+        4.608625,
+        4.933625
       ],
       "point_profile": {
         "candidate_rows": 2,
@@ -297,7 +297,7 @@
                     "allocated_bytes": 824,
                     "candidate_rows": 1,
                     "children": [],
-                    "duration in seconds": 2.5e-05,
+                    "duration in seconds": 1.4e-05,
                     "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
                     "number of results": 1,
                     "sample_bindings": [
@@ -323,7 +323,7 @@
                     ]
                   }
                 ],
-                "duration in seconds": 6.1e-05,
+                "duration in seconds": 6.4e-05,
                 "name": "Lateral",
                 "number of results": 1,
                 "sample_bindings": [
@@ -346,7 +346,7 @@
               }
             ]
           },
-          "planning duration in seconds": 4.1e-05
+          "planning duration in seconds": 2.1e-05
         },
         "index_rows": {
           "OSP": 0,
@@ -367,49 +367,49 @@
           "template": "premium",
           "expected_count": 625000,
           "warmup": {
-            "ms": 72.013875,
+            "ms": 60.055542,
             "status": 200
           },
           "runs": [
             {
-              "ms": 70.454208,
+              "ms": 59.276542,
               "status": 200
             },
             {
-              "ms": 70.298958,
+              "ms": 62.675666,
               "status": 200
             },
             {
-              "ms": 73.034,
+              "ms": 62.723041,
               "status": 200
             },
             {
-              "ms": 78.847917,
+              "ms": 65.042875,
               "status": 200
             },
             {
-              "ms": 71.884708,
+              "ms": 61.869375,
               "status": 200
             },
             {
-              "ms": 70.621958,
+              "ms": 59.890125,
               "status": 200
             },
             {
-              "ms": 74.020417,
+              "ms": 60.885417,
               "status": 200
             },
             {
-              "ms": 118.247292,
+              "ms": 61.42825,
               "status": 200
             },
             {
-              "ms": 96.326417,
+              "ms": 60.816458,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 116.04,
+            "ms": 60.9615,
             "status": 200,
             "body": {
               "profile": {
@@ -448,49 +448,49 @@
           "template": "intersection",
           "expected_count": 125000,
           "warmup": {
-            "ms": 461.479791,
+            "ms": 234.202833,
             "status": 200
           },
           "runs": [
             {
-              "ms": 324.63125,
+              "ms": 237.864084,
               "status": 200
             },
             {
-              "ms": 282.615791,
+              "ms": 227.829875,
               "status": 200
             },
             {
-              "ms": 270.688958,
+              "ms": 232.326209,
               "status": 200
             },
             {
-              "ms": 268.628458,
+              "ms": 247.457875,
               "status": 200
             },
             {
-              "ms": 267.712625,
+              "ms": 248.949416,
               "status": 200
             },
             {
-              "ms": 265.182625,
+              "ms": 234.457209,
               "status": 200
             },
             {
-              "ms": 262.705416,
+              "ms": 231.23875,
               "status": 200
             },
             {
-              "ms": 259.749375,
+              "ms": 234.02525,
               "status": 200
             },
             {
-              "ms": 261.694875,
+              "ms": 233.410667,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 253.910084,
+            "ms": 235.070042,
             "status": 200,
             "body": {
               "profile": {
@@ -529,49 +529,49 @@
           "template": "exists",
           "expected_count": 125000,
           "warmup": {
-            "ms": 277.448792,
+            "ms": 252.463209,
             "status": 200
           },
           "runs": [
             {
-              "ms": 289.2425,
+              "ms": 250.799541,
               "status": 200
             },
             {
-              "ms": 282.607542,
+              "ms": 251.511666,
               "status": 200
             },
             {
-              "ms": 353.7605,
+              "ms": 250.398166,
               "status": 200
             },
             {
-              "ms": 438.853625,
+              "ms": 253.841125,
               "status": 200
             },
             {
-              "ms": 283.640291,
+              "ms": 254.406125,
               "status": 200
             },
             {
-              "ms": 310.403583,
+              "ms": 256.675166,
               "status": 200
             },
             {
-              "ms": 334.039208,
+              "ms": 252.82775,
               "status": 200
             },
             {
-              "ms": 408.711375,
+              "ms": 248.445708,
               "status": 200
             },
             {
-              "ms": 311.481041,
+              "ms": 249.439334,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 282.715916,
+            "ms": 260.989,
             "status": 200,
             "body": {
               "profile": {
@@ -608,22 +608,22 @@
         }
       ],
       "point_ms": [
-        6.994708,
-        7.634625,
-        7.586542,
-        6.934042,
-        7.75625,
-        7.960208,
-        7.423916,
-        9.411459,
-        7.393834,
-        8.912834,
-        8.5495,
-        7.962333,
-        7.478375,
-        7.94375,
-        8.166708,
-        7.730708
+        5.658667,
+        5.155292,
+        4.609417,
+        4.936834,
+        4.847916,
+        5.013375,
+        4.912917,
+        4.422375,
+        5.024542,
+        4.805458,
+        4.821,
+        4.861375,
+        4.756666,
+        4.484541,
+        5.153083,
+        4.986625
       ],
       "point_profile": {
         "candidate_rows": 2,
@@ -640,7 +640,7 @@
                     "allocated_bytes": 824,
                     "candidate_rows": 1,
                     "children": [],
-                    "duration in seconds": 7.3e-05,
+                    "duration in seconds": 1.8e-05,
                     "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
                     "number of results": 1,
                     "sample_bindings": [
@@ -666,7 +666,7 @@
                     ]
                   }
                 ],
-                "duration in seconds": 0.000104,
+                "duration in seconds": 4.4e-05,
                 "name": "Lateral",
                 "number of results": 1,
                 "sample_bindings": [
@@ -678,7 +678,7 @@
                 ]
               }
             ],
-            "duration in seconds": 0.000121,
+            "duration in seconds": 5.9e-05,
             "name": "Project(?panel, ?field, ?region)",
             "number of results": 1,
             "sample_bindings": [
@@ -689,7 +689,7 @@
               }
             ]
           },
-          "planning duration in seconds": 4.5e-05
+          "planning duration in seconds": 1.8e-05
         },
         "index_rows": {
           "OSP": 0,
@@ -710,49 +710,49 @@
           "template": "premium",
           "expected_count": 5617916,
           "warmup": {
-            "ms": 530.806708,
+            "ms": 510.771458,
             "status": 200
           },
           "runs": [
             {
-              "ms": 534.336666,
+              "ms": 530.498375,
               "status": 200
             },
             {
-              "ms": 527.029,
+              "ms": 570.570375,
               "status": 200
             },
             {
-              "ms": 529.9795,
+              "ms": 540.463166,
               "status": 200
             },
             {
-              "ms": 527.874917,
+              "ms": 661.865292,
               "status": 200
             },
             {
-              "ms": 546.924958,
+              "ms": 565.818959,
               "status": 200
             },
             {
-              "ms": 532.558875,
+              "ms": 548.996709,
               "status": 200
             },
             {
-              "ms": 531.073459,
+              "ms": 514.160625,
               "status": 200
             },
             {
-              "ms": 519.44,
+              "ms": 534.430083,
               "status": 200
             },
             {
-              "ms": 520.539625,
+              "ms": 577.356209,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 528.435917,
+            "ms": 530.819708,
             "status": 200,
             "body": {
               "profile": {
@@ -791,49 +791,49 @@
           "template": "intersection",
           "expected_count": 1123584,
           "warmup": {
-            "ms": 2175.679791,
+            "ms": 2153.31525,
             "status": 200
           },
           "runs": [
             {
-              "ms": 2155.616083,
+              "ms": 2384.702416,
               "status": 200
             },
             {
-              "ms": 2152.313292,
+              "ms": 2148.922584,
               "status": 200
             },
             {
-              "ms": 2214.126875,
+              "ms": 2174.654125,
               "status": 200
             },
             {
-              "ms": 2208.507292,
+              "ms": 2186.970958,
               "status": 200
             },
             {
-              "ms": 2172.628709,
+              "ms": 2164.052625,
               "status": 200
             },
             {
-              "ms": 3243.467167,
+              "ms": 2163.776334,
               "status": 200
             },
             {
-              "ms": 3031.214083,
+              "ms": 2178.496625,
               "status": 200
             },
             {
-              "ms": 2170.991666,
+              "ms": 2149.365292,
               "status": 200
             },
             {
-              "ms": 2158.120667,
+              "ms": 2155.614375,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 2154.208375,
+            "ms": 2169.979083,
             "status": 200,
             "body": {
               "profile": {
@@ -872,49 +872,49 @@
           "template": "exists",
           "expected_count": 1123584,
           "warmup": {
-            "ms": 2341.478084,
+            "ms": 2476.361125,
             "status": 200
           },
           "runs": [
             {
-              "ms": 2368.119916,
+              "ms": 2430.607333,
               "status": 200
             },
             {
-              "ms": 2314.156541,
+              "ms": 2507.303125,
               "status": 200
             },
             {
-              "ms": 2382.841625,
+              "ms": 2490.884917,
               "status": 200
             },
             {
-              "ms": 2346.107666,
+              "ms": 2486.184167,
               "status": 200
             },
             {
-              "ms": 2346.731791,
+              "ms": 2605.970625,
               "status": 200
             },
             {
-              "ms": 2314.36675,
+              "ms": 2584.403583,
               "status": 200
             },
             {
-              "ms": 2328.781375,
+              "ms": 2641.47825,
               "status": 200
             },
             {
-              "ms": 2302.951208,
+              "ms": 2755.650375,
               "status": 200
             },
             {
-              "ms": 2365.659458,
+              "ms": 2818.356209,
               "status": 200
             }
           ],
           "counter_run": {
-            "ms": 2327.357708,
+            "ms": 3392.414,
             "status": 200,
             "body": {
               "profile": {
@@ -951,22 +951,22 @@
         }
       ],
       "point_ms": [
-        5.908333,
-        5.536333,
-        5.4065,
-        5.232709,
-        5.308084,
-        5.406917,
-        5.705875,
-        5.485166,
-        5.44125,
-        6.962917,
-        5.469209,
-        5.307917,
-        5.192625,
-        5.249167,
-        5.2905,
-        7.811416
+        9.115708,
+        7.955542,
+        7.39175,
+        7.414041,
+        7.164875,
+        6.78275,
+        6.520333,
+        6.335292,
+        6.762125,
+        6.682334,
+        6.673959,
+        6.204125,
+        6.715083,
+        6.87075,
+        6.400541,
+        6.42425
       ],
       "point_profile": {
         "candidate_rows": 2,
@@ -983,7 +983,7 @@
                     "allocated_bytes": 824,
                     "candidate_rows": 1,
                     "children": [],
-                    "duration in seconds": 3.5e-05,
+                    "duration in seconds": 3.8e-05,
                     "name": "QuadPattern(?panel <urn:ontokiln:bench:readsField> ?field)",
                     "number of results": 1,
                     "sample_bindings": [
@@ -997,7 +997,7 @@
                     "allocated_bytes": 824,
                     "candidate_rows": 1,
                     "children": [],
-                    "duration in seconds": 6e-06,
+                    "duration in seconds": 5e-06,
                     "name": "QuadPattern(?panel <urn:ontokiln:bench:region> ?region)",
                     "number of results": 1,
                     "sample_bindings": [
@@ -1009,7 +1009,7 @@
                     ]
                   }
                 ],
-                "duration in seconds": 6.4e-05,
+                "duration in seconds": 6.9e-05,
                 "name": "Lateral",
                 "number of results": 1,
                 "sample_bindings": [
@@ -1021,7 +1021,7 @@
                 ]
               }
             ],
-            "duration in seconds": 7.8e-05,
+            "duration in seconds": 8.2e-05,
             "name": "Project(?panel, ?field, ?region)",
             "number of results": 1,
             "sample_bindings": [
@@ -1032,7 +1032,7 @@
               }
             ]
           },
-          "planning duration in seconds": 2.7e-05
+          "planning duration in seconds": 2.5e-05
         },
         "index_rows": {
           "OSP": 0,
