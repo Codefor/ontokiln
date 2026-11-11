@@ -70,3 +70,5 @@ python3 -B scripts/build.py --output /tmp/ontokiln-build
 构建入口要求干净的固定 Git 提交，在原生 macOS/Linux arm64/x86_64 主机安装固定工具链、执行 release workspace 测试并构建，然后产出确定性 tar.gz 与 `build.json`。Linux musl 需要主机提供 `musl-gcc`。交叉编译不能代替原生运行验证。receipt 分别记录源码、lockfile、构建入口、二进制及归档摘要。开发中的脏树可直接 cargo build，其指纹标识源码内容；发行必须通过干净提交检查。确定性归档不等于已经证明跨主机二进制逐字节可复现。
 
 内网 SCM 包装层可选择镜像地址，但必须验证同一个完整上游提交，并调用此入口。包装层提交和核心提交必须分别记录，不得将包装层 SHA 注入核心身份。
+
+The Rust `full_artifact::compute_with` entry point lets an embedding application adapt execution after inputs have been frozen, while retaining the core artifact lifecycle. A source may explicitly set `unchecked_turtle_terms: true` to use the Turtle parser's unchecked term mode; strict parsing remains the default. Callers own any additional validation policy. This option never changes source bytes and carries no identifier-specific exceptions.

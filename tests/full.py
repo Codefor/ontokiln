@@ -171,6 +171,7 @@ class Full(unittest.TestCase):
             result = self.request({"operation": "validate", "dataset": str(compiled),
                 "shapes": [{"file": str(shapes), "format": "turtle"}]})
             self.assertIs(result["conforms"], conforms)
+
         shapes.write_text(prefix.replace('http://example/', 'urn:') + '''ex:Shape a sh:NodeShape; sh:targetNode ex:root;
             sh:property [sh:path ex:child; sh:node [sh:or (
                 [sh:sparql [sh:select "SELECT $this WHERE { $this <urn:bad> true }"]]
@@ -181,6 +182,35 @@ class Full(unittest.TestCase):
                 "shapes": [{"file": str(shapes), "format": "turtle"}]})
             self.assertIs(result["conforms"], conforms)
 
+
+    def test_unchecked_turtle_is_explicit_and_recorded(self):
+        source = self.root / "unchecked.ttl"
+        source.write_text('<urn:unvalidated[1]> <urn:p> <urn:o> .')
+        output = self.root / "unchecked"
+        result = self.request({"operation": "compile", "max_term_bytes": 1024**2,
+            "sources": [{"path": str(source), "document_id": "doc", "format": "turtle",
+                         "unchecked_turtle_terms": True, "expected_sha256": hashlib.sha256(source.read_bytes()).hexdigest()}],
+            "artifact": {"output": str(output), "profile_id": "no-rules-v1", "index_profile": "core-v1", "rules_files": []}})
+        self.assertEqual(result["stats"]["explicit_facts"], 1)
+        manifest = json.loads((output / "input_manifest.json").read_text())
+        self.assertIs(manifest["parser_options"][0]["unchecked_turtle_terms"], True)
+
+    def test_numeric_values_do_not_erase_rdf_datatypes_or_overflow(self):
+        xsd = 'http://www.w3.org/2001/XMLSchema#'
+        compiled = self.compile(f'<urn:a> <urn:p> "003"^^<{xsd}nonNegativeInteger> . '
+                                f'<urn:large> <urn:p> "1267650600228229401496703205376"^^<{xsd}integer> .')
+        row = self.query(compiled, 'SELECT (DATATYPE(?v) AS ?direct) (STR(?v) AS ?lexical) '
+            '(DATATYPE(IF(true, ?v, 0)) AS ?conditional) (STR(COALESCE(?missing, ?v)) AS ?fallback) '
+            'WHERE { <urn:a> <urn:p> ?v }')["items"][0]
+        self.assertEqual(row["direct"]["value"], xsd + 'nonNegativeInteger')
+        self.assertEqual(row["conditional"]["value"], xsd + 'nonNegativeInteger')
+        self.assertEqual(row["lexical"]["value"], '003')
+        self.assertEqual(row["fallback"]["value"], '003')
+        row = self.query(compiled, 'SELECT (?v + 1 AS ?next) (-?v AS ?negative) (?v > 0 AS ?positive) '
+            'WHERE { <urn:large> <urn:p> ?v }')["items"][0]
+        self.assertEqual(row["next"]["value"], '1267650600228229401496703205377')
+        self.assertEqual(row["negative"]["value"], '-1267650600228229401496703205376')
+        self.assertEqual(row["positive"]["value"], 'true')
     def test_timeout_reaps_worker_and_does_not_publish(self):
         source = self.root / "large.ttl"
         source.write_text("".join(f'<urn:s{i}> <urn:p> <urn:o> .\n' for i in range(20000)))

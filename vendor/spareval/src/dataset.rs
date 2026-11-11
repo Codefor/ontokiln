@@ -530,6 +530,9 @@ impl From<bool> for ExpressionTerm {
 impl ExpressionTerm {
     /// Computes the term [Effective boolean value](https://www.w3.org/TR/sparql11-query/#ebv)
     pub(crate) fn effective_boolean_value(&self) -> Option<bool> {
+        if let Some(value) = crate::expression::integer_value(self) {
+            return Some(value != num_bigint::BigInt::from(0));
+        }
         match self {
             ExpressionTerm::BooleanLiteral(value) => Some((*value).into()),
             ExpressionTerm::StringLiteral(value) => Some(!value.is_empty()),

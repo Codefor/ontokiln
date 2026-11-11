@@ -45,6 +45,8 @@ struct Source {
     base_iri: Option<String>,
     #[serde(default)]
     is_rule: bool,
+    #[serde(default)]
+    unchecked_turtle_terms: bool,
 }
 #[derive(Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -616,6 +618,7 @@ fn compile(v: Value) -> Result<Value> {
         .ok_or_else(|| err("SOURCE_INVALID", "missing/invalid field: max_term_bytes"))?;
     let sources: Vec<Source> =
         serde_json::from_value(v["sources"].clone()).map_err(|e| err("SOURCE_INVALID", e))?;
+    let parser_options: Vec<Value> = sources.iter().map(|source| json!({"document_id":source.document_id,"unchecked_turtle_terms":source.unchecked_turtle_terms})).collect();
     let mut rules: Vec<Rule> =
         serde_json::from_value(v["rules"].clone()).map_err(|e| err("RULE_INVALID", e))?;
     if rules.len() > 256 {
@@ -655,6 +658,9 @@ fn compile(v: Value) -> Result<Value> {
             match src.format.as_str() {
                 "turtle" => {
                     let mut p = TurtleParser::new();
+                    if src.unchecked_turtle_terms {
+                        p = p.lenient();
+                    }
                     if let Some(base) = src.base_iri {
                         p = p
                             .with_base_iri(base)
@@ -768,7 +774,7 @@ fn compile(v: Value) -> Result<Value> {
         rules,
     };
     Ok(
-        json!({"stats":{"parsed_facts":parsed,"explicit_facts":count,"indexed_facts":count,"distinct_terms":terms},"plan":plan,"resolved_import_lock":resolved_import_lock,
+        json!({"stats":{"parsed_facts":parsed,"explicit_facts":count,"indexed_facts":count,"distinct_terms":terms},"plan":plan,"resolved_import_lock":resolved_import_lock,"parser_options":parser_options,
         "metrics":{"parse_dictionary_seconds":parse_seconds,"index_seconds":start.elapsed().as_secs_f64()-parse_seconds,"engine_seconds":start.elapsed().as_secs_f64()}}),
     )
 }

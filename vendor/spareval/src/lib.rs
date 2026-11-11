@@ -4,11 +4,11 @@
 #![doc(html_favicon_url = "https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg")]
 #![doc(html_logo_url = "https://raw.githubusercontent.com/oxigraph/oxigraph/main/logo.svg")]
 
-pub mod metrics;
 mod dataset;
 mod error;
 mod eval;
 mod expression;
+pub mod metrics;
 mod model;
 mod service;
 mod update;
@@ -442,6 +442,10 @@ impl QueryEvaluator {
                 &mut self,
             ) -> impl Fn(Term) -> Option<ExpressionTerm> + 'a {
                 |t| Some(t.into())
+            }
+
+            fn build_externalize_rdf_term(&mut self) -> impl Fn(Term) -> Option<Term> + 'a {
+                Some
             }
 
             fn now(&mut self) -> DateTime {

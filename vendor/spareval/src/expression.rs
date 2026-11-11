@@ -2,8 +2,9 @@
 use crate::ExpressionTriple;
 use crate::dataset::ExpressionTerm;
 use md5::{Digest, Md5};
+use num_bigint::BigInt;
 use oxiri::Iri;
-use oxrdf::vocab::{rdf, xsd};
+use oxrdf::vocab::xsd;
 #[cfg(feature = "sparql-12")]
 use oxrdf::{BaseDirection, NamedOrBlankNode};
 use oxrdf::{BlankNode, Literal, NamedNode, Term, Variable};
@@ -54,6 +55,7 @@ pub trait ExpressionEvaluatorContext<'a> {
     fn build_externalize_expression_term(
         &mut self,
     ) -> impl Fn(Self::Term) -> Option<ExpressionTerm> + 'a; // TODO: return result
+    fn build_externalize_rdf_term(&mut self) -> impl Fn(Self::Term) -> Option<Term> + 'a;
     fn now(&mut self) -> DateTime;
     fn base_iri(&mut self) -> Option<Arc<Iri<String>>>;
     fn custom_functions(&mut self) -> &CustomFunctionRegistry;
@@ -76,6 +78,38 @@ pub enum ExpressionEvaluationError<C> {
         expected: RangeInclusive<usize>,
         actual: usize,
     },
+}
+
+pub(crate) fn integer_value(term: &ExpressionTerm) -> Option<BigInt> {
+    match term {
+        ExpressionTerm::IntegerLiteral(value) => value.to_string().parse().ok(),
+        ExpressionTerm::OtherTypedLiteral { value, datatype } => {
+            let n: BigInt = value.parse().ok()?;
+            match datatype
+                .as_str()
+                .strip_prefix("http://www.w3.org/2001/XMLSchema#")?
+            {
+                "integer" => Some(n),
+                "nonNegativeInteger" if n >= BigInt::from(0) => Some(n),
+                "positiveInteger" if n > BigInt::from(0) => Some(n),
+                "nonPositiveInteger" if n <= BigInt::from(0) => Some(n),
+                "negativeInteger" if n < BigInt::from(0) => Some(n),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+fn integer_term(value: BigInt) -> ExpressionTerm {
+    let text = value.to_string();
+    if let Ok(value) = text.parse::<Integer>() {
+        ExpressionTerm::IntegerLiteral(value)
+    } else {
+        ExpressionTerm::OtherTypedLiteral {
+            value: text,
+            datatype: xsd::INTEGER.into(),
+        }
+    }
 }
 
 pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
@@ -213,7 +247,12 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
             let a = build_expression_evaluator(a, context)?;
             let b = build_expression_evaluator(b, context)?;
             Rc::new(move |tuple| {
-                Some(match NumericBinaryOperands::new(a(tuple)?, b(tuple)?)? {
+                let left = a(tuple)?;
+                let right = b(tuple)?;
+                if let (Some(left), Some(right)) = (integer_value(&left), integer_value(&right)) {
+                    return Some(integer_term(left + right));
+                }
+                Some(match NumericBinaryOperands::new(left, right)? {
                     NumericBinaryOperands::Float(v1, v2) => ExpressionTerm::FloatLiteral(v1 + v2),
                     NumericBinaryOperands::Double(v1, v2) => ExpressionTerm::DoubleLiteral(v1 + v2),
                     NumericBinaryOperands::Integer(v1, v2) => {
@@ -277,7 +316,12 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
             let a = build_expression_evaluator(a, context)?;
             let b = build_expression_evaluator(b, context)?;
             Rc::new(move |tuple| {
-                Some(match NumericBinaryOperands::new(a(tuple)?, b(tuple)?)? {
+                let left = a(tuple)?;
+                let right = b(tuple)?;
+                if let (Some(left), Some(right)) = (integer_value(&left), integer_value(&right)) {
+                    return Some(integer_term(left - right));
+                }
+                Some(match NumericBinaryOperands::new(left, right)? {
                     NumericBinaryOperands::Float(v1, v2) => ExpressionTerm::FloatLiteral(v1 - v2),
                     NumericBinaryOperands::Double(v1, v2) => ExpressionTerm::DoubleLiteral(v1 - v2),
                     NumericBinaryOperands::Integer(v1, v2) => {
@@ -349,7 +393,12 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
             let a = build_expression_evaluator(a, context)?;
             let b = build_expression_evaluator(b, context)?;
             Rc::new(move |tuple| {
-                Some(match NumericBinaryOperands::new(a(tuple)?, b(tuple)?)? {
+                let left = a(tuple)?;
+                let right = b(tuple)?;
+                if let (Some(left), Some(right)) = (integer_value(&left), integer_value(&right)) {
+                    return Some(integer_term(left * right));
+                }
+                Some(match NumericBinaryOperands::new(left, right)? {
                     NumericBinaryOperands::Float(v1, v2) => ExpressionTerm::FloatLiteral(v1 * v2),
                     NumericBinaryOperands::Double(v1, v2) => ExpressionTerm::DoubleLiteral(v1 * v2),
                     NumericBinaryOperands::Integer(v1, v2) => {
@@ -384,7 +433,11 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
         Expression::UnaryPlus(e) => {
             let e = build_expression_evaluator(e, context)?;
             Rc::new(move |tuple| {
-                Some(match e(tuple)? {
+                let term = e(tuple)?;
+                if let Some(integer) = integer_value(&term) {
+                    return Some(integer_term(integer));
+                }
+                Some(match term {
                     ExpressionTerm::FloatLiteral(value) => ExpressionTerm::FloatLiteral(value),
                     ExpressionTerm::DoubleLiteral(value) => ExpressionTerm::DoubleLiteral(value),
                     ExpressionTerm::IntegerLiteral(value) => ExpressionTerm::IntegerLiteral(value),
@@ -408,7 +461,11 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
         Expression::UnaryMinus(e) => {
             let e = build_expression_evaluator(e, context)?;
             Rc::new(move |tuple| {
-                Some(match e(tuple)? {
+                let term = e(tuple)?;
+                if let Some(integer) = integer_value(&term) {
+                    return Some(integer_term(-integer));
+                }
+                Some(match term {
                     ExpressionTerm::FloatLiteral(value) => ExpressionTerm::FloatLiteral(-value),
                     ExpressionTerm::DoubleLiteral(value) => ExpressionTerm::DoubleLiteral(-value),
                     ExpressionTerm::IntegerLiteral(value) => {
@@ -465,7 +522,7 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
         }
         Expression::FunctionCall(function, parameters) => match function {
             Function::Str => {
-                let e = build_expression_evaluator(&parameters[0], context)?;
+                let e = build_rdf_expression_evaluator(&parameters[0], context)?;
                 Rc::new(move |tuple| {
                     Some(ExpressionTerm::StringLiteral(match e(tuple)?.into() {
                         Term::NamedNode(term) => term.into_string(),
@@ -542,48 +599,12 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
                 })
             }
             Function::Datatype => {
-                let e = build_expression_evaluator(&parameters[0], context)?;
+                let e = build_rdf_expression_evaluator(&parameters[0], context)?;
                 Rc::new(move |tuple| {
-                    Some(ExpressionTerm::NamedNode(match e(tuple)? {
-                        ExpressionTerm::StringLiteral(_) => xsd::STRING.into(),
-                        ExpressionTerm::LangStringLiteral { .. } => rdf::LANG_STRING.into(),
-                        #[cfg(feature = "sparql-12")]
-                        ExpressionTerm::DirLangStringLiteral { .. } => rdf::DIR_LANG_STRING.into(),
-                        ExpressionTerm::BooleanLiteral(_) => xsd::BOOLEAN.into(),
-                        ExpressionTerm::IntegerLiteral(_) => xsd::INTEGER.into(),
-                        ExpressionTerm::DecimalLiteral(_) => xsd::DECIMAL.into(),
-                        ExpressionTerm::FloatLiteral(_) => xsd::FLOAT.into(),
-                        ExpressionTerm::DoubleLiteral(_) => xsd::DOUBLE.into(),
-                        ExpressionTerm::DateTimeLiteral(_) => xsd::DATE_TIME.into(),
-                        #[cfg(feature = "sep-0002")]
-                        ExpressionTerm::DateLiteral(_) => xsd::DATE.into(),
-                        #[cfg(feature = "sep-0002")]
-                        ExpressionTerm::TimeLiteral(_) => xsd::TIME.into(),
-                        #[cfg(feature = "calendar-ext")]
-                        ExpressionTerm::GYearLiteral(_) => xsd::G_YEAR.into(),
-                        #[cfg(feature = "calendar-ext")]
-                        ExpressionTerm::GYearMonthLiteral(_) => xsd::G_YEAR_MONTH.into(),
-                        #[cfg(feature = "calendar-ext")]
-                        ExpressionTerm::GMonthLiteral(_) => xsd::G_MONTH.into(),
-                        #[cfg(feature = "calendar-ext")]
-                        ExpressionTerm::GMonthDayLiteral(_) => xsd::G_MONTH_DAY.into(),
-                        #[cfg(feature = "calendar-ext")]
-                        ExpressionTerm::GDayLiteral(_) => xsd::G_DAY.into(),
-                        #[cfg(feature = "sep-0002")]
-                        ExpressionTerm::DurationLiteral(_) => xsd::DURATION.into(),
-                        #[cfg(feature = "sep-0002")]
-                        ExpressionTerm::YearMonthDurationLiteral(_) => {
-                            xsd::YEAR_MONTH_DURATION.into()
-                        }
-                        #[cfg(feature = "sep-0002")]
-                        ExpressionTerm::DayTimeDurationLiteral(_) => xsd::DAY_TIME_DURATION.into(),
-                        ExpressionTerm::OtherTypedLiteral { datatype, .. } => datatype,
-                        ExpressionTerm::NamedNode(_) | ExpressionTerm::BlankNode(_) => {
-                            return None;
-                        }
-                        #[cfg(feature = "sparql-12")]
-                        ExpressionTerm::Triple(_) => return None,
-                    }))
+                    let Term::Literal(literal) = e(tuple)? else {
+                        return None;
+                    };
+                    Some(ExpressionTerm::NamedNode(literal.datatype().into_owned()))
                 })
             }
             Function::Iri => {
@@ -1213,14 +1234,16 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
             Function::IsNumeric => {
                 let e = build_expression_evaluator(&parameters[0], context)?;
                 Rc::new(move |tuple| {
+                    let term = e(tuple)?;
                     Some(
-                        matches!(
-                            e(tuple)?,
-                            ExpressionTerm::IntegerLiteral(_)
-                                | ExpressionTerm::DecimalLiteral(_)
-                                | ExpressionTerm::FloatLiteral(_)
-                                | ExpressionTerm::DoubleLiteral(_)
-                        )
+                        (integer_value(&term).is_some()
+                            || matches!(
+                                term,
+                                ExpressionTerm::IntegerLiteral(_)
+                                    | ExpressionTerm::DecimalLiteral(_)
+                                    | ExpressionTerm::FloatLiteral(_)
+                                    | ExpressionTerm::DoubleLiteral(_)
+                            ))
                         .into(),
                     )
                 })
@@ -1409,17 +1432,21 @@ pub fn build_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
                         )
                     }
                     xsd::INTEGER => {
-                        cast_fn!(|t: ExpressionTerm| Some(ExpressionTerm::IntegerLiteral(
-                            match t {
+                        cast_fn!(|t: ExpressionTerm| {
+                            if let Some(value) = integer_value(&t) {
+                                return Some(integer_term(value));
+                            }
+                            if let ExpressionTerm::StringLiteral(value) = &t {
+                                return Some(integer_term(value.parse().ok()?));
+                            }
+                            Some(ExpressionTerm::IntegerLiteral(match t {
+                                ExpressionTerm::BooleanLiteral(value) => value.into(),
                                 ExpressionTerm::FloatLiteral(value) => value.try_into().ok()?,
                                 ExpressionTerm::DoubleLiteral(value) => value.try_into().ok()?,
-                                ExpressionTerm::IntegerLiteral(value) => value,
                                 ExpressionTerm::DecimalLiteral(value) => value.try_into().ok()?,
-                                ExpressionTerm::BooleanLiteral(value) => value.into(),
-                                ExpressionTerm::StringLiteral(value) => value.parse().ok()?,
                                 _ => return None,
-                            }
-                        )))
+                            }))
+                        })
                     }
                     xsd::DECIMAL => {
                         cast_fn!(|t: ExpressionTerm| Some(ExpressionTerm::DecimalLiteral(
@@ -1786,6 +1813,9 @@ fn compile_pattern(pattern: &str, flags: Option<&str>) -> Option<Regex> {
 
 /// Equality operator (=)
 fn equals(a: &ExpressionTerm, b: &ExpressionTerm) -> Option<bool> {
+    if let (Some(a), Some(b)) = (integer_value(a), integer_value(b)) {
+        return Some(a == b);
+    }
     match a {
         ExpressionTerm::NamedNode(_)
         | ExpressionTerm::BlankNode(_)
@@ -1949,6 +1979,9 @@ fn partial_cmp(a: &ExpressionTerm, b: &ExpressionTerm) -> Option<Ordering> {
 }
 
 pub fn partial_cmp_literals(a: &ExpressionTerm, b: &ExpressionTerm) -> Option<Ordering> {
+    if let (Some(a), Some(b)) = (integer_value(a), integer_value(b)) {
+        return Some(a.cmp(&b));
+    }
     match a {
         ExpressionTerm::StringLiteral(a) => {
             if let ExpressionTerm::StringLiteral(b) = b {
@@ -2411,5 +2444,19 @@ mod tests {
                 .is_match(&buffer),
             "{buffer} is not a valid UUID"
         );
+    }
+}
+
+// Term-sensitive functions must retain the original datatype and lexical form.
+fn build_rdf_expression_evaluator<'a, C: ExpressionEvaluatorContext<'a>>(
+    expression: &Expression,
+    context: &mut C,
+) -> Result<ExpressionEvaluator<'a, C::Tuple, Term>, ExpressionEvaluationError<C::Error>> {
+    if let Some(internal) = try_build_internal_expression_evaluator(expression, context)? {
+        let externalize = context.build_externalize_rdf_term();
+        Ok(Rc::new(move |tuple| externalize(internal(tuple)?)))
+    } else {
+        let evaluator = build_expression_evaluator(expression, context)?;
+        Ok(Rc::new(move |tuple| Some(evaluator(tuple)?.into())))
     }
 }

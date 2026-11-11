@@ -316,7 +316,16 @@ fn rename_no_replace(from: &Path, to: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn compute(mut request: Value) -> Result<Value> {
+pub fn compute(request: Value) -> Result<Value> {
+    compute_with(request, crate::full::execute)
+}
+
+/// Embed the artifact lifecycle with a caller-owned execution adapter.
+/// Inputs are frozen before the adapter runs; integrity and publication remain here.
+pub fn compute_with(
+    mut request: Value,
+    execute: impl Fn(Value) -> std::result::Result<Value, String>,
+) -> Result<Value> {
     let artifact = request["artifact"].clone();
     let stage = PathBuf::from(artifact["stage"].as_str().context("artifact stage")?);
     let operation = request["operation"]
@@ -418,9 +427,9 @@ pub fn compute(mut request: Value) -> Result<Value> {
         request["sources"] = json!(sources);
         request["rules"] = admitted["rules"].clone();
         request["extract_property_chains"] = json!(profile == "rdfs-property-chain-v1");
-        let result = crate::full::execute(request.clone()).map_err(anyhow::Error::msg)?;
+        let result = execute(request.clone()).map_err(anyhow::Error::msg)?;
         let frozen = json!({"sources":source_manifest, "rules":rule_manifest, "import_lock":result["resolved_import_lock"],
-            "import_policy":if request["import_lock"].is_null() {"declared-ontology-v1"} else {"explicit-lock-v1"}, "profile_id":profile});
+            "import_policy":if request["import_lock"].is_null() {"declared-ontology-v1"} else {"explicit-lock-v1"}, "profile_id":profile, "parser_options":result["parser_options"]});
         fs::write(stage.join("input_manifest.json"), canonical(&frozen))?;
         fs::write(stage.join("plan.json"), canonical(&result["plan"]))?;
         (
@@ -449,7 +458,7 @@ pub fn compute(mut request: Value) -> Result<Value> {
             )?;
         }
         request["plan"] = serde_json::from_slice(&fs::read(stage.join("plan.json"))?)?;
-        let result = crate::full::execute(request).map_err(anyhow::Error::msg)?;
+        let result = execute(request).map_err(anyhow::Error::msg)?;
         ensure!(
             verify(compiled)? == source_manifest,
             "MANIFEST_CORRUPT|input changed during reasoning"
