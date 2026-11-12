@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import signal
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -89,6 +90,55 @@ class Contract(unittest.TestCase):
 
     def query(self, dataset, query, **options):
         return self.call({"kind": "query", "dataset": str(dataset), "query": PREFIX + query, **options})["result"]
+
+    def test_consumer_preparation_bindings_and_unlimited_allowance(self):
+        info = self.call({"kind": "capabilities"}, limits={"timeout_ms": None, "memory_bytes": None,
+                         "scratch_bytes": None})["result"]
+        self.assertIn("prepare_query", info["operations"])
+        self.assertIn("rules", info["operations"])
+        self.assertIn("ontokiln-sqlite-read/v1", info["read_contracts"])
+        self.assertTrue(self.call({"kind": "prepare_query", "query": "ASK {}"})["result"]["valid"])
+        self.call({"kind": "prepare_query", "query": "SELECT * WHERE { SERVICE <urn:remote> {?s ?p ?o}}"}, "INVALID_QUERY")
+        op = {"kind": "query", "dataset": str(self.reasoned),
+              "query": "SELECT ?label WHERE { BIND(?given AS ?label) FILTER(BOUND(?given)) }",
+              "rdf_bindings": {"given": '"003"^^<http://www.w3.org/2001/XMLSchema#integer>'}}
+        result = self.call(op, limits={"max_rows": 200000, "max_bytes": 64*1024**2, "timeout_ms": None})["result"]
+        self.assertEqual(result["variables"], ["label"])
+        self.assertEqual(result["items"], [{"label": {"type": "literal", "value": "003", "datatype": XSD+"integer"}}])
+        self.call({**op, "dataset": str(self.pack)}, "UNSUPPORTED_CAPABILITY")
+
+    def test_read_artifact_contract_and_terminal_ownership(self):
+        manifest = json.loads((self.compiled/"manifest.json").read_bytes())
+        self.assertEqual(manifest["read_contract"], "ontokiln-sqlite-read/v1")
+        with sqlite3.connect(self.compiled/"facts.sqlite") as db:
+            for table, columns in {"terms": {"id", "n", "kind", "value", "datatype", "lang"},
+                                   "facts": {"g", "s", "p", "o", "explicit"},
+                                   "source_documents": {"id", "document_id"},
+                                   "source_facts": {"g", "s", "p", "o", "document"}}.items():
+                self.assertTrue(columns <= {r[1] for r in db.execute("PRAGMA table_info("+table+")")})
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM facts WHERE explicit=1").fetchone()[0], 10000)
+            self.assertEqual(db.execute("SELECT COUNT(DISTINCT document_id) FROM source_documents").fetchone()[0], 2)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM facts f LEFT JOIN terms t ON f.s=t.id WHERE t.id IS NULL").fetchone()[0], 0)
+        op = {"kind": "compile", "sources": self.sources, "output": str(self.root/"owned"), "profile": "no-rules-v1"}
+        reply = self.call(op)
+        record = json.loads((self.root/"owned.native-execution.json").read_bytes())
+        self.assertEqual(record["request_sha256"], reply["request_sha256"])
+        self.assertEqual(record["supervisor_pid"], reply["execution"]["supervisor_pid"])
+        self.assertTrue(reply["execution"]["integrity_checked"])
+        self.assertEqual(reply["result"]["artifact"]["manifest_sha256"], hashlib.sha256((self.root/"owned/manifest.json").read_bytes()).hexdigest())
+        self.assertGreater(reply["execution"]["metrics"]["peak_rss_bytes"], 0)
+
+    def test_rule_admission_frozen_inputs_and_compile_options(self):
+        path = self.root/"admission.json"
+        path.write_text(json.dumps({"schema_version": "ontology-rule-ir/v1", "rules": []}))
+        file = {"path": str(path), "expected_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+        self.assertEqual(self.call({"kind": "rules", "profile": "no-rules-v1", "files": []})["result"]["rules"], [])
+        self.call({"kind": "rules", "profile": "datalog-v1", "files": [file]})
+        self.call({"kind": "rules", "profile": "datalog-v1", "files": [{**file, "expected_sha256": "0"*64}]}, "INVALID_REQUEST")
+        op = {"kind": "compile", "sources": self.sources, "output": str(self.root/"options"),
+              "profile": "no-rules-v1", "import_lock": {}, "expected_source_tree_digest": "0"*64}
+        self.call(op, "INVALID_REQUEST", limits={"max_term_bytes": 16*1024**2})
+        self.assertFalse((self.root/"options").exists())
 
     def test_shared_golden_queries(self):
         for case in json.loads((ROOT / "cases.json").read_text()):

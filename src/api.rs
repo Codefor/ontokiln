@@ -1,4 +1,4 @@
-//! Versioned consumer boundary. Storage and worker protocols are private adapters.
+//! Versioned consumer boundary; optional read artifacts have their own format contract.
 use anyhow::{Context, Result, bail, ensure};
 use ontokiln_reasoner::{Reasoner, parameters, sparql};
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,7 @@ use std::{
 };
 
 pub const CONTRACT: &str = "ontokiln-api/v1";
+pub const READ_CONTRACT: &str = "ontokiln-sqlite-read/v1";
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -27,12 +28,21 @@ pub enum Operation {
     Capabilities {
         dataset: Option<PathBuf>,
     },
+    PrepareQuery {
+        query: String,
+    },
+    Rules {
+        profile: String,
+        files: Vec<RuleFile>,
+    },
     Compile {
         sources: Vec<Source>,
         output: PathBuf,
         profile: String,
         #[serde(default)]
         rules: Vec<RuleFile>,
+        import_lock: Option<BTreeMap<String, ImportTargets>>,
+        expected_source_tree_digest: Option<String>,
     },
     Materialize {
         dataset: PathBuf,
@@ -43,6 +53,8 @@ pub enum Operation {
         query: String,
         #[serde(default)]
         parameters: BTreeMap<String, parameters::Parameter>,
+        #[serde(default)]
+        rdf_bindings: BTreeMap<String, String>,
         #[serde(default)]
         view: View,
         revision: Option<String>,
@@ -58,6 +70,13 @@ pub enum Operation {
         selected_shapes: Option<Vec<String>>,
         focus_node: Option<String>,
     },
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ImportTargets {
+    One(String),
+    Many(Vec<String>),
 }
 
 #[derive(Clone, Copy, Default, Deserialize, Serialize)]
@@ -90,29 +109,31 @@ pub struct RuleFile {
 #[derive(Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Limits {
-    pub memory_bytes: u64,
-    pub scratch_bytes: u64,
-    pub timeout_ms: u64,
+    pub memory_bytes: Option<u64>,
+    pub scratch_bytes: Option<u64>,
+    pub timeout_ms: Option<f64>,
     pub max_rows: usize,
     pub max_bytes: usize,
     pub max_iterations: u64,
     pub max_derived_facts: u64,
     pub max_intermediate_rows: u64,
     pub max_validation_depth: usize,
+    pub max_term_bytes: u64,
 }
 
 impl Default for Limits {
     fn default() -> Self {
         Self {
-            memory_bytes: 512 * 1024 * 1024,
-            scratch_bytes: 4 * 1024 * 1024 * 1024,
-            timeout_ms: 300_000,
+            memory_bytes: Some(512 * 1024 * 1024),
+            scratch_bytes: Some(4 * 1024 * 1024 * 1024),
+            timeout_ms: Some(300_000.0),
             max_rows: 100_000,
             max_bytes: 4 * 1024 * 1024,
             max_iterations: 100,
             max_derived_facts: 1_000_000,
             max_intermediate_rows: 10_000_000,
             max_validation_depth: 64,
+            max_term_bytes: 1024 * 1024,
         }
     }
 }
@@ -133,23 +154,24 @@ impl Request {
         );
         let l = &self.limits;
         ensure!(
-            l.memory_bytes > 0
-                && l.scratch_bytes > 0
-                && l.timeout_ms > 0
-                && l.max_rows <= sparql::MAX_ROWS
-                && l.max_bytes <= sparql::MAX_BYTES
+            l.memory_bytes.is_none_or(|v| v > 0)
+                && l.scratch_bytes.is_none_or(|v| v > 0)
+                && l.timeout_ms.is_none_or(|v| v.is_finite() && v > 0.0)
+                && l.max_term_bytes > 0
                 && l.max_validation_depth > 0,
             "INVALID_REQUEST|invalid limits"
         );
         let mut v = json!({"operation":"api", "_api_request":self,
             "memory_budget_bytes":l.memory_bytes, "disk_budget_bytes":l.scratch_bytes,
-            "timeout_seconds":l.timeout_ms as f64 / 1000.0});
+            "timeout_seconds":l.timeout_ms.map(|v| v / 1000.0)});
         match &self.operation {
             Operation::Compile {
                 sources,
                 output,
                 profile,
                 rules,
+                import_lock,
+                expected_source_tree_digest,
             } => {
                 ensure!(
                     [
@@ -163,8 +185,9 @@ impl Request {
                 );
                 v["operation"] = json!("compile");
                 v["sources"] = json!(sources);
-                v["max_term_bytes"] = json!(1024 * 1024);
-                v["artifact"] = json!({"output":output,"profile_id":profile,"index_profile":"core-v1","rules_files":rules});
+                v["max_term_bytes"] = json!(l.max_term_bytes);
+                v["import_lock"] = json!(import_lock);
+                v["artifact"] = json!({"output":output,"profile_id":profile,"index_profile":"core-v1","rules_files":rules,"expected_source_tree_digest":expected_source_tree_digest});
             }
             Operation::Materialize { dataset, output } => {
                 v["operation"] = json!("materialize");
@@ -180,6 +203,7 @@ impl Request {
 }
 
 fn failure(code: &str, message: &str) -> Value {
+    let reason = code;
     let (code, status) = match code {
         "INVALID_REQUEST" | "SOURCE_INVALID" | "RULE_INVALID" => ("INVALID_REQUEST", "FAILED"),
         "UNSUPPORTED_CONTRACT" => ("UNSUPPORTED_CONTRACT", "UNSUPPORTED"),
@@ -194,7 +218,7 @@ fn failure(code: &str, message: &str) -> Value {
         }
         _ => ("EXECUTION_FAILED", "FAILED"),
     };
-    json!({"status":status,"result":null,"error":{"code":code,"message":message}})
+    json!({"status":status,"result":null,"error":{"code":code,"message":message,"reason":reason}})
 }
 
 /// Execute the stable file protocol through the existing supervised worker.
@@ -210,7 +234,10 @@ pub fn run_files(request: &Path, result: &Path) -> Result<()> {
         .map_err(invalid)
         .and_then(|req| req.internal());
     let internal = match internal {
-        Ok(value) => value,
+        Ok(mut value) => {
+            value["_api_request_sha256"] = json!(crate::full_artifact::digest(&bytes));
+            value
+        }
         Err(error) => {
             let text = error.to_string();
             let (code, message) = text.split_once('|').unwrap_or(("EXECUTION_FAILED", &text));
@@ -246,7 +273,13 @@ pub fn run_files(request: &Path, result: &Path) -> Result<()> {
             );
             json!({"status":"COMPLETE","result":reply["api_result"],"error":null})
         };
-        crate::full_execution::write_atomic(path, &envelope(response, &raw, &bytes, execution))
+        let mut response = envelope(response, &raw, &bytes, execution);
+        response["execution"]["metrics"] = reply["metrics"].clone();
+        if execution["artifact"].is_object() {
+            response["result"]["artifact"] = execution["artifact"].clone();
+            response["result"]["read_contract"] = json!(READ_CONTRACT);
+        }
+        crate::full_execution::write_atomic(path, &response)
     })
 }
 
@@ -258,8 +291,8 @@ fn envelope(mut response: Value, raw: &Value, bytes: &[u8], execution: &Value) -
         .cloned()
         .unwrap_or(Value::Null);
     response["request_sha256"] = json!(crate::full_artifact::digest(bytes));
-    response["execution"] =
-        json!({"worker_reaped":execution["worker_reaped"],"worker_pid":execution["worker_pid"]});
+    response["execution"] = json!({"worker_reaped":execution["worker_reaped"],"worker_pid":execution["worker_pid"],
+            "supervisor_pid":execution["supervisor_pid"],"integrity_checked":execution["integrity_checked"]});
     response["kernel"] = crate::identity::kernel();
     response
 }
@@ -290,8 +323,8 @@ fn dataset(path: &Path) -> Result<(Value, Option<ontokiln_pack::Pack>)> {
             json!(["asserted"])
         };
         Ok((
-            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1"],
-            "default_graph":"union","views":views,"profile":manifest["profile_id"],"manifest":manifest}),
+            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1",READ_CONTRACT],
+            "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
             None,
         ))
     }
@@ -324,9 +357,33 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "proof_coverage":{"per_fact":"not_recorded"}});
             return Ok(reply);
         }
+        Operation::PrepareQuery { query } => {
+            crate::query::local_query(query).map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+            json!({"valid":true})
+        }
+        Operation::Rules { profile, files } => {
+            let copy = tempfile::tempdir()?;
+            let mut paths = Vec::new();
+            for (i, rule) in files.iter().enumerate() {
+                let suffix = rule
+                    .path
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("json");
+                let path = copy.path().join(format!("rules-{i}.{suffix}"));
+                crate::full_artifact::freeze(&rule.path, &path, &rule.expected_sha256)
+                    .map_err(invalid)?;
+                paths.push(path);
+            }
+            let result =
+                crate::full::execute(json!({"operation":"rules","profile":profile,"files":paths}))
+                    .map_err(anyhow::Error::msg)?;
+            json!({"rules":result["rules"]})
+        }
         Operation::Capabilities { dataset: path } => {
-            let mut info = json!({"operations":["capabilities","compile","materialize","query","validate"],
-                "default_view":"asserted","proof_coverage":{"per_fact":"not_recorded"}});
+            let mut info = json!({"operations":["capabilities","compile","materialize","query","validate","rules","prepare_query"],
+                "read_contracts":[READ_CONTRACT],"rule_contract":"ontology-rule-ir/v1",
+                "runtime":crate::full::runtime_info(),"default_view":"asserted","proof_coverage":{"per_fact":"not_recorded"}});
             if let Some(path) = path {
                 let (mut meta, _) = dataset(path)?;
                 meta.as_object_mut()
@@ -340,6 +397,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             dataset: path,
             query,
             parameters,
+            rdf_bindings,
             view,
             revision,
             require,
@@ -366,6 +424,14 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 );
             }
             let mut data = if let Some(pack) = pack {
+                ensure!(
+                    rdf_bindings.is_empty(),
+                    "UNSUPPORTED_CAPABILITY|pack does not support variable bindings"
+                );
+                ensure!(
+                    limits.max_rows <= sparql::MAX_ROWS && limits.max_bytes <= sparql::MAX_BYTES,
+                    "UNSUPPORTED_CAPABILITY|pack result limits exceed supported maximum"
+                );
                 let engine = Reasoner::new(pack);
                 let options = sparql::Options {
                     view: serde_json::from_value(json!(view))?,
@@ -403,7 +469,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 snapshot(path, &meta, copy.path())?;
                 crate::full::execute(
                     json!({"operation":"query","dataset":copy.path().join("facts.sqlite"),
-                    "query":query,"parameters":parameters,"view":view,"max_rows":limits.max_rows,
+                    "query":query,"parameters":parameters,"rdf_bindings":rdf_bindings,"view":view,"max_rows":limits.max_rows,
                     "max_bytes":limits.max_bytes,"query_seconds":null}),
                 )
                 .map_err(anyhow::Error::msg)?
@@ -456,7 +522,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             }
             let reply = crate::full::execute(input).map_err(anyhow::Error::msg)?;
             json!({"conforms":reply["conforms"],"checked_shapes":reply["checked_shapes"],
-                "report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
+                "violations":reply["violations"],"report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
         }
     };
     Ok(json!({"api_result":result,"metrics":{}}))

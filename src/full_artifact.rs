@@ -477,6 +477,7 @@ pub fn compute_with(
     let files = inventory(&stage)?;
     manifest["schema_version"] = json!(MANIFEST_VERSION);
     manifest["format_version"] = json!(FORMAT_VERSION);
+    manifest["read_contract"] = json!(crate::api::READ_CONTRACT);
     manifest["engine_semantic_version"] = json!(ENGINE_VERSION);
     manifest["completion"] = json!("COMPLETE");
     manifest["files"] = files.clone();

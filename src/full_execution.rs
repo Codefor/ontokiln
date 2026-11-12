@@ -200,7 +200,14 @@ pub(crate) fn run_files_with(
     let bytes = fs::read(request_path)?;
     let request: Value = serde_json::from_slice(&bytes)?;
     ensure!(request.is_object(), "request must be an object");
-    let hash = digest(&bytes);
+    let hash = if request["_api_request"].is_object() {
+        request["_api_request_sha256"]
+            .as_str()
+            .context("API request identity")?
+            .to_owned()
+    } else {
+        digest(&bytes)
+    };
     let started = Instant::now();
     let mut stage = None;
     let mut peak_rss = 0u64;
