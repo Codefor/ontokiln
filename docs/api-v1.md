@@ -116,11 +116,13 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 | `RESOURCE_EXHAUSTED` | `BUDGET_EXHAUSTED` |
 | `CANCELLED` | `CANCELLED` |
 
-客户端按 code 判断，不匹配诊断 message。可选细分 `error.reason` 保留 `SOURCE_INVALID`、`RULE_INVALID`、`TTL_PARSE_ERROR`、`UNSUPPORTED_RULE_PROFILE`、`FORMAT_VERSION_UNSUPPORTED`、`MANIFEST_CORRUPT`、`QUERY_FAILED`、`VALIDATION_FAILED`、`RESOURCE_LIMIT_EXCEEDED`、`BUDGET_EXHAUSTED`、`FIXPOINT_LIMIT_EXCEEDED`、`CANCELLED`；未知 reason 必须退回稳定 code。对 supervisor 发 SIGTERM / SIGINT 会终止并 wait worker 后写 CANCELLED；超时、RSS 或临时磁盘预算失败同样回收 worker。系统强杀或 I/O 失败可能没有终态文件，不能解释为成功。
+客户端按 code 判断，不匹配诊断 message。可选细分 `error.reason` 保留 `SOURCE_INVALID`、`RULE_INVALID`、`UNSAFE_RULE`、`BUILD_ABORTED`、`TTL_PARSE_ERROR`、`UNSUPPORTED_RULE_PROFILE`、`FORMAT_VERSION_UNSUPPORTED`、`MANIFEST_CORRUPT`、`QUERY_FAILED`、`VALIDATION_FAILED`、`RESOURCE_LIMIT_EXCEEDED`、`BUDGET_EXHAUSTED`、`FIXPOINT_LIMIT_EXCEEDED`、`CANCELLED`；未知 reason 必须退回稳定 code。对 supervisor 发 SIGTERM / SIGINT 会终止并 wait worker 后写 CANCELLED；超时、RSS 或临时磁盘预算失败同样回收 worker。系统强杀或 I/O 失败可能没有终态文件，不能解释为成功。
 
 ## 预算
 
 `limits` 可省略；字段省略时使用下表默认值。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的显式 null 表示调用方取消该项预算，其余字段不接受 null；仍保留取消与进程回收。预算是执行许可，不是性能承诺。
+
+Full `compile` / `materialize` 仍要求有限的内存与临时磁盘预算：这两个操作的 `memory_bytes` / `scratch_bytes` 应省略以使用默认值，或传入正整数；传 null 返回 `INVALID_REQUEST`。查询和校验等读取操作允许取消这些预算。
 
 | 字段 | 默认值 |
 |---|---|
