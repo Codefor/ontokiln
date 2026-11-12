@@ -224,10 +224,6 @@ fn failure(code: &str, message: &str) -> Value {
 /// Execute the stable file protocol through the existing supervised worker.
 /// Domain failures are terminal JSON responses; result-file I/O errors are process failures.
 pub fn run_files(request: &Path, result: &Path) -> Result<()> {
-    ensure!(
-        fs::metadata(request)?.len() <= 4 * 1024 * 1024,
-        "API request exceeds 4 MiB"
-    );
     let bytes = fs::read(request)?;
     let raw: Value = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
     let internal = serde_json::from_slice::<Request>(&bytes)

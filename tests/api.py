@@ -339,6 +339,11 @@ class Contract(unittest.TestCase):
         # Preserve Full's declared union-default policy, while GRAPH keeps the original name.
         self.assertTrue(self.query(artifact, 'ASK { <urn:entity> <urn:value> ?v }')["boolean"])
 
+    def test_large_query_request_has_no_implicit_transport_limit(self):
+        query = 'SELECT ?value WHERE { VALUES ?value { "' + 'x' * (5 * 1024 * 1024) + '" } }'
+        result = self.call({"kind": "prepare_query", "query": query})["result"]
+        self.assertTrue(result["valid"])
+
     def test_nonstandard_vocabulary_is_caller_owned(self):
         renamed = self.root / "renamed"
         renamed.mkdir()

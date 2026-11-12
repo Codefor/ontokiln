@@ -96,7 +96,7 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 
 `execution` 还包含 `supervisor_pid`、`integrity_checked` 和实际执行的 `metrics`：`peak_rss_bytes`、`supervisor_peak_rss_bytes`、`peak_scratch_bytes`、`execution_seconds`。未启动 worker 的请求不要求 metrics。产物所有权回执绑定原始公开请求的摘要和 supervisor PID，供宿主在强杀后仅清理本次输出。
 
-`kernel` 实际包含完整构建身份，示例省略其余字段。未启动 worker 时 `worker_pid` 为 null。只有 `status=COMPLETE`、`error=null` 且 `worker_reaped=true` 才能消费成功结果。错误响应的 `result` 必须为 null。无效 JSON 无法提供 ID 时，`request_id` 为 null。结果文件原子写入；不可读请求、请求过大或结果文件 I/O 失败属于进程失败，调用方还须检查退出码和本次结果文件，不能复用旧响应。
+`kernel` 实际包含完整构建身份，示例省略其余字段。未启动 worker 时 `worker_pid` 为 null。只有 `status=COMPLETE`、`error=null` 且 `worker_reaped=true` 才能消费成功结果。错误响应的 `result` 必须为 null。无效 JSON 无法提供 ID 时，`request_id` 为 null。结果文件原子写入；不可读请求或结果文件 I/O 失败属于进程失败，调用方还须检查退出码和本次结果文件，不能复用旧响应。
 
 | result 类型 | 固定内容 |
 |---|---|
@@ -120,7 +120,7 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 
 ## 预算
 
-`limits` 可省略；字段省略时使用下表默认值。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的显式 null 表示调用方取消该项预算，其余字段不接受 null；仍保留取消与进程回收。预算是执行许可，不是性能承诺。
+`limits` 可省略；字段省略时使用下表默认值。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的显式 null 表示调用方取消该项预算，其余字段不接受 null；仍保留取消与进程回收。预算是执行许可，不是性能承诺。文件请求没有额外的固定字节上限；启动 worker 前的 JSON 读取与解析由调用方进程环境承担，不属于 worker RSS 预算。
 
 Full `compile` / `materialize` 仍要求有限的内存与临时磁盘预算：这两个操作的 `memory_bytes` / `scratch_bytes` 应省略以使用默认值，或传入正整数；传 null 返回 `INVALID_REQUEST`。查询和校验等读取操作允许取消这些预算。
 
