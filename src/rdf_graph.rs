@@ -72,6 +72,52 @@ impl Graph {
             .collect()
     }
     pub fn select_focus(&self, text: &str, focus: &str) -> Result<Vec<BTreeMap<String, Term>>> {
+        self.prepare_queries()?.select_focus(text, focus)
+    }
+    pub fn query_bindings(
+        &self,
+        text: &str,
+        bindings: &BTreeMap<String, String>,
+    ) -> Result<BoundQueryResult> {
+        self.prepare_queries()?.query_bindings(text, bindings)
+    }
+    pub fn prepare_queries(&self) -> Result<PreparedQueries> {
+        struct TripleReader<I>(I);
+        impl<I: Iterator<Item = u8>> std::io::Read for TripleReader<I> {
+            fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
+                let mut count = 0;
+                for (slot, byte) in buffer.iter_mut().zip(self.0.by_ref()) {
+                    *slot = byte;
+                    count += 1;
+                }
+                Ok(count)
+            }
+        }
+        let input = TripleReader(
+            self.triples
+                .iter()
+                .flat_map(|t| format!("{} {} {} .\n", t[0], t[1], t[2]).into_bytes()),
+        );
+        let mut dataset = oxrdf::Dataset::new();
+        for quad in oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::NTriples)
+            .for_reader(input)
+        {
+            dataset.insert(&quad?);
+        }
+        Ok(PreparedQueries {
+            dataset,
+            queries: std::cell::RefCell::new(BTreeMap::new()),
+        })
+    }
+}
+
+/// An immutable data snapshot and unbound query plans, scoped to one validation.
+pub struct PreparedQueries {
+    dataset: oxrdf::Dataset,
+    queries: std::cell::RefCell<BTreeMap<String, spargebra::Query>>,
+}
+impl PreparedQueries {
+    pub fn select_focus(&self, text: &str, focus: &str) -> Result<Vec<BTreeMap<String, Term>>> {
         crate::query::local_select(text)?;
         Ok(self
             .query_bindings(text, &BTreeMap::from([("this".into(), focus.into())]))?
@@ -92,13 +138,16 @@ impl Graph {
             .filter(|(name, _)| crate::query::contains_variable(text, name))
             .map(|(name, term)| (name.clone(), term.clone()))
             .collect::<BTreeMap<_, _>>();
-        let mut dataset = oxrdf::Dataset::new();
-        for quad in oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::NTriples)
-            .for_reader(self.nt().as_bytes())
-        {
-            dataset.insert(&quad?);
+        let mut plans = self.queries.borrow_mut();
+        if !plans.contains_key(text) {
+            plans.insert(
+                text.to_owned(),
+                spargebra::SparqlParser::new().parse_query(text)?,
+            );
         }
-        let mut parsed = spargebra::SparqlParser::new().parse_query(text)?;
+        // Exposing bindings mutates the projection; never mutate the cached plan.
+        let mut parsed = plans[text].clone();
+        drop(plans);
         let was_ask = matches!(parsed, spargebra::Query::Ask { .. });
         if let spargebra::Query::Ask {
             dataset,
@@ -163,7 +212,7 @@ impl Graph {
             query = query.substitute_variable(Variable::new(name)?, term.parse::<Term>()?);
         }
 
-        let result = query.on_queryable_dataset(&dataset).execute()?;
+        let result = query.on_queryable_dataset(&self.dataset).execute()?;
         if let QueryResults::Boolean(answer) = result {
             return Ok((Some(answer), vec![]));
         }

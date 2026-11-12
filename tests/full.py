@@ -171,6 +171,29 @@ class Full(unittest.TestCase):
             'sh:sparql [ sh:select "SELECT $this WHERE { SERVICE <https://example.invalid/> { ?s ?p ?o } }" ] .',
             "UNSUPPORTED_RULE_PROFILE")
 
+    def test_shacl_reuses_plans_without_cross_shape_or_focus_results(self):
+        compiled = self.compile("\n".join(f"<urn:n{i}> <urn:score> {i} ." for i in range(128)))
+        shapes = self.root / "many-shapes.ttl"
+        shapes.write_text('@prefix sh: <http://www.w3.org/ns/shacl#> .\n<urn:lower> a sh:PropertyShape; sh:targetSubjectsOf <urn:score>; sh:path <urn:score>; sh:minInclusive 64 .\n<urn:upper> a sh:PropertyShape; sh:targetSubjectsOf <urn:score>; sh:path <urn:score>; sh:maxInclusive 63 .\n<urn:select> a sh:NodeShape; sh:targetSubjectsOf <urn:score>;\n sh:sparql [sh:select "SELECT $this WHERE { $this <urn:score> ?v FILTER (?v = 0) }"] .\n')
+        result = self.request({"operation": "validate", "dataset": str(compiled),
+            "shapes": [{"file": str(shapes), "format": "turtle"}]})
+        report = json.loads(result["report"])
+        pairs = {(row["shape_ref"].strip("<>"), row["focus_node"].strip("<>")) for row in report["violations"]}
+        expected = {("urn:lower", f"urn:n{i}") for i in range(64)}
+        expected |= {("urn:upper", f"urn:n{i}") for i in range(64, 128)}
+        expected.add(("urn:select", "urn:n0"))
+        self.assertEqual(pairs, expected)
+        self.assertEqual(len(report["violations"]), 129)
+
+    def test_shacl_closed_without_property_constraints_is_enforced(self):
+        compiled = self.compile('<urn:x> <urn:p> 1 .')
+        shapes = self.root / "closed.ttl"
+        shapes.write_text('@prefix sh: <http://www.w3.org/ns/shacl#> . <urn:shape> a sh:NodeShape; sh:targetNode <urn:x>; sh:closed true .')
+        result = self.request({"operation": "validate", "dataset": str(compiled),
+            "shapes": [{"file": str(shapes), "format": "turtle"}]})
+        self.assertFalse(result["conforms"])
+        self.assertEqual(result["violations"], 1)
+
     def test_unsafe_rule_and_corrupt_artifact_fail_closed(self):
         self.compile('<urn:a> <urn:p> <urn:b> .', "unsafe", "datalog-v1",
             [{"rule_id": "unsafe", "head": ["?s", "<urn:q>", "?unknown"],

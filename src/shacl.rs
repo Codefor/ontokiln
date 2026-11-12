@@ -1,11 +1,14 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
 //! Validation is called only inside the killable Rust worker.
-use crate::rdf_graph::{Graph, RDF, SH, iri, value};
+use crate::rdf_graph::{Graph, PreparedQueries, RDF, SH, iri, value};
 use anyhow::{Result, ensure};
+use rudof_rdf::rdf_impl::InMemoryGraph;
 use rudof_rdf::{rdf_core::RDFFormat, rdf_impl::ReaderMode};
 use serde_json::{Value, json};
 use shacl_ir::compiled::schema_ir::SchemaIR;
-use shacl_validation::shacl_processor::{GraphValidation, ShaclProcessor, ShaclValidationMode};
+use shacl_validation::focus_nodes::FocusNodes;
+use shacl_validation::shacl_engine::{engine::Engine, native::NativeEngine};
+use shacl_validation::shape_validation::Validate;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub fn validate_with_depth(
@@ -36,6 +39,7 @@ pub fn validate_with_depth(
             "remote Shapes imports are unsupported"
         );
     }
+    let queries = data.prepare_queries()?;
     let mut foci = BTreeMap::new();
     for shape in selected {
         ensure!(
@@ -104,7 +108,7 @@ pub fn validate_with_depth(
                         parameter_bindings(shapes, &declaration, &target, true)?
                     };
                     for bindings in bindings {
-                        for row in data.query_bindings(&text, &bindings)?.1 {
+                        for row in queries.query_bindings(&text, &bindings)?.1 {
                             nodes.insert(
                                 row.get("this")
                                     .ok_or_else(|| {
@@ -189,7 +193,15 @@ pub fn validate_with_depth(
             );
         }
     }
-    let mut result = validate_composed(data, shapes, &reachable, &foci, max_depth, work_budget)?;
+    let mut result = validate_composed(
+        data,
+        &queries,
+        shapes,
+        &reachable,
+        &foci,
+        max_depth,
+        work_budget,
+    )?;
     result["coverage"] = json!(foci.iter().map(|(shape,nodes)|json!({"shape":value(shape),"target_count":nodes.len(),"focus_nodes":nodes})).collect::<Vec<_>>());
     result["target_count"] = json!(foci.values().map(BTreeSet::len).sum::<usize>());
     result["kernel"] = crate::identity::kernel();
@@ -358,10 +370,11 @@ fn path_expression(shapes: &Graph, path: &str, depth: usize) -> Result<String> {
 
 struct Composed<'a> {
     data: &'a Graph,
+    queries: &'a PreparedQueries,
     shapes: &'a Graph,
     reachable: &'a BTreeSet<String>,
-    validator: GraphValidation,
-    schemas: BTreeMap<String, SchemaIR>,
+    native: Option<InMemoryGraph>,
+    schemas: BTreeMap<String, (SchemaIR, Option<NativeEngine>)>,
     cache: BTreeMap<(String, String), Vec<Value>>,
     active: BTreeSet<(String, String)>,
     visits: usize,
@@ -409,7 +422,7 @@ impl Composed<'_> {
             .map(|p| path_expression(self.shapes, p, 0))
             .transpose()?;
         let values = if let Some(path) = &path {
-            self.data
+            self.queries
                 .select_focus(
                     &format!("SELECT ?this ?v WHERE {{ ?this {path} ?v }}"),
                     focus,
@@ -420,7 +433,7 @@ impl Composed<'_> {
         } else {
             BTreeSet::from([focus.to_owned()])
         };
-        let schema_key = format!("{shape}\n{focus}");
+        let schema_key = shape.to_owned();
         if !self.schemas.contains_key(&schema_key) {
             let delegated = [
                 "property",
@@ -468,9 +481,6 @@ impl Composed<'_> {
                     }
                 )),
             ]);
-            graph
-                .triples
-                .insert([shape.into(), iri(&format!("{SH}targetNode")), focus.into()]);
             // Closed constraints need the allowed property paths, without their delegated constraints.
             if self
                 .shapes
@@ -494,13 +504,44 @@ impl Composed<'_> {
                 &ReaderMode::default(),
             )
             .map_err(|e| anyhow::anyhow!("SHACL compilation failed: {e}"))?;
-            self.schemas.insert(schema_key.clone(), schema);
+            // Cache entries use schema-local indices, so each schema owns its runner.
+            self.schemas.insert(schema_key.clone(), (schema, None));
         }
-        let report = self
-            .validator
-            .validate(&self.schemas[&schema_key])
-            .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
-        let mut violations=report.results().iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})).collect::<Vec<_>>();
+        let (schema, runner) = self.schemas.get_mut(&schema_key).expect("prepared shape");
+        let compiled = schema
+            .iter()
+            .find(|(id, _)| id.to_string() == shape || id.to_string() == value(shape))
+            .map(|(_, shape)| shape)
+            .ok_or_else(|| anyhow::anyhow!("compiled SHACL shape unavailable"))?;
+        let mut violations = Vec::new();
+        // Delegated-only shapes do not need a second representation of the data graph.
+        if compiled.closed()
+            || !compiled.components().is_empty()
+            || !compiled.property_shapes().is_empty()
+        {
+            if self.native.is_none() {
+                self.native = Some(native_graph(self.data)?);
+            }
+            let native = self.native.as_ref().expect("prepared native graph");
+            if runner.is_none() {
+                let mut engine = NativeEngine::new();
+                engine
+                    .build_indexes(native)
+                    .map_err(|e| anyhow::anyhow!("SHACL index construction failed: {e}"))?;
+                *runner = Some(engine);
+            }
+            let targets = FocusNodes::single(focus.parse::<oxrdf::Term>()?);
+            let report = compiled
+                .validate(
+                    native,
+                    runner.as_mut().expect("prepared engine"),
+                    Some(&targets),
+                    Some(compiled),
+                    schema,
+                )
+                .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
+            violations.extend(report.iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})));
+        }
         let message = self
             .shapes
             .objects(shape, &iri(&format!("{SH}message")))
@@ -526,7 +567,7 @@ impl Composed<'_> {
             let query = value(&self.shapes.one(&constraint, &iri(&format!("{SH}select")))?);
             let query = prefixed_query(self.shapes, &constraint, &query)?;
             let query = crate::query::shacl_path(&query, path.as_deref())?;
-            let rows = self.data.select_focus(&query, focus)?;
+            let rows = self.queries.select_focus(&query, focus)?;
             for _row in rows {
                 violations.push(violation("SPARQLConstraintComponent"));
             }
@@ -557,7 +598,7 @@ impl Composed<'_> {
                     let text = crate::query::shacl_path(&text, path.as_deref())?;
                     for node in &values {
                         bindings.insert("value".into(), node.clone());
-                        let (boolean, rows) = self.data.query_bindings(&text, &bindings)?;
+                        let (boolean, rows) = self.queries.query_bindings(&text, &bindings)?;
                         let failed = if !ask.is_empty() {
                             !boolean.ok_or_else(|| {
                                 anyhow::anyhow!("SHACL ASK validator requires ASK")
@@ -678,7 +719,7 @@ impl Composed<'_> {
     }
 }
 fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
-    let triples = data.scan();
+    let triples = &data.triples;
     let mut terms = HashMap::new();
     for term in triples.iter().flatten() {
         if !terms.contains_key(term.as_str()) {
@@ -699,7 +740,7 @@ fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
         }
     }
     let mut graph = rudof_rdf::rdf_impl::InMemoryGraph::new();
-    for [s, p, o] in &triples {
+    for [s, p, o] in triples {
         let subject: oxrdf::NamedOrBlankNodeRef<'_> = match &terms[s.as_str()] {
             oxrdf::Term::NamedNode(node) => node.as_ref().into(),
             oxrdf::Term::BlankNode(node) => node.as_ref().into(),
@@ -716,20 +757,19 @@ fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
 
 fn validate_composed(
     data: &Graph,
+    queries: &PreparedQueries,
     shapes: &Graph,
     reachable: &BTreeSet<String>,
     foci: &BTreeMap<String, BTreeSet<String>>,
     max_depth: usize,
     work_budget: usize,
 ) -> Result<Value> {
-    let graph = shacl_validation::store::Graph::from_graph(native_graph(data)?)
-        .map_err(|e| anyhow::anyhow!("SHACL input failed: {e}"))?;
-    let validator = GraphValidation::from_graph(graph, ShaclValidationMode::Native);
     let mut context = Composed {
         data,
+        queries,
         shapes,
         reachable,
-        validator,
+        native: None,
         schemas: BTreeMap::new(),
         cache: BTreeMap::new(),
         active: BTreeSet::new(),
