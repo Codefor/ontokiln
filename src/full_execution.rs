@@ -100,7 +100,9 @@ pub fn run_worker(request: &Path, result: &Path) -> Result<()> {
         .as_str()
         .context("supervisor request identity")?
         .to_owned();
-    let mut reply = match if value["artifact"].is_object() {
+    let mut reply = match if value["_api_request"].is_object() {
+        crate::api::execute_worker(value.clone())
+    } else if value["artifact"].is_object() {
         crate::full_artifact::compute(value.clone())
     } else {
         crate::full::execute(value.clone()).map_err(anyhow::Error::msg)
@@ -114,7 +116,7 @@ pub fn run_worker(request: &Path, result: &Path) -> Result<()> {
     Ok(())
 }
 
-fn write_atomic(path: &Path, value: &Value) -> Result<()> {
+pub(crate) fn write_atomic(path: &Path, value: &Value) -> Result<()> {
     use std::io::Write;
     let mut temp = tempfile::NamedTempFile::new_in(path.parent().context("result parent")?)?;
     serde_json::to_writer(&mut temp, value)?;
@@ -184,6 +186,16 @@ fn disk(path: &Path) -> Result<u64> {
 }
 
 pub fn run_files(request_path: &Path, result_path: &Path) -> Result<()> {
+    run_files_with(request_path, result_path, |reply, path| {
+        write_atomic(path, reply)
+    })
+}
+
+pub(crate) fn run_files_with(
+    request_path: &Path,
+    result_path: &Path,
+    response: impl FnOnce(&Value, &Path) -> Result<()>,
+) -> Result<()> {
     let _signals = Signals::install();
     let bytes = fs::read(request_path)?;
     let request: Value = serde_json::from_slice(&bytes)?;
@@ -408,7 +420,9 @@ pub fn run_files(request_path: &Path, result_path: &Path) -> Result<()> {
     {
         stage.finish_record(&reply["execution"])?;
     }
-    write_atomic(result_path, &reply)?;
+    // A consumer adapter must write its terminal response before committing publication.
+    // Conversion or output I/O failure leaves Stage responsible for rollback.
+    response(&reply, result_path)?;
     if reply.get("error").is_none()
         && let Some(stage) = stage.as_mut()
     {

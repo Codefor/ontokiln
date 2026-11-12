@@ -38,6 +38,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Execute the versioned consumer contract, independent of storage adapters.
+    Api {
+        #[arg(long)]
+        request: PathBuf,
+        #[arg(long)]
+        result: PathBuf,
+    },
     /// Report the generic engine and artifact contracts.
     Identity,
     /// Validate a pack and report its content and source identities.
@@ -211,6 +218,7 @@ fn main() -> Result<()> {
         return worker::execute(snapshot, heap);
     }
     match cmd {
+        Command::Api { request, result } => ontokiln::api::run_files(&request, &result),
         Command::Full { request, result } => full_execution::run_files(&request, &result),
         Command::FullWorker { request, result } => full_execution::run_worker(&request, &result),
         _ => application(cmd),
@@ -219,7 +227,10 @@ fn main() -> Result<()> {
 #[tokio::main]
 async fn application(cmd: Command) -> Result<()> {
     match cmd {
-        Command::QueryWorker { .. } | Command::Full { .. } | Command::FullWorker { .. } => {
+        Command::Api { .. }
+        | Command::QueryWorker { .. }
+        | Command::Full { .. }
+        | Command::FullWorker { .. } => {
             unreachable!()
         }
         Command::Identity => println!("{}", identity::kernel()),

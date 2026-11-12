@@ -11,7 +11,7 @@ pub fn kernel() -> Value {
         "source_revision":env!("ONTOKILN_BUILD_REVISION"),
         "kernel_sha256":env!("ONTOKILN_KERNEL_SHA256"),
         "pack_version":PACK_VERSION,
-        "capabilities":["rdf-pack/v3", "sparql/v1", "positive-rules/v1", "proofs/v1",
+        "capabilities":[crate::api::CONTRACT, "rdf-pack/v3", "sparql/v1", "positive-rules/v1", "proofs/v1",
             "full-source-doc/v2", "full-execution/v1", "shacl-core-and-local-select/v1"]
     })
 }

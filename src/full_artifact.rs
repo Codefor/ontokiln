@@ -59,7 +59,7 @@ fn regular(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn freeze(source: &Path, destination: &Path, expected: &str) -> Result<String> {
+pub(crate) fn freeze(source: &Path, destination: &Path, expected: &str) -> Result<String> {
     regular(source)?;
     let before = fs::metadata(source)?;
     let mut input = File::open(source)?;
@@ -123,7 +123,7 @@ fn inventory(directory: &Path) -> Result<Value> {
     Ok(json!(files))
 }
 
-fn verify(directory: &Path) -> Result<Value> {
+pub(crate) fn verify(directory: &Path) -> Result<Value> {
     regular(&directory.join("manifest.json"))?;
     let manifest: Value = serde_json::from_slice(&fs::read(directory.join("manifest.json"))?)?;
     ensure!(

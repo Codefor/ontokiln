@@ -2,6 +2,8 @@
 
 通用 RDF 编译与推理引擎。编译器将 Turtle 和 N-Triples 编译成带文件来源与索引的只读 pack；Full 入口使用 SQLite 编译和物化大图。核心按 RDF、规则和标准 SHACL 处理输入，不解释业务词汇或嵌在字面量中的建模合同。[查询接口与可运行示例](docs/query-service.md) · [引擎与离线规则](docs/engines.md)
 
+[消费者契约 v1](docs/api-v1.md) 通过 `ontokiln api --request ... --result ...` 固定请求、响应、默认视图与失败语义，隔离内核和存储实现。已有 CLI / HTTP 保持原行为。[10,000 条 Turtle 回归语料](tests/fixtures/contract-v1/README.md) 随 `cargo test` 验证共同查询语义、能力差异及真实进程生命周期。
+
 [配送组件血缘与复用定制实验](examples/scenarios/README.md) 包含合成 TTL、14 个可重放用例，以及按上下文选择实现的对照结果。
 
 [历史：Pack v2 推理能力实测](benchmarks/pack-v2.md) 包含层级与批量查询、位图、SPARQL、业务血缘和离线规则的延迟、吞吐及预算边界。[历史基准](benchmarks/README.md) 记录编译、启动和内存数据。

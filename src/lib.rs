@@ -2,6 +2,7 @@
 //!
 //! Callers own vocabulary, rule selection and application protocols. Full
 //! requests must run inside a supervised worker when inputs are untrusted.
+pub mod api;
 pub mod disk;
 pub mod full;
 pub mod full_artifact;
