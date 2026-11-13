@@ -1,5 +1,5 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
-//! Validation is called only inside the killable Rust worker.
+//! Evaluates immutable in-memory Pack data; no SQLite or worker process.
 use crate::rdf_graph::{
     Graph, IndexedGraph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, ValidationData, iri, value,
 };
@@ -12,10 +12,6 @@ use shacl_validation::focus_nodes::FocusNodes;
 use shacl_validation::shacl_engine::native::NativeEngine;
 use shacl_validation::shape_validation::Validate;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-
-#[cfg(test)]
-#[path = "../tests/shacl/sqlite_validation.rs"]
-mod sqlite_validation_tests;
 
 pub fn validate_with_depth(
     data: &Graph,
@@ -32,23 +28,6 @@ pub fn validate_with_depth(
         focus,
         max_depth,
         full,
-    )
-}
-
-pub(crate) fn validate_sqlite(
-    data: &crate::shacl_sqlite::SqliteGraph,
-    shapes: &Graph,
-    selected: &BTreeSet<String>,
-    focus: Option<&str>,
-    max_depth: usize,
-) -> Result<Value> {
-    validate_data(
-        ValidationData::Sqlite(data),
-        shapes,
-        selected,
-        focus,
-        max_depth,
-        true,
     )
 }
 

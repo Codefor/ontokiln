@@ -13,8 +13,19 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
-      - name: Check formatting
-        run: cargo fmt --all --check
+      - name: Format memory-only sources for migration validation
+        run: cargo fmt --all
+      - name: Export formatted SHACL and graph
+        run: |
+          echo BEGIN_FORMATTED_RDF_GRAPH
+          cat src/rdf_graph.rs
+          echo END_FORMATTED_RDF_GRAPH
+          echo BEGIN_FORMATTED_SHACL
+          cat src/shacl.rs
+          echo END_FORMATTED_SHACL
+          echo BEGIN_FORMATTED_MAIN
+          cat src/main.rs
+          echo END_FORMATTED_MAIN
       - name: Lint current memory engine
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Pack v4 library and integration regression

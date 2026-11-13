@@ -1,7 +1,7 @@
 //! OntoKiln: one Pack v4 compiler and immutable in-memory reasoner.
 //!
-//! The public CLI intentionally has no v3, source-document-graph, HTTP
-//! server, snapshot worker, or persistent FaaS lifecycle compatibility layer.
+//! The public CLI only builds, queries, validates and inspects Pack v4.
+//! Applications embed OntologyEngine directly and own its lifecycle.
 use anyhow::{Context, Result, bail, ensure};
 use clap::{Parser, Subcommand, ValueEnum};
 use ontokiln::engine::OntologyEngine;
@@ -60,29 +60,7 @@ enum Command {
         #[arg(long)]
         pack: PathBuf,
     },
-    /// Run the existing JSON API transport during the Full-to-v4 migration.
-    Api {
-        #[arg(long)]
-        request: PathBuf,
-        #[arg(long)]
-        result: PathBuf,
-    },
-    /// Temporary Full comparison entry, not a supported runtime interface.
-    #[command(hide = true)]
-    Full {
-        #[arg(long)]
-        request: PathBuf,
-        #[arg(long)]
-        result: PathBuf,
-    },
-    /// Internal isolated execution path for the current JSON transport.
-    #[command(hide = true)]
-    FullWorker {
-        #[arg(long)]
-        request: PathBuf,
-        #[arg(long)]
-        result: PathBuf,
-    },
+
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -228,13 +206,7 @@ fn main() -> Result<()> {
                 })
             );
         }
-        Command::Api { request, result } => ontokiln::api::run_files(&request, &result)?,
-        Command::Full { request, result } => {
-            ontokiln::full_execution::run_files(&request, &result)?
-        }
-        Command::FullWorker { request, result } => {
-            ontokiln::full_execution::run_worker(&request, &result)?
-        }
+
     }
     Ok(())
 }

@@ -5,7 +5,6 @@ use std::cell::{OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// Resource exhaustion during SHACL evaluation, distinct from invalid RDF or Shapes.
-/// Preserve the diagnostic text for legacy callers while API adapters classify the type.
 #[derive(Debug)]
 pub(crate) struct ShaclBudgetExceeded(pub(crate) &'static str);
 
@@ -112,7 +111,7 @@ impl Graph {
     }
     pub fn prepare_queries(&self) -> Result<PreparedQueries<'_>> {
         Ok(PreparedQueries {
-            source: QuerySource::Memory(self),
+            source: self,
             dataset: RefCell::new(None),
             queries: RefCell::new(BTreeMap::new()),
         })
@@ -197,23 +196,15 @@ impl<'a> IndexedGraph<'a> {
     }
 }
 
-/// The same validation algorithms can navigate an in-memory graph or a verified
-/// read-only SQLite union. SQLite failures remain errors, never empty matches.
+/// SHACL consumes only the immutable in-memory graph.
 pub(crate) enum ValidationData<'a> {
     Memory(IndexedGraph<'a>),
-    Sqlite(&'a crate::shacl_sqlite::SqliteGraph),
 }
 
 impl ValidationData<'_> {
     pub(crate) fn prepare_queries(&self) -> Result<PreparedQueries<'_>> {
-        Ok(PreparedQueries {
-            source: match self {
-                Self::Memory(graph) => QuerySource::Memory(graph.graph),
-                Self::Sqlite(graph) => QuerySource::Sqlite(graph),
-            },
-            dataset: RefCell::new(None),
-            queries: RefCell::new(BTreeMap::new()),
-        })
+        let Self::Memory(graph) = self;
+        graph.graph.prepare_queries()
     }
 
     pub(crate) fn visit_objects(
@@ -222,84 +213,36 @@ impl ValidationData<'_> {
         predicate: &str,
         mut visit: impl FnMut(&str) -> Result<()>,
     ) -> Result<()> {
-        match self {
-            Self::Memory(graph) => {
-                for object in graph.object_terms(subject, predicate) {
-                    visit(object)?;
-                }
-                Ok(())
-            }
-            Self::Sqlite(graph) => graph.visit_objects(subject, predicate, visit),
+        let Self::Memory(graph) = self;
+        for object in graph.object_terms(subject, predicate) {
+            visit(object)?;
         }
+        Ok(())
     }
 
     pub(crate) fn predicate_subjects(&self, predicate: &str) -> Result<BTreeSet<String>> {
-        match self {
-            Self::Memory(graph) => Ok(graph
-                .with_predicate(predicate)
-                .map(|triple| triple[0].clone())
-                .collect()),
-            Self::Sqlite(graph) => graph.predicate_subjects(predicate),
-        }
+        let Self::Memory(graph) = self;
+        Ok(graph.with_predicate(predicate).map(|t| t[0].clone()).collect())
     }
 
     pub(crate) fn predicate_objects(&self, predicate: &str) -> Result<BTreeSet<String>> {
-        match self {
-            Self::Memory(graph) => Ok(graph
-                .with_predicate(predicate)
-                .map(|triple| triple[2].clone())
-                .collect()),
-            Self::Sqlite(graph) => graph.predicate_objects(predicate),
-        }
+        let Self::Memory(graph) = self;
+        Ok(graph.with_predicate(predicate).map(|t| t[2].clone()).collect())
     }
 
     pub(crate) fn instances_of(&self, class: &str) -> Result<BTreeSet<String>> {
-        match self {
-            Self::Memory(graph) => Ok(graph.instances_of(class)),
-            Self::Sqlite(graph) => {
-                let rdf_type = iri(&format!("{RDF}type"));
-                let subclass = iri(&format!("{RDFS}subClassOf"));
-                let mut pending = vec![class.to_owned()];
-                let mut seen = HashSet::new();
-                let mut instances = BTreeSet::new();
-                while let Some(class) = pending.pop() {
-                    if seen.insert(class.clone()) {
-                        instances.extend(graph.subjects(&rdf_type, &class)?);
-                        pending.extend(graph.subjects(&subclass, &class)?);
-                    }
-                }
-                Ok(instances)
-            }
-        }
+        let Self::Memory(graph) = self;
+        Ok(graph.instances_of(class))
     }
 
     pub(crate) fn check_error(&self) -> Result<()> {
-        match self {
-            Self::Memory(_) => Ok(()),
-            Self::Sqlite(graph) => graph.check_error(),
-        }
+        Ok(())
     }
 }
 
-enum QuerySource<'a> {
-    Memory(&'a Graph),
-    Sqlite(&'a crate::shacl_sqlite::SqliteGraph),
-}
-
-impl QuerySource<'_> {
-    fn check_error(&self) -> Result<()> {
-        match self {
-            Self::Memory(_) => Ok(()),
-            Self::Sqlite(graph) => graph.check_error(),
-        }
-    }
-}
-
-/// An immutable data snapshot and unbound query plans, scoped to one validation.
-/// SQLite queries read the default-graph union directly; only the memory backend
-/// lazily allocates a query dataset.
+/// One immutable in-memory SHACL data graph and per-validation query plans.
 pub struct PreparedQueries<'a> {
-    source: QuerySource<'a>,
+    source: &'a Graph,
     dataset: RefCell<Option<oxrdf::Dataset>>,
     queries: RefCell<BTreeMap<String, spargebra::Query>>,
 }
@@ -316,7 +259,6 @@ impl PreparedQueries<'_> {
         bindings: &BTreeMap<String, String>,
     ) -> Result<BoundQueryResult> {
         use oxigraph::{model::Variable, sparql::SparqlEvaluator};
-        self.source.check_error()?;
         crate::query::local_query(text)?;
         let bindings = bindings
             .iter()
@@ -399,30 +341,14 @@ impl PreparedQueries<'_> {
             query = query.substitute_variable(Variable::new(name)?, term.parse::<Term>()?);
         }
 
-        let evaluated = (|| {
-            let result = match &self.source {
-                QuerySource::Memory(graph) => {
-                    let mut dataset = self.dataset.borrow_mut();
-                    if dataset.is_none() {
-                        *dataset = Some(graph.query_dataset()?);
-                    }
-                    return Self::collect_query_results(
-                        query
-                            .on_queryable_dataset(dataset.as_ref().expect("prepared query dataset"))
-                            .execute()?,
-                        was_ask,
-                    );
-                }
-                QuerySource::Sqlite(graph) => query.on_queryable_dataset(*graph).execute(),
-            };
-            self.source.check_error()?;
-            Self::collect_query_results(result?, was_ask)
-        })();
-        // The evaluator may turn storage errors inside FILTER/EXISTS into an
-        // unbound value or a boolean. Check again after consuming solutions,
-        // including empty results and ASK's early exit, preserving budget types.
-        self.source.check_error()?;
-        evaluated
+        let mut dataset = self.dataset.borrow_mut();
+        if dataset.is_none() {
+            *dataset = Some(self.source.query_dataset()?);
+        }
+        Self::collect_query_results(
+            query.on_queryable_dataset(dataset.as_ref().expect("SHACL dataset")).execute()?,
+            was_ask,
+        )
     }
 
     fn collect_query_results(

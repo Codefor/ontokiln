@@ -33,8 +33,13 @@ let same_engine = OntologyEngine::load_pack(std::path::Path::new("/tmp/ontology.
 
 Pack v4 是唯一接受的 Pack 格式，不提供 v3 读取或升级服务。FaaS 负责生命周期、发布和路由，OntoKiln 不承载 FaaS 服务框架。
 
-## 迁移验证
+## 验证
 
-当前 PR 中保留少量独立的 SQLite Full 对照实现，仅用于尚未完成的语义差分和准入验证；**这不是面向消费者的第二套引擎**。Full 的必要能力迁完并通过固定语料、SHACL 与生产规模回归后将删除该临时实现。
+```bash
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo test --test v4_scale --locked -- --ignored --nocapture
+```
 
-主要测试：`cargo test --workspace --locked`、`cargo test --test v4_parity --locked`、`cargo test --test v4_api --locked`、`cargo test --test v4_cli --locked`、`cargo test --test v4_scale --locked -- --ignored`。
+最后一项对 100 万条显式 RDF 事实执行内存编译、Pack v4 保存与加载、SPARQL COUNT 验证。旧 Pack v3、SQLite Full、HTTP/Worker/Session API 不构成公开兼容范围。
