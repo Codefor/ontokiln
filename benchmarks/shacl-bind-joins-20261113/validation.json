@@ -1,0 +1,94 @@
+{
+  "tested_staged_tree": "6f0a61337de3c1d55de108e38e1c70ad5a3c7593",
+  "build_cache_context": "Affected path dependencies and consumers were cleaned after the isolated old-source regression used the same target directory. All final gates below use only the current checkout.",
+  "checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "returncode": 0,
+      "seconds": 0.37549008399946615,
+      "log": "/workspace/scratch/1ad35372e414/round4-fmt.log"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--offline",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "returncode": 0,
+      "seconds": 6.652411798997491,
+      "log": "/workspace/scratch/1ad35372e414/round4-clippy.log"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--offline",
+        "--locked"
+      ],
+      "returncode": 0,
+      "seconds": 60.41813167900182,
+      "log": "/workspace/scratch/1ad35372e414/round4-workspace.log"
+    },
+    {
+      "name": "all_features",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--all-features",
+        "--offline",
+        "--locked"
+      ],
+      "returncode": 0,
+      "seconds": 60.94381650899959,
+      "log": "/workspace/scratch/1ad35372e414/round4-all_features.log"
+    },
+    {
+      "name": "scenarios",
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--example",
+        "scenario_lab",
+        "--",
+        "--compare"
+      ],
+      "returncode": 0,
+      "seconds": 0.3967723450004996,
+      "log": "/workspace/scratch/1ad35372e414/round4-scenarios.log"
+    },
+    {
+      "name": "benchmark_tools",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/benchmarks",
+        "-v"
+      ],
+      "returncode": 0,
+      "seconds": 12.887200930999825,
+      "log": "/workspace/scratch/1ad35372e414/round4-benchmark_tools.log"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+   Compiling spareval v0.2.9 (/workspace/scratch/1ad35372e414/ontokiln/vendor/spareval)
+   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)
+   Compiling oxigraph v0.5.13
+   Compiling ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner)
+    Finished `release` profile [optimized] target(s) in 34.82s

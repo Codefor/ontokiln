@@ -1,0 +1,18 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running `/workspace/scratch/1ad35372e414/target-build/debug/examples/scenario_lab --compare`
+PASS L1 certain={"Order.city", "Order.detail"} possible_only={}
+PASS L2 certain={"Shop.name"} possible_only={}
+PASS L3 certain={"DeliveryPanel.text", "Summary.address"} possible_only={}
+PASS L4 certain={} possible_only={}
+PASS V1 certain={"Order.city", "Order.detail"} possible_only={}
+PASS V2 certain={"Order.alias"} possible_only={}
+PASS V3 certain={"Order.postcode"} possible_only={}
+PASS V4 certain={"Campaign.badge", "Order.alias"} possible_only={}
+PASS V5 certain={"Campaign.badge"} possible_only={"Order.alias", "Order.city", "Order.detail", "Order.postcode"}
+PASS V6 certain={} possible_only={"Order.alias", "Order.postcode"}
+PASS V7 certain={"Summary.address"} possible_only={}
+PASS V8 certain={"Summary.address"} possible_only={"DeliveryPanel.text"}
+PASS V9 certain={} possible_only={}
+PASS V10 certain={"DeliveryPanel.text"} possible_only={}
+comparison (4 cases), all candidates: Counts { correct: 6, extra: 14, missing: 0 }, selected: Counts { correct: 6, extra: 0, missing: 0 }
+14/14 cases passed

@@ -1,0 +1,859 @@
+{
+  "schema_version": "ontokiln-shacl-query-sqlite-build-receipt/v1",
+  "created_at_utc": "2026-11-13T05:46:37.427500+00:00",
+  "builds": [
+    {
+      "role": "before",
+      "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+      "source_tree": "d52cd84ebc896ac33f38942159fcae9e2ca89eeb",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "4aca58f157d080636673dece73179ccd32222947142014f1cdd7416d94801064",
+      "binary_bytes": 22123576,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "5144d9a89d27d3ba4b2199917d68a0ea0daed1f20369110cddc0c4148e3f8273",
+      "build_log_tail": [
+        "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+        "    Finished `release` profile [optimized] target(s) in 24.53s"
+      ],
+      "reused_from_receipt": "../shacl-sqlite-20261113/build-receipt.json"
+    },
+    {
+      "role": "candidate",
+      "source_revision": "83e78548d76c11c1e8eaf443de12dbcf91a20495",
+      "source_tree": "729efb559986c0b10eee67e915903035bc1795de",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "439ae2d22adbd842f8ba1be8d11e23724b16ac62312ba5f85b77c93496074c8e",
+        "pack_version": 3,
+        "source_revision": "83e78548d76c11c1e8eaf443de12dbcf91a20495",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "55cad8bfe63e71fbe52fd6141805f421ee84d2653d11c8b163390b9e216e1ff7",
+      "binary_bytes": 22965032,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "361173e1da6a9b61d1f8d7482cd51f562f28032e7e21176a565a7e36cd695633",
+      "build_log_tail": [
+        "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+        "    Finished `release` profile [optimized] target(s) in 26.28s"
+      ]
+    },
+    {
+      "role": "after",
+      "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+      "source_tree": "3347b0b9f9e0fb75286df19592b5254bdf6a1b11",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "83680cfeca52cdd201ba02f9c40fa5bca19ad18a1a9443942054df83999d78c1",
+      "binary_bytes": 22995720,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "8dc8d07d9009009d3b10645c3cab9c3ef4418075654023506499d8023452d2af",
+      "build_log_tail": [
+        "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+        "    Finished `release` profile [optimized] target(s) in 26.77s"
+      ]
+    }
+  ],
+  "validation": {
+    "tested_tree": "3347b0b9f9e0fb75286df19592b5254bdf6a1b11",
+    "local_equivalent_commit": "e1421dec3fc7f10f8866abb90e6602d700d6405a",
+    "published_code_commit": "b8ecf8046a286345926077318a78dde7541fb98b",
+    "context": "All gates ran in the unchanged working tree before the local commit; the GitHub-created commit has the identical tree. Release was then built at that exact GitHub SHA.",
+    "checks": [
+      {
+        "name": "fmt",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "returncode": 0,
+        "seconds": 0.4077088300000469,
+        "log": "/workspace/scratch/1ad35372e414/round3-fmt.log",
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log_tail": []
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--offline",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0,
+        "seconds": 3.3373094519993174,
+        "log": "/workspace/scratch/1ad35372e414/round3-clippy.log",
+        "log_sha256": "2225afb058967a30aaa74d1b7467ba49c8088a85e5c1432e6a96794986516fc9",
+        "log_tail": [
+          "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+          "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.21s"
+        ]
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--offline",
+          "--locked"
+        ],
+        "returncode": 0,
+        "seconds": 54.25359429399941,
+        "log": "/workspace/scratch/1ad35372e414/round3-workspace.log",
+        "log_sha256": "7342994dad4942cb3ef6cc5942ba9fdc77a03c3c064ce7990e0246e5dad63715",
+        "log_tail": [
+          "running 0 tests",
+          "",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          ""
+        ]
+      },
+      {
+        "name": "all_features",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--all-features",
+          "--offline",
+          "--locked"
+        ],
+        "returncode": 0,
+        "seconds": 53.62687613399976,
+        "log": "/workspace/scratch/1ad35372e414/round3-all_features.log",
+        "log_sha256": "8c1341a160d565fa9569b6cff43489af9fc6d0e2672447a00a820996ebb21dec",
+        "log_tail": [
+          "running 0 tests",
+          "",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          ""
+        ]
+      },
+      {
+        "name": "scenarios",
+        "command": [
+          "cargo",
+          "run",
+          "--offline",
+          "--locked",
+          "--example",
+          "scenario_lab",
+          "--",
+          "--compare"
+        ],
+        "returncode": 0,
+        "seconds": 0.24822310300078243,
+        "log": "/workspace/scratch/1ad35372e414/round3-scenarios.log",
+        "log_sha256": "1afd132ba11f035e349dd696a09fb3fd35e5e9f7539f01daaf3f25e82b28c02f",
+        "log_tail": [
+          "PASS V9 certain={} possible_only={}",
+          "PASS V10 certain={\"DeliveryPanel.text\"} possible_only={}",
+          "comparison (4 cases), all candidates: Counts { correct: 6, extra: 14, missing: 0 }, selected: Counts { correct: 6, extra: 0, missing: 0 }",
+          "14/14 cases passed"
+        ]
+      }
+    ],
+    "root_library_tests": 49,
+    "sqlite_store_tests": 25,
+    "sqlite_validation_differential_groups": 12,
+    "api_groups": 35,
+    "session_groups": 8,
+    "shacl_api_groups": 11,
+    "legacy_full_groups": 15,
+    "scenario_cases": 14,
+    "benchmark_python_tests": 65,
+    "benchmark_test_command": "python3 -B -m unittest discover -s tests/benchmarks -v",
+    "harness_unchanged_after_python_tests": true,
+    "independent_static_review": "No blocking semantics, legacy-index compatibility or sticky-error issue found in final adapter and query integration.",
+    "remote_ci": "Verify the final pushed PR head separately; no remote result is inferred from local gates."
+  },
+  "methodology": {
+    "harness_file": "benchmarks/kernel_baseline.py",
+    "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+    "primary_status_counts": {
+      "COMPLETE": 440,
+      "BUDGET_EXHAUSTED": 3,
+      "SKIPPED": 9
+    },
+    "primary_planned_records": 452,
+    "comparisons": [
+      {
+        "file": "focused-comparison.json",
+        "comparable": true,
+        "issues": [],
+        "methodology_changed": false
+      },
+      {
+        "file": "kernel-comparison.json",
+        "comparable": true,
+        "issues": [],
+        "methodology_changed": false
+      }
+    ],
+    "diagnostic_reports_are_not_spliced_into_primary_samples": true,
+    "initial_reports": "Initial before reports and the first candidate have null rustc_on_path. They are preserved as diagnostic records; both primary before suites were rerun in full with the toolchain PATH configured.",
+    "filesystems": "Primary work directories, snapshots and scratch are on /tmp tmpfs; OS caches were not flushed.",
+    "concurrency": "Serial requests, one configured Rayon and Tokio worker; Rust builds/tests and planner probes did not overlap final timing.",
+    "latency": "One warmup and three measured reads per stage; three independent builds; mounts are single observations; no percentile or statistical significance claim."
+  },
+  "measurements": [
+    {
+      "file": "before-focused-session.json",
+      "role": "primary",
+      "sha256": "2ecbdaf112c70b21b868313e97cd52d3c41da514f459df98d6708f1385a994b6",
+      "bytes": 154848,
+      "status_counts": {
+        "COMPLETE": 60,
+        "BUDGET_EXHAUSTED": 3,
+        "SKIPPED": 9
+      },
+      "planned_records": 72,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": true
+    },
+    {
+      "file": "after-focused-session.json",
+      "role": "primary",
+      "sha256": "27f9219b079b4eb35b5731dbc0865e6b25bc769a0ac4100e799c6a211d4dcb8b",
+      "bytes": 164921,
+      "status_counts": {
+        "COMPLETE": 72
+      },
+      "planned_records": 72,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": true
+    },
+    {
+      "file": "before-kernel-file.json",
+      "role": "primary",
+      "sha256": "f0ae8f00c8eb150eae2d5a9eb3656460160107cc49e9fd909e5576ac6ae1b1eb",
+      "bytes": 399343,
+      "status_counts": {
+        "COMPLETE": 154
+      },
+      "planned_records": 154,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": true
+    },
+    {
+      "file": "after-kernel-file.json",
+      "role": "primary",
+      "sha256": "e97a7244367ef9a54bb9cf82926d68251967763f26a170401fd313b6a4067c9d",
+      "bytes": 399074,
+      "status_counts": {
+        "COMPLETE": 154
+      },
+      "planned_records": 154,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": true
+    },
+    {
+      "file": "candidate-focused-session.json",
+      "role": "diagnostic_only",
+      "sha256": "7870b48c2b68f0c42bf0d77f572d5a320a905501f385284cc0a763fd82871bbe",
+      "bytes": 161352,
+      "status_counts": {
+        "COMPLETE": 68,
+        "BUDGET_EXHAUSTED": 1,
+        "SKIPPED": 3
+      },
+      "planned_records": 72,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "439ae2d22adbd842f8ba1be8d11e23724b16ac62312ba5f85b77c93496074c8e",
+        "pack_version": 3,
+        "source_revision": "83e78548d76c11c1e8eaf443de12dbcf91a20495",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": false
+    },
+    {
+      "file": "initial-before-focused-session.json",
+      "role": "diagnostic_only",
+      "sha256": "b276aaae3e851fd7eb169917a3fffe9b5dafb5467923fef25a54e82369488053",
+      "bytes": 154819,
+      "status_counts": {
+        "COMPLETE": 60,
+        "BUDGET_EXHAUSTED": 3,
+        "SKIPPED": 9
+      },
+      "planned_records": 72,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": false
+    },
+    {
+      "file": "initial-before-kernel-file.json",
+      "role": "diagnostic_only",
+      "sha256": "48931317d040d658115d8ad94f163fd16c4b59242c49e24d2b5a4bfbc9ccd060",
+      "bytes": 399017,
+      "status_counts": {
+        "COMPLETE": 154
+      },
+      "planned_records": 154,
+      "all_complete_records_independently_verified": true,
+      "harness_sha256": "384ea1c24545ae2419d882cb038bf80a00cef19a624311dfe779354c4167fc19",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "rustc_metadata_present": false
+    }
+  ],
+  "semantic_report_digests": {
+    "shacl/focus_core_fail": "799268d59063b7332f3bc58a7f7e0a8154d645223eac4ebff574d4540694aa3d",
+    "shacl/focus_core_pass": "62d414d399ca519d4509e3681102b2f4398c93d5c16e4c0da5778052b2f70dbe",
+    "shacl/focus_full_scan_fail": "9116c77036e76ba1e898ca8eaf494a93abf25edbd159fa13f1e5113ddd26233a",
+    "shacl/focus_nonlocal_fail": "1216fd39bf15d3aeffd9f57ecd39e0a75f4d5d968141da1bfaa199ef57cd245b",
+    "shacl/focus_path_fail": "cc62b2be8dd2097f93979918a3b571bae6a1d00e6077445c5b08fe6a746d85d1"
+  },
+  "artifact_equality_audit": {
+    "matched_full_build_pairs": 21,
+    "pairs": [
+      {
+        "suite": "focused",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 0,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "focused",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 1,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "focused",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 2,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "focused",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 0,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "focused",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 1,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "focused",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 2,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "focused",
+        "facts": 1000000,
+        "stage": "full_compile",
+        "sample_index": 0,
+        "content_digest": "9dd6df2483cdebdcae27fabea29b6e13771a0e2ded4924dc7d72427090474705",
+        "manifest_sha256": "9e80a21e6171ce6ccc92111610dbb57ebc45aea9a40446666cc5b5a4f7089a34",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 139964416
+      },
+      {
+        "suite": "focused",
+        "facts": 1000000,
+        "stage": "full_compile",
+        "sample_index": 1,
+        "content_digest": "9dd6df2483cdebdcae27fabea29b6e13771a0e2ded4924dc7d72427090474705",
+        "manifest_sha256": "9e80a21e6171ce6ccc92111610dbb57ebc45aea9a40446666cc5b5a4f7089a34",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 139964416
+      },
+      {
+        "suite": "focused",
+        "facts": 1000000,
+        "stage": "full_compile",
+        "sample_index": 2,
+        "content_digest": "9dd6df2483cdebdcae27fabea29b6e13771a0e2ded4924dc7d72427090474705",
+        "manifest_sha256": "9e80a21e6171ce6ccc92111610dbb57ebc45aea9a40446666cc5b5a4f7089a34",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 139964416
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 0,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 1,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_compile",
+        "sample_index": 2,
+        "content_digest": "226cb8b8995d2a809dfedcee02370d72164e2a731c749bd8f0f29319bf5e30b8",
+        "manifest_sha256": "1d3226aaad2a435aebd80184c158e3225da5ea7497a44693654c5915ce7701b6",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1409024
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_materialize",
+        "sample_index": 0,
+        "content_digest": "6cbd4f867ea87ef468553a536e535b13521046f4c520c400f6966d9d7d09f40c",
+        "manifest_sha256": "34fa493f0a8c89684d90198b9bbcc9d9435f02811e52cb81570b34b235bf0e3e",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1867776
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_materialize",
+        "sample_index": 1,
+        "content_digest": "6cbd4f867ea87ef468553a536e535b13521046f4c520c400f6966d9d7d09f40c",
+        "manifest_sha256": "34fa493f0a8c89684d90198b9bbcc9d9435f02811e52cb81570b34b235bf0e3e",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1867776
+      },
+      {
+        "suite": "kernel",
+        "facts": 10000,
+        "stage": "full_materialize",
+        "sample_index": 2,
+        "content_digest": "6cbd4f867ea87ef468553a536e535b13521046f4c520c400f6966d9d7d09f40c",
+        "manifest_sha256": "34fa493f0a8c89684d90198b9bbcc9d9435f02811e52cb81570b34b235bf0e3e",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "96e50abf43301180aeea8a323bf2060c028a026b6a0ebbe87676716b3fefa7ad",
+        "source_tree_digest": "94c8cb012979cf5102183ff4c1afe468676905aefe3f8f113889aa275801a6cd",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 1867776
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 0,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 1,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_compile",
+        "sample_index": 2,
+        "content_digest": "d898b49e12a47146f54489f6ef0f39698396658eda56738cc2d01ed5a4dabc97",
+        "manifest_sha256": "25972ebdb4d518b6f2edb0ec2d7dd5718dd5cbdfefff31598c93d109226238fd",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 13369344
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_materialize",
+        "sample_index": 0,
+        "content_digest": "a6a1350ab866212248c01955e2dbf6de554812992f5c2fe8abae612dbb646fd5",
+        "manifest_sha256": "d3ddf662591bba8e24ef8280af6cb05ed53227f765a6a929ee2585ee152d1e1c",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 18309120
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_materialize",
+        "sample_index": 1,
+        "content_digest": "a6a1350ab866212248c01955e2dbf6de554812992f5c2fe8abae612dbb646fd5",
+        "manifest_sha256": "d3ddf662591bba8e24ef8280af6cb05ed53227f765a6a929ee2585ee152d1e1c",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 18309120
+      },
+      {
+        "suite": "kernel",
+        "facts": 100000,
+        "stage": "full_materialize",
+        "sample_index": 2,
+        "content_digest": "a6a1350ab866212248c01955e2dbf6de554812992f5c2fe8abae612dbb646fd5",
+        "manifest_sha256": "d3ddf662591bba8e24ef8280af6cb05ed53227f765a6a929ee2585ee152d1e1c",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "58f1d613e2521842a27742d04f7f095a31676e8fd947de96794558199e9bdc53",
+        "source_tree_digest": "622c4fac1ee8f7fd09cec686e5164182c43df8a7121690fa93fd066fa0b4c9c1",
+        "all_file_sizes_and_allocated_bytes_equal": true,
+        "facts_sqlite_bytes": 18309120
+      }
+    ]
+  },
+  "planner_diagnostic": {
+    "file": "planner-evidence.json",
+    "source": "planner-probe.c",
+    "skew_fixture": "skew-fixture.sql",
+    "sqlite_version": "3.54.1",
+    "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+    "candidate_label": "Within planner-evidence.json candidate means the revised SQL matching the final source, not the first 83e7854 binary.",
+    "source_sha256_matches_final_adapter": true,
+    "all_fixture_database_hashes_unchanged": true,
+    "not_an_end_to_end_benchmark": true
+  },
+  "files": [
+    {
+      "file": "after-focused-session.json",
+      "bytes": 164921,
+      "sha256": "27f9219b079b4eb35b5731dbc0865e6b25bc769a0ac4100e799c6a211d4dcb8b"
+    },
+    {
+      "file": "after-kernel-file.json",
+      "bytes": 399074,
+      "sha256": "e97a7244367ef9a54bb9cf82926d68251967763f26a170401fd313b6a4067c9d"
+    },
+    {
+      "file": "before-focused-session.json",
+      "bytes": 154848,
+      "sha256": "2ecbdaf112c70b21b868313e97cd52d3c41da514f459df98d6708f1385a994b6"
+    },
+    {
+      "file": "before-kernel-file.json",
+      "bytes": 399343,
+      "sha256": "f0ae8f00c8eb150eae2d5a9eb3656460160107cc49e9fd909e5576ac6ae1b1eb"
+    },
+    {
+      "file": "candidate-focused-session.json",
+      "bytes": 161352,
+      "sha256": "7870b48c2b68f0c42bf0d77f572d5a320a905501f385284cc0a763fd82871bbe"
+    },
+    {
+      "file": "focused-comparison.json",
+      "bytes": 83892,
+      "sha256": "7c43dd072adddb5b012d970830821c2c58589ab1539c821e800cb4344eb1a742"
+    },
+    {
+      "file": "focused-comparison.md",
+      "bytes": 18293,
+      "sha256": "c16d2181e1f5ce129ad965da93c5e841a4aa9256a490175ccc0d6c5064373a5a"
+    },
+    {
+      "file": "initial-before-focused-session.json",
+      "bytes": 154819,
+      "sha256": "b276aaae3e851fd7eb169917a3fffe9b5dafb5467923fef25a54e82369488053"
+    },
+    {
+      "file": "initial-before-kernel-file.json",
+      "bytes": 399017,
+      "sha256": "48931317d040d658115d8ad94f163fd16c4b59242c49e24d2b5a4bfbc9ccd060"
+    },
+    {
+      "file": "kernel-comparison.json",
+      "bytes": 158461,
+      "sha256": "e4218bb5fba412dd21e2757adde6880155704955e292111405af6971aaf224fe"
+    },
+    {
+      "file": "kernel-comparison.md",
+      "bytes": 35616,
+      "sha256": "7f3dd30d03d7f6e87653f6e483f0959e1d71bd35b17b757235530dcb8239a998"
+    },
+    {
+      "file": "planner-evidence.json",
+      "bytes": 91108,
+      "sha256": "67ece580d003cd61023fcbb89042719c9228f694ee0cd6dfabdeaa3bb23206cb"
+    },
+    {
+      "file": "planner-probe.c",
+      "bytes": 3557,
+      "sha256": "a94db9c0180b9266adb95d8658f70eb54c53790d54db657b81a007430feaa3e0"
+    },
+    {
+      "file": "skew-fixture.sql",
+      "bytes": 949,
+      "sha256": "a246f9c0f8d9959828a53a75c8d66d425872c4cb5ccedabeaef4788ed2c2a7ff"
+    }
+  ]
+}

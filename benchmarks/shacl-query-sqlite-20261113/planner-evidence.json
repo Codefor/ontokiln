@@ -1,0 +1,3249 @@
+{
+  "kind": "read-only SQLite planner diagnosis, not end-to-end benchmark",
+  "created_at_utc": "2026-11-13T05:36:54.805173+00:00",
+  "probe": {
+    "source": "/workspace/scratch/1ad35372e414/round3-sqlite-planner/probe.c",
+    "source_sha256": "a94db9c0180b9266adb95d8658f70eb54c53790d54db657b81a007430feaa3e0",
+    "binary_sha256": "ac6d08424d42c0c038883cac4b9a87c0a4b7e0ef7adfcec71d0fb65d7d2bbf26",
+    "static_library": "/workspace/scratch/1ad35372e414/target-build/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/out/libsqlite3.a",
+    "static_library_sha256": "d13d5e31bb0874596cbb0a705473af3f72b71520eb13a16569a7bea82bb52460",
+    "matching_header": "/workspace/scratch/002e4172a133/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libsqlite3-sys-0.39.1/sqlite3/sqlite3.h",
+    "matching_header_sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c",
+    "build_command": [
+      "cc",
+      "-O2",
+      "-I",
+      "/workspace/scratch/002e4172a133/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libsqlite3-sys-0.39.1/sqlite3",
+      "/workspace/scratch/1ad35372e414/round3-sqlite-planner/probe.c",
+      "/workspace/scratch/1ad35372e414/target-build/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/out/libsqlite3.a",
+      "-lm",
+      "-ldl",
+      "-lpthread",
+      "-o",
+      "/workspace/scratch/1ad35372e414/round3-sqlite-planner/probe"
+    ]
+  },
+  "candidate_source_sha256": "39b11ab0a8e57b32846e9d5ef2065f89c8256e6548a11412f794198ac976b407",
+  "fixtures": [
+    {
+      "name": "compiled-1000000",
+      "path": "/workspace/scratch/1ad35372e414/round3-sqlite-planner/facts-1000000/compiled/facts.sqlite",
+      "bytes": 139964416,
+      "sha256_before": "352e2df78cb3b5a72be26cffb39b06ded0141ae0340b3c8d8f4b44ed6defd814",
+      "kernel": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "439ae2d22adbd842f8ba1be8d11e23724b16ac62312ba5f85b77c93496074c8e",
+        "pack_version": 3,
+        "source_revision": "83e78548d76c11c1e8eaf443de12dbcf91a20495",
+        "version": "0.1.0"
+      },
+      "artifact": {
+        "content_digest": "9dd6df2483cdebdcae27fabea29b6e13771a0e2ded4924dc7d72427090474705",
+        "manifest_sha256": "9e80a21e6171ce6ccc92111610dbb57ebc45aea9a40446666cc5b5a4f7089a34",
+        "path": "/workspace/scratch/1ad35372e414/round3-sqlite-planner/facts-1000000/compiled",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+      },
+      "generator_manifest_sha256": "d7d460f3bb3a347bc76454cb1ca23e106278ee9b2a4b47408cc65e9ab5481fec",
+      "manifest_sha256": "9e80a21e6171ce6ccc92111610dbb57ebc45aea9a40446666cc5b5a4f7089a34",
+      "sha256_after": "352e2df78cb3b5a72be26cffb39b06ded0141ae0340b3c8d8f4b44ed6defd814",
+      "unchanged": true
+    },
+    {
+      "name": "skew-72002",
+      "path": "/workspace/scratch/1ad35372e414/round3-sqlite-planner/skew.sqlite",
+      "bytes": 5394432,
+      "sha256_before": "5a191ca204053ed8b4da178a7c2306a32cbfd37bb5fa19b6c503d3424987f5b2",
+      "fixture_sql": "/workspace/scratch/1ad35372e414/round3-sqlite-planner/skew-fixture.sql",
+      "fixture_sql_sha256": "a246f9c0f8d9959828a53a75c8d66d425872c4cb5ccedabeaef4788ed2c2a7ff",
+      "expected_union_rows": 36001,
+      "sha256_after": "5a191ca204053ed8b4da178a7c2306a32cbfd37bb5fa19b6c503d3424987f5b2",
+      "unchanged": true
+    }
+  ],
+  "plans": [
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SCAN f USING COVERING INDEX facts_osp",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.605944633,
+      "vm_steps": 31002686,
+      "fullscan_steps": 999999,
+      "sorts": 1,
+      "bind_parameters": [],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        2,
+        3
+      ],
+      "last_row": [
+        163,
+        30,
+        167
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid>?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR DISTINCT"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.483069255,
+      "vm_steps": 16202349,
+      "fullscan_steps": 0,
+      "sorts": 1,
+      "bind_parameters": [
+        163,
+        30,
+        167
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        163,
+        30,
+        167
+      ],
+      "first_row": [
+        164,
+        5,
+        32
+      ],
+      "last_row": [
+        291,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f INDEXED BY facts_spo CROSS JOIN terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SCAN f USING COVERING INDEX facts_spo",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000150859,
+      "vm_steps": 7462,
+      "fullscan_steps": 256,
+      "sorts": 0,
+      "bind_parameters": [],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        2,
+        3
+      ],
+      "last_row": [
+        163,
+        30,
+        167
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f INDEXED BY facts_spo CROSS JOIN terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE (f.s,f.p,f.o)>(?,?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_spo ((s,p,o)>(?,?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000175095,
+      "vm_steps": 8510,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        163,
+        30,
+        167
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        163,
+        30,
+        167
+      ],
+      "first_row": [
+        164,
+        5,
+        32
+      ],
+      "last_row": [
+        291,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 6,
+      "step_code": 101,
+      "seconds": 4.1212e-05,
+      "vm_steps": 200,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        9,
+        84
+      ],
+      "last_row": [
+        83,
+        30,
+        87
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 3.7357e-05,
+      "vm_steps": 114,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        83,
+        30,
+        87
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        83,
+        30,
+        87
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE f.s=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 6,
+      "step_code": 101,
+      "seconds": 6.9235e-05,
+      "vm_steps": 200,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        9,
+        84
+      ],
+      "last_row": [
+        83,
+        30,
+        87
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE f.s=? AND (f.p,f.o)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND (p,o)>(?,?))",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 2.8343e-05,
+      "vm_steps": 47,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        30,
+        87
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        83,
+        30,
+        87
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000446185,
+      "vm_steps": 3347,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        22,
+        20,
+        1
+      ],
+      "last_row": [
+        1161,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND (f.p,f.o,f.s)>(?,?,?) ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000378463,
+      "vm_steps": 9750,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        20,
+        1,
+        1161
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        1161,
+        20,
+        1
+      ],
+      "first_row": [
+        1167,
+        20,
+        1
+      ],
+      "last_row": [
+        2185,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s CROSS JOIN terms AS o WHERE f.p=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.00027073,
+      "vm_steps": 3347,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        22,
+        20,
+        1
+      ],
+      "last_row": [
+        1161,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s CROSS JOIN terms AS o WHERE f.p=? AND (f.o,f.s)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND (o,s)>(?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000163037,
+      "vm_steps": 5154,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        1,
+        1161
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        1161,
+        20,
+        1
+      ],
+      "first_row": [
+        1167,
+        20,
+        1
+      ],
+      "last_row": [
+        2185,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.4392e-05,
+      "vm_steps": 62,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 4.1113e-05,
+      "vm_steps": 54,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS o WHERE f.s=? AND f.p=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.314e-05,
+      "vm_steps": 62,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS o WHERE f.s=? AND f.p=? AND (f.o)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o>?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 2.7452e-05,
+      "vm_steps": 38,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.o=? ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000857859,
+      "vm_steps": 3347,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        9,
+        10,
+        1
+      ],
+      "last_row": [
+        1157,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.o=? AND (f.o,f.s,f.p)>(?,?,?) ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000255006,
+      "vm_steps": 8727,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        1,
+        1,
+        1157,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        1157,
+        20,
+        1
+      ],
+      "first_row": [
+        1161,
+        20,
+        1
+      ],
+      "last_row": [
+        2181,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS s CROSS JOIN terms AS p WHERE f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000335899,
+      "vm_steps": 3347,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        9,
+        10,
+        1
+      ],
+      "last_row": [
+        1157,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS s CROSS JOIN terms AS p WHERE f.o=? AND (f.s,f.p)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND (s,p)>(?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000206723,
+      "vm_steps": 4386,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        1,
+        1157,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        1157,
+        20,
+        1
+      ],
+      "first_row": [
+        1161,
+        20,
+        1
+      ],
+      "last_row": [
+        2181,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.o=? ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.9711e-05,
+      "vm_steps": 37,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.o=? AND (f.o,f.s,f.p)>(?,?,?) ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 3.8648e-05,
+      "vm_steps": 38,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        1,
+        1,
+        83,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS p WHERE f.s=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.3881e-05,
+      "vm_steps": 36,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS p WHERE f.s=? AND f.o=? AND (f.p)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p>?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 2.5348e-05,
+      "vm_steps": 27,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        1,
+        20
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND f.o=? ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000308187,
+      "vm_steps": 2839,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        22,
+        20,
+        1
+      ],
+      "last_row": [
+        1161,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND f.o=? AND (f.p,f.o,f.s)>(?,?,?) ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000230048,
+      "vm_steps": 9754,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        1,
+        20,
+        1,
+        1161
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        1161,
+        20,
+        1
+      ],
+      "first_row": [
+        1167,
+        20,
+        1
+      ],
+      "last_row": [
+        2185,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s WHERE f.p=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000227255,
+      "vm_steps": 2839,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        22,
+        20,
+        1
+      ],
+      "last_row": [
+        1161,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s WHERE f.p=? AND f.o=? AND (f.s)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=? AND s>?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000167924,
+      "vm_steps": 2841,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20,
+        1,
+        1161
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        1161,
+        20,
+        1
+      ],
+      "first_row": [
+        1167,
+        20,
+        1
+      ],
+      "last_row": [
+        2185,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND f.o=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.5143e-05,
+      "vm_steps": 66,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND f.o=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 3.0165e-05,
+      "vm_steps": 35,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        1,
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_spo WHERE f.s=? AND f.p=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.0256e-05,
+      "vm_steps": 65,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        83,
+        20,
+        1
+      ],
+      "last_row": [
+        83,
+        20,
+        1
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_spo WHERE f.s=? AND f.p=? AND f.o=? AND (f.s,f.p,f.o)>(?,?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 2.5879e-05,
+      "vm_steps": 35,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        83,
+        20,
+        1,
+        83,
+        20,
+        1
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "compiled-1000000",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        83,
+        20,
+        1
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SCAN f USING COVERING INDEX facts_osp",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR ORDER BY"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.015581952,
+      "vm_steps": 1622119,
+      "fullscan_steps": 72001,
+      "sorts": 1,
+      "bind_parameters": [],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid>?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR DISTINCT"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.019339492,
+      "vm_steps": 1116106,
+      "fullscan_steps": 0,
+      "sorts": 1,
+      "bind_parameters": [
+        256,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f INDEXED BY facts_spo CROSS JOIN terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SCAN f USING COVERING INDEX facts_spo",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000253784,
+      "vm_steps": 11046,
+      "fullscan_steps": 512,
+      "sorts": 0,
+      "bind_parameters": [],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f INDEXED BY facts_spo CROSS JOIN terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE (f.s,f.p,f.o)>(?,?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH f USING COVERING INDEX facts_spo ((s,p,o)>(?,?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000169687,
+      "vm_steps": 13130,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        256,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 0,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING PRIMARY KEY (ANY(g) AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR DISTINCT"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.010061634,
+      "vm_steps": 536525,
+      "fullscan_steps": 0,
+      "sorts": 1,
+      "bind_parameters": [
+        20001
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        1,
+        20003
+      ],
+      "last_row": [
+        20001,
+        256,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING PRIMARY KEY (ANY(g) AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "USE TEMP B-TREE FOR DISTINCT"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.020615734,
+      "vm_steps": 917474,
+      "fullscan_steps": 0,
+      "sorts": 1,
+      "bind_parameters": [
+        20001,
+        20001,
+        256,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        20001,
+        256,
+        20003
+      ],
+      "first_row": [
+        20001,
+        257,
+        20003
+      ],
+      "last_row": [
+        20001,
+        512,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE f.s=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000157659,
+      "vm_steps": 10539,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        1,
+        20003
+      ],
+      "last_row": [
+        20001,
+        256,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS p CROSS JOIN terms AS o WHERE f.s=? AND (f.p,f.o)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND (p,o)>(?,?))",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000163308,
+      "vm_steps": 12616,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        256,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 1,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        20001,
+        256,
+        20003
+      ],
+      "first_row": [
+        20001,
+        257,
+        20003
+      ],
+      "last_row": [
+        20001,
+        512,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000136287,
+      "vm_steps": 6917,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        1
+      ],
+      "last_row": [
+        20001,
+        20002,
+        256
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND (f.p,f.o,f.s)>(?,?,?) ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.00021116,
+      "vm_steps": 17666,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        20002,
+        256,
+        20001
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        256
+      ],
+      "first_row": [
+        20001,
+        20002,
+        257
+      ],
+      "last_row": [
+        20001,
+        20002,
+        512
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s CROSS JOIN terms AS o WHERE f.p=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000129606,
+      "vm_steps": 6917,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        1
+      ],
+      "last_row": [
+        20001,
+        20002,
+        256
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s CROSS JOIN terms AS o WHERE f.p=? AND (f.o,f.s)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND (o,s)>(?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000170628,
+      "vm_steps": 8986,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        256,
+        20001
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 2,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        256
+      ],
+      "first_row": [
+        20001,
+        20002,
+        257
+      ],
+      "last_row": [
+        20001,
+        20002,
+        512
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000156146,
+      "vm_steps": 9517,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        1
+      ],
+      "last_row": [
+        20001,
+        20002,
+        256
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.00025714,
+      "vm_steps": 23356,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        20001,
+        20002,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        256
+      ],
+      "first_row": [
+        20001,
+        20002,
+        257
+      ],
+      "last_row": [
+        20001,
+        20002,
+        512
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS o WHERE f.s=? AND f.p=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000166282,
+      "vm_steps": 9517,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        1
+      ],
+      "last_row": [
+        20001,
+        20002,
+        256
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN facts AS f INDEXED BY facts_spo CROSS JOIN terms AS o WHERE f.s=? AND f.p=? AND (f.o)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o>?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000186232,
+      "vm_steps": 9519,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 3,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        256
+      ],
+      "first_row": [
+        20001,
+        20002,
+        257
+      ],
+      "last_row": [
+        20001,
+        20002,
+        512
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.o=? ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000129195,
+      "vm_steps": 6407,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.o=? AND (f.o,f.s,f.p)>(?,?,?) ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000176437,
+      "vm_steps": 17156,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20003,
+        20003,
+        256,
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS s CROSS JOIN terms AS p WHERE f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.001174775,
+      "vm_steps": 6407,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS s CROSS JOIN terms AS p WHERE f.o=? AND (f.s,f.p)>(?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND (s,p)>(?,?))",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000121083,
+      "vm_steps": 8476,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20003,
+        256,
+        20002
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 4,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.o=? ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000135736,
+      "vm_steps": 5644,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        1,
+        20003
+      ],
+      "last_row": [
+        20001,
+        256,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.o=? AND (f.o,f.s,f.p)>(?,?,?) ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.00024443,
+      "vm_steps": 19459,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20003,
+        20003,
+        20001,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        20001,
+        256,
+        20003
+      ],
+      "first_row": [
+        20001,
+        257,
+        20003
+      ],
+      "last_row": [
+        20001,
+        512,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS p WHERE f.s=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000136797,
+      "vm_steps": 5644,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        1,
+        20003
+      ],
+      "last_row": [
+        20001,
+        256,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_osp CROSS JOIN terms AS p WHERE f.s=? AND f.o=? AND (f.p)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.o,f.s,f.p LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p>?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000140473,
+      "vm_steps": 5646,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20003,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 5,
+      "order": [
+        2,
+        0,
+        1
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        20001,
+        256,
+        20003
+      ],
+      "first_row": [
+        20001,
+        257,
+        20003
+      ],
+      "last_row": [
+        20001,
+        512,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND f.o=? ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000268196,
+      "vm_steps": 5389,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.p=? AND f.o=? AND (f.p,f.o,f.s)>(?,?,?) ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000266023,
+      "vm_steps": 19204,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        20003,
+        20002,
+        20003,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s WHERE f.p=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000122576,
+      "vm_steps": 5389,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        1,
+        20002,
+        20003
+      ],
+      "last_row": [
+        256,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_pos CROSS JOIN terms AS s WHERE f.p=? AND f.o=? AND (f.s)>(?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.p,f.o,f.s LIMIT 256",
+      "plan": [
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_pos (p=? AND o=? AND s>?)",
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)"
+      ],
+      "row_count": 256,
+      "step_code": 101,
+      "seconds": 0.000124789,
+      "vm_steps": 5391,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20002,
+        20003,
+        256
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 6,
+      "order": [
+        1,
+        2,
+        0
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        256,
+        20002,
+        20003
+      ],
+      "first_row": [
+        257,
+        20002,
+        20003
+      ],
+      "last_row": [
+        512,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND f.o=? ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 5.0517e-05,
+      "vm_steps": 73,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        20003
+      ],
+      "last_row": [
+        20001,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM facts AS f JOIN terms AS s ON s.id=f.s JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o WHERE f.s=? AND f.p=? AND f.o=? AND (f.s,f.p,f.o)>(?,?,?) ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_osp (o=? AND s=? AND p=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 4.9184e-05,
+      "vm_steps": 35,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        20003,
+        20001,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "original",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        20003
+      ],
+      "first_row": null,
+      "last_row": null
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_spo WHERE f.s=? AND f.p=? AND f.o=? AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o=?)"
+      ],
+      "row_count": 1,
+      "step_code": 101,
+      "seconds": 3.5454e-05,
+      "vm_steps": 73,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 0,
+      "after": null,
+      "first_row": [
+        20001,
+        20002,
+        20003
+      ],
+      "last_row": [
+        20001,
+        20002,
+        20003
+      ]
+    },
+    {
+      "sqlite_version": "3.54.1",
+      "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+      "database_readonly": true,
+      "sql": "SELECT DISTINCT f.s,f.p,f.o FROM terms AS s CROSS JOIN terms AS p CROSS JOIN terms AS o CROSS JOIN facts AS f INDEXED BY facts_spo WHERE f.s=? AND f.p=? AND f.o=? AND (f.s,f.p,f.o)>(?,?,?) AND s.id=f.s AND p.id=f.p AND o.id=f.o ORDER BY f.s,f.p,f.o LIMIT 256",
+      "plan": [
+        "SEARCH s USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH o USING INTEGER PRIMARY KEY (rowid=?)",
+        "SEARCH f USING COVERING INDEX facts_spo (s=? AND p=? AND o=?)"
+      ],
+      "row_count": 0,
+      "step_code": 101,
+      "seconds": 2.2234e-05,
+      "vm_steps": 35,
+      "fullscan_steps": 0,
+      "sorts": 0,
+      "bind_parameters": [
+        20001,
+        20002,
+        20003,
+        20001,
+        20002,
+        20003
+      ],
+      "pragmas": {
+        "query_only": true,
+        "mmap_size": 0,
+        "cache_size": -4096,
+        "temp_store": "FILE"
+      },
+      "fixture": "skew-72002",
+      "pattern_mask": 7,
+      "order": [
+        0,
+        1,
+        2
+      ],
+      "variant": "candidate",
+      "page": 1,
+      "after": [
+        20001,
+        20002,
+        20003
+      ],
+      "first_row": null,
+      "last_row": null
+    }
+  ],
+  "sqlite_version": "3.54.1",
+  "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76"
+}

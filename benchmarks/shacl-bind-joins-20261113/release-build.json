@@ -1,0 +1,38 @@
+{
+  "command": [
+    "cargo",
+    "build",
+    "--release",
+    "--offline",
+    "--locked",
+    "--bin",
+    "ontokiln"
+  ],
+  "returncode": 0,
+  "seconds": 34.88603558500108,
+  "log": "/workspace/scratch/1ad35372e414/round4-release-build.log",
+  "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+  "source_tree": "acf9698ea116f9e65be3a60de627f47e5d968b67",
+  "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-after-bin",
+  "binary_bytes": 23050400,
+  "binary_sha256": "c55432609a454dfb916b9d6e49183be93421ecc05098ee7b77c5e2716143195b",
+  "kernel_identity": {
+    "capabilities": [
+      "ontokiln-api/v1",
+      "rdf-pack/v3",
+      "sparql/v1",
+      "positive-rules/v1",
+      "proofs/v1",
+      "full-source-doc/v2",
+      "full-execution/v1",
+      "shacl-core-and-local-select/v1",
+      "values-bindings/v1",
+      "derived-query-data/v1"
+    ],
+    "contract_version": "ontokiln-core/v3",
+    "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+    "pack_version": 3,
+    "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+    "version": "0.1.0"
+  }
+}

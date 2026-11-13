@@ -1,0 +1,119 @@
+{
+  "schema_version": "ontokiln-v4-baseline-observations/v1",
+  "recorded_on": "2026-11-13",
+  "measurement": "Linux GitHub-hosted Runner; release, RAYON_NUM_THREADS=1; stage times in ms; CPU/IO noise uncontrolled",
+  "reference_generator": "kernel-baseline-orders/v1",
+  "functional_assertions": "100K: 100000 asserted/86240 inferred; 1M: 1000000 asserted/862490 inferred; 7 typed SPARQL oracles and SHACL coverage validated independently by benchmarks/v4_resident_baseline.py",
+  "comparison_rules": "Do not compute a formal speedup across CI runs. Use identical host/Rust flags/inputs and 3+ runs per dimension for causal A/B. Golden correctness is a hard CI gate; public runner perf is telemetry.",
+  "artifact_location": "GitHub Actions: v4-resident-benchmark artifact on each referenced run",
+  "observations": [
+    {
+      "source_revision": "d1a844437ae06e5a9d22aa5eaffe85f4e9667f56",
+      "run_id": 43415470411,
+      "scenario": "pre-native-cache",
+      "facts": 100000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 289.851945,
+        "load": 21.243614,
+        "materialize": 416.871849,
+        "reasoner_init": 1.251057,
+        "save": 49.266289
+      },
+      "hot_shacl_all_targets_ms": 998.182976,
+      "hot_shacl_single_focus_ms": null,
+      "peak_rss_kib": 296024,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    },
+    {
+      "source_revision": "d1a844437ae06e5a9d22aa5eaffe85f4e9667f56",
+      "run_id": 43415470411,
+      "scenario": "pre-native-cache",
+      "facts": 1000000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 2846.243461,
+        "load": 233.117627,
+        "materialize": 5707.8514430000005,
+        "reasoner_init": 12.424058,
+        "save": 490.704001
+      },
+      "hot_shacl_all_targets_ms": 15101.406209,
+      "hot_shacl_single_focus_ms": null,
+      "peak_rss_kib": 2846184,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    },
+    {
+      "source_revision": "8b6d2fb04a530e24c4c42343e930421602e112b9",
+      "run_id": 43416179017,
+      "scenario": "cached-native-graph",
+      "facts": 100000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 265.41051100000004,
+        "load": 25.35512,
+        "materialize": 394.756707,
+        "reasoner_init": 1.016281,
+        "save": 54.662568
+      },
+      "hot_shacl_all_targets_ms": 535.736565,
+      "hot_shacl_single_focus_ms": null,
+      "peak_rss_kib": 297480,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    },
+    {
+      "source_revision": "8b6d2fb04a530e24c4c42343e930421602e112b9",
+      "run_id": 43416179017,
+      "scenario": "cached-native-graph",
+      "facts": 1000000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 2872.937505,
+        "load": 263.906088,
+        "materialize": 5359.192488,
+        "reasoner_init": 10.156326,
+        "save": 596.607408
+      },
+      "hot_shacl_all_targets_ms": 6642.8021340000005,
+      "hot_shacl_single_focus_ms": null,
+      "peak_rss_kib": 2803228,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    },
+    {
+      "source_revision": "0b1e83145b1649b2f5296300ef4ec1189a148129",
+      "run_id": 43417088846,
+      "scenario": "cached-plus-focused",
+      "facts": 100000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 313.682062,
+        "load": 24.524558,
+        "materialize": 391.269993,
+        "reasoner_init": 1.461228,
+        "save": 15.903115
+      },
+      "hot_shacl_all_targets_ms": 593.8447329999999,
+      "hot_shacl_single_focus_ms": 0.193752,
+      "peak_rss_kib": 298452,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    },
+    {
+      "source_revision": "0b1e83145b1649b2f5296300ef4ec1189a148129",
+      "run_id": 43417088846,
+      "scenario": "cached-plus-focused",
+      "facts": 1000000,
+      "suite": "kernel-baseline-orders/v1",
+      "build_ms": {
+        "compile": 3410.172669,
+        "load": 336.800182,
+        "materialize": 5831.994304,
+        "reasoner_init": 14.537305,
+        "save": 182.035569
+      },
+      "hot_shacl_all_targets_ms": 7436.034000000001,
+      "hot_shacl_single_focus_ms": 0.198822,
+      "peak_rss_kib": 2823784,
+      "performance_notes": "100K: 3 hot samples; 1M: 1 hot sample, after 1 warmup; shared GitHub runner not guaranteed identical between runs"
+    }
+  ]
+}

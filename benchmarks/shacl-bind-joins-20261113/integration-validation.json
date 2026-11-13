@@ -1,0 +1,246 @@
+{
+  "schema_version": "ontokiln-round4-integration-validation/v1",
+  "status": "PASS",
+  "started_at": "2026-11-13T06:46:45.922125+00:00",
+  "checks": [
+    {
+      "name": "corpus",
+      "command": [
+        "python3",
+        "-B",
+        "tests/fixtures/contract-v1/generate.py",
+        "--check"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-corpus.log",
+      "started_at": "2026-11-13T06:47:59.039203+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 0.03349098300168407,
+      "finished_at": "2026-11-13T06:47:59.072893+00:00"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-fmt.log",
+      "started_at": "2026-11-13T06:47:59.073185+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 0.32299269899885985,
+      "finished_at": "2026-11-13T06:47:59.396314+00:00"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--offline",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-clippy.log",
+      "started_at": "2026-11-13T06:47:59.396918+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 3.1284434349981893,
+      "finished_at": "2026-11-13T06:48:02.525485+00:00"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--offline",
+        "--locked"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-workspace.log",
+      "started_at": "2026-11-13T06:48:02.526025+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 50.1484517630015,
+      "finished_at": "2026-11-13T06:48:52.674593+00:00"
+    },
+    {
+      "name": "all_features",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--all-features",
+        "--offline",
+        "--locked"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-all_features.log",
+      "started_at": "2026-11-13T06:48:52.675021+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 50.006221673000255,
+      "finished_at": "2026-11-13T06:49:42.681447+00:00"
+    },
+    {
+      "name": "scenarios",
+      "command": [
+        "cargo",
+        "run",
+        "--offline",
+        "--locked",
+        "--example",
+        "scenario_lab",
+        "--",
+        "--compare"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-scenarios.log",
+      "started_at": "2026-11-13T06:49:42.682197+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 0.23006728099790053,
+      "finished_at": "2026-11-13T06:49:42.912415+00:00"
+    },
+    {
+      "name": "benchmark_tools",
+      "command": [
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/benchmarks",
+        "-v"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-benchmark_tools.log",
+      "started_at": "2026-11-13T06:49:42.913147+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 14.846966892997443,
+      "finished_at": "2026-11-13T06:49:57.760854+00:00"
+    },
+    {
+      "name": "release",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--offline",
+        "--locked",
+        "--bin",
+        "ontokiln"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-release.log",
+      "started_at": "2026-11-13T06:49:57.761823+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 27.89154937800049,
+      "finished_at": "2026-11-13T06:50:25.653541+00:00"
+    },
+    {
+      "name": "focused_smoke",
+      "command": [
+        "python3",
+        "-B",
+        "benchmarks/kernel_baseline.py",
+        "--binary",
+        "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+        "--output",
+        "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+        "--suite",
+        "focused-shacl",
+        "--read-transport",
+        "session",
+        "--sizes",
+        "100",
+        "--build-samples",
+        "1",
+        "--query-samples",
+        "1",
+        "--validation-samples",
+        "1",
+        "--memory-mib",
+        "512",
+        "--scratch-mib",
+        "4096",
+        "--timeout-seconds",
+        "60",
+        "--threads",
+        "1",
+        "--build-profile",
+        "release",
+        "--build-features",
+        "default",
+        "--snapshot-guard",
+        "manifest"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-focused_smoke.log",
+      "started_at": "2026-11-13T06:50:25.694284+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 0.292488871000387,
+      "finished_at": "2026-11-13T06:50:25.987015+00:00"
+    }
+  ],
+  "preceding_pack_status": "COMPLETE",
+  "preceding_pack_finished_at": "2026-11-13T06:47:59Z",
+  "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+  "source_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+  "git_status_porcelain": "",
+  "release_build": {
+    "name": "release",
+    "command": [
+      "cargo",
+      "build",
+      "--release",
+      "--offline",
+      "--locked",
+      "--bin",
+      "ontokiln"
+    ],
+    "log": "/workspace/scratch/1ad35372e414/round4-integration-release.log",
+    "started_at": "2026-11-13T06:49:57.761823+00:00",
+    "status": "PASS",
+    "returncode": 0,
+    "seconds": 27.89154937800049,
+    "finished_at": "2026-11-13T06:50:25.653541+00:00",
+    "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+    "binary_bytes": 23057824,
+    "binary_sha256": "3b70b345b8c9f34247c89e727126d872b00881654dbd423875be965ad9eb8c04",
+    "kernel_identity": {
+      "capabilities": [
+        "ontokiln-api/v1",
+        "rdf-pack/v3",
+        "sparql/v1",
+        "positive-rules/v1",
+        "proofs/v1",
+        "full-source-doc/v2",
+        "full-execution/v1",
+        "shacl-core-and-local-select/v1",
+        "values-bindings/v1",
+        "derived-query-data/v1"
+      ],
+      "contract_version": "ontokiln-core/v3",
+      "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+      "pack_version": 3,
+      "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+      "version": "0.1.0"
+    },
+    "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+    "source_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+    "build_profile": "release",
+    "features": "default"
+  },
+  "smoke": {
+    "file": "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+    "records": 16,
+    "all_oracles_checked": true,
+    "role": "integration semantics smoke only; not a new performance comparison"
+  },
+  "finished_at": "2026-11-13T06:50:25.987810+00:00"
+}

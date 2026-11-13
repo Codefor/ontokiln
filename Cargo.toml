@@ -23,26 +23,26 @@ publish.workspace = true
 
 [dependencies]
 anyhow.workspace = true
-axum = "0.8"
 clap = { version = "4", features = ["derive"] }
 ontokiln-compiler = { path = "crates/compiler" }
 ontokiln-pack.workspace = true
 ontokiln-reasoner = { path = "crates/reasoner" }
 oxrdf.workspace = true
 serde.workspace = true
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time", "process", "io-util"] }
-
 serde_json = "1"
-futures-util = {version="0.3", default-features=false,features=["std"]}
-libc="0.2"
+oxigraph = { version = "0.5", default-features = false, features = ["rdf-12"] }
+spargebra = { version = "0.4", features = ["sparql-12"] }
+sha2 = "0.10"
+walkdir = "2"
+shacl_validation = { version = "=0.2.12", default-features = false }
+shacl_ir = "=0.2.9"
+rudof_rdf = { version = "=0.2.12", default-features = false }
 
-tempfile.workspace = true
-
-[features]
-ascent-engine = ["ontokiln-compiler/ascent-engine"]
+[build-dependencies]
+sha2 = "0.10"
 
 [dev-dependencies]
-tower = { version = "0.5", features = ["util"] }
+tempfile.workspace = true
 
 [patch.crates-io]
 spareval = { path = "vendor/spareval" }

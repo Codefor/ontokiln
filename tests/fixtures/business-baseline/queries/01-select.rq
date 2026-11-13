@@ -1,0 +1,5 @@
+PREFIX ex: <urn:business-baseline:smoke:>
+SELECT ?s ?value WHERE {
+  ?s ex:q ?value .
+}
+ORDER BY ?s

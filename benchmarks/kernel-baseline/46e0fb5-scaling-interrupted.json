@@ -1,0 +1,1422 @@
+{
+  "build_receipt": {
+    "binary_sha256": "1fb31975bc3f81980e5c89650364c1fad56d6b5f75b59dc5bef21c900faefc0c",
+    "build_environment": {
+      "CARGO_BUILD_JOBS": "4",
+      "CARGO_ENCODED_RUSTFLAGS": null,
+      "ONTOKILN_BUILD_REVISION": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+      "RUSTFLAGS": ""
+    },
+    "build_features": "default",
+    "build_log_sha256": "e11d78d0276f333c2dd7ea7f2fb059239c21e096bd324a8f7a395c57ed9bd488",
+    "cargo_lock_sha256": "a9cd80775481239663b5ccbefac81100b484b1e88ad51f5836be1c8d83d7c38a",
+    "command": [
+      "cargo",
+      "build",
+      "--release",
+      "--locked",
+      "--offline",
+      "--bin",
+      "ontokiln"
+    ],
+    "kernel": {
+      "capabilities": [
+        "ontokiln-api/v1",
+        "rdf-pack/v3",
+        "sparql/v1",
+        "positive-rules/v1",
+        "proofs/v1",
+        "full-source-doc/v2",
+        "full-execution/v1",
+        "shacl-core-and-local-select/v1",
+        "values-bindings/v1",
+        "derived-query-data/v1"
+      ],
+      "contract_version": "ontokiln-core/v3",
+      "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+      "pack_version": 3,
+      "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+      "version": "0.1.0"
+    },
+    "release_contract_checks": 6,
+    "release_contract_checks_status": "passed",
+    "release_contract_log_sha256": "3aada91ebb93c2b4092615fb518d0d106d75e50fa7e8c30420995ec3b6e5ecba",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2",
+    "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+    "source_tree": "f87335ca4a97b0290f56cae4185fc63c9e714cc7"
+  },
+  "cache_policy": "No OS cache flush. Generation and hashing precede independent compile/materialize processes; no persistent engine cache.",
+  "command": [
+    "benchmarks/kernel_scaling.py",
+    "--harness",
+    "/workspace/scratch/002e4172a133/ontokiln/benchmarks/kernel_baseline.py",
+    "--build-receipt",
+    "benchmarks/kernel-baseline/46e0fb5-linux-build.json",
+    "--binary",
+    "/workspace/scratch/002e4172a133/ontokiln/target/release/ontokiln",
+    "--output",
+    "/workspace/scratch/002e4172a133/ontokiln-kernel-scaling-46e0fb5-linux.json",
+    "--work-dir",
+    "/workspace/scratch/002e4172a133/ontokiln-scaling-work",
+    "--sizes",
+    "1000000",
+    "10000000",
+    "--build-samples",
+    "3",
+    "--memory-mib",
+    "4096",
+    "--scratch-mib",
+    "8192",
+    "--timeout-seconds",
+    "300",
+    "--max-derived-facts",
+    "10000000",
+    "--max-intermediate-rows",
+    "100000000",
+    "--max-iterations",
+    "100",
+    "--threads",
+    "1",
+    "--build-profile",
+    "release",
+    "--build-features",
+    "default",
+    "--keep-work-dir"
+  ],
+  "concurrency": 1,
+  "configuration": {
+    "binary": "/workspace/scratch/002e4172a133/ontokiln/target/release/ontokiln",
+    "build_features": "default",
+    "build_profile": "release",
+    "build_samples": 3,
+    "keep_work_dir": true,
+    "max_derived_facts": 10000000,
+    "max_intermediate_rows": 100000000,
+    "max_iterations": 100,
+    "memory_mib": 4096,
+    "output": "/workspace/scratch/002e4172a133/ontokiln-kernel-scaling-46e0fb5-linux.json",
+    "pack_max_mib": 256,
+    "query_samples": 9,
+    "scratch_mib": 8192,
+    "sizes": [
+      1000000,
+      10000000
+    ],
+    "threads": 1,
+    "timeout_seconds": 300.0,
+    "validation_samples": 3,
+    "work_dir": "/workspace/scratch/002e4172a133/ontokiln-scaling-work"
+  },
+  "environment": {
+    "binary": "/workspace/scratch/002e4172a133/ontokiln/target/release/ontokiln",
+    "binary_sha256": "1fb31975bc3f81980e5c89650364c1fad56d6b5f75b59dc5bef21c900faefc0c",
+    "build_features_caller_declaration": "default",
+    "build_profile_caller_declaration": "release",
+    "cgroup_limits_raw": {
+      "cpu.max": null,
+      "cpu/cpu.cfs_period_us": null,
+      "cpu/cpu.cfs_quota_us": null,
+      "cpuset.cpus.effective": null,
+      "memory.max": null,
+      "memory.swap.max": null,
+      "memory/memory.limit_in_bytes": null
+    },
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "disk_free_bytes": 47602372608,
+    "filesystem": {
+      "filesystem": "overlay",
+      "mountpoint": "/workspace"
+    },
+    "full_runtime_info": {
+      "artifact_contract": "kernel-manifest-v1",
+      "distribution_version": "0.1.0",
+      "engine_semantic_version": "positive-rdf-v5",
+      "execution_contract": "full-execution/v1",
+      "format_version": "ontology-kernel-sqlite/v1",
+      "import_policy": "declared-ontology-v1",
+      "kernel": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+        "pack_version": 3,
+        "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+        "version": "0.1.0"
+      },
+      "native_contract": "full-source-doc/v2",
+      "parser": "oxttl/0.2.5",
+      "sqlite": "3.54.1",
+      "term_model": "oxrdf/0.3.5"
+    },
+    "git_status_porcelain": "M  benchmarks/README.md\nM  benchmarks/compare_kernel_baseline.py\nA  benchmarks/kernel-baseline/46e0fb5-linux-build.json\nA  benchmarks/kernel-baseline/46e0fb5-linux.json\nA  benchmarks/kernel-baseline/46e0fb5-sqlite-explain.json\nA  benchmarks/kernel-baseline/README.md\nA  benchmarks/kernel-baseline/sqlite_explain.c\nM  tests/benchmarks/README.md\nM  tests/benchmarks/test_compare_kernel_baseline.py",
+    "kernel_identity": {
+      "capabilities": [
+        "ontokiln-api/v1",
+        "rdf-pack/v3",
+        "sparql/v1",
+        "positive-rules/v1",
+        "proofs/v1",
+        "full-source-doc/v2",
+        "full-execution/v1",
+        "shacl-core-and-local-select/v1",
+        "values-bindings/v1",
+        "derived-query-data/v1"
+      ],
+      "contract_version": "ontokiln-core/v3",
+      "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+      "pack_version": 3,
+      "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+      "version": "0.1.0"
+    },
+    "load_average": [
+      0.09912109375,
+      0.53955078125,
+      0.89990234375
+    ],
+    "logical_cpus": 9,
+    "machine": "x86_64",
+    "meminfo": "MemTotal:       10206472 kB\nMemFree:         3882020 kB\nMemAvailable:    8801572 kB\nBuffers:           10240 kB\nCached:          5405540 kB\nSwapCached:            0 kB\nActive:          3050016 kB\nInactive:        2411948 kB\nActive(anon):     631080 kB\nInactive(anon):    76028 kB\nActive(file):    2418936 kB\nInactive(file):  2335920 kB\nUnevictable:       29944 kB\nMlocked:               0 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nDirty:             52620 kB\nWriteback:             0 kB\nAnonPages:         76240 kB\nMapped:            78712 kB\nShmem:            631004 kB\nKReclaimable:     478396 kB\nSlab:             560616 kB\nSReclaimable:     478396 kB\nSUnreclaim:        82220 kB\nKernelStack:        3708 kB\nPageTables:         4312 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     5103236 kB\nCommitted_AS:    1170200 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:        5032 kB\nVmallocChunk:          0 kB\nPercpu:             3600 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:    294912 kB\nFilePmdMapped:         0 kB\nBalloon:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      237568 kB\nDirectMap2M:     5883904 kB\nDirectMap1G:    20971520 kB",
+    "physical_memory_bytes": 10451427328,
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "provenance_files": {
+      "Cargo.lock": "a9cd80775481239663b5ccbefac81100b484b1e88ad51f5836be1c8d83d7c38a",
+      "benchmarks/kernel_baseline.py": "9b69d22115f1177a7c3d7c0fe39b7c9dbbd238c95983b0cce73b6be230f662c8",
+      "rust-toolchain.toml": "7d21c66a15f41bad66b82ed06a289f5dc8a6e3751951d2696bbf20ce296f2b0f"
+    },
+    "python": "3.12.14",
+    "relevant_environment": {
+      "TMPDIR": "/tmp"
+    },
+    "repository_dirty": true,
+    "repository_head": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+    "rustc_on_path": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+  },
+  "limits": {
+    "max_bytes": 4194304,
+    "max_derived_facts": 10000000,
+    "max_intermediate_rows": 100000000,
+    "max_iterations": 100,
+    "max_rows": 100000,
+    "max_term_bytes": 1048576,
+    "max_validation_depth": 64,
+    "memory_bytes": 4294967296,
+    "scratch_bytes": 8589934592,
+    "timeout_ms": 300000.0
+  },
+  "method": {
+    "build_receipt_sha256": "f43f9af4d639ae7627cc73fd76fb2d7ddaeb109acb365ffd2e1b9f77450f79f7",
+    "driver_sha256": "00cf202f6838b5c09fcdf19b75628d60316c4c1c80b253c9c49e45b2e5cb176a",
+    "harness_path": "/workspace/scratch/002e4172a133/ontokiln/benchmarks/kernel_baseline.py",
+    "harness_sha256": "9b69d22115f1177a7c3d7c0fe39b7c9dbbd238c95983b0cce73b6be230f662c8",
+    "harness_source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+    "stage_filter": "Only full_compile/full_materialize invoke the frozen dispatcher; all other workloads are outside scope."
+  },
+  "metric_definitions": {
+    "cpu_system_seconds": "API worker self rusage, excluding supervisor CPU.",
+    "cpu_user_seconds": "API worker self rusage, excluding supervisor CPU.",
+    "end_to_end_seconds": "Before Popen through process exit and reading the result bytes; JSON parsing, oracle checks and artifact inspection excluded.",
+    "engine_seconds": "Full compile worker phase before artifact publication; overlaps parse_dictionary_seconds and index_seconds.",
+    "execution_seconds": "API supervisor boundary, including setup, verified snapshots and publication; excludes outer API parsing/final response writing. Not pure kernel time.",
+    "index_seconds": "Full post-parse phase, including deduplication, indexes, ANALYZE/VACUUM and plan/import metadata; not index CPU alone.",
+    "io_read_bytes": "Worker block-I/O accounting (ru_inblock * 512), affected by page cache; not logical input bytes.",
+    "io_write_bytes": "Worker block-I/O accounting (ru_oublock * 512), not logical artifact size.",
+    "parse_dictionary_seconds": "Full compile phase, including SQLite setup, RDF parse/dictionary insertion and rule constants.",
+    "peak_rss_bytes": "API budget measurement combining worker RSS/HWM and supervisor RSS; not PSS and not directly comparable to pack compile process RSS.",
+    "peak_scratch_bytes": "API sampled private scratch logical bytes (including detected deleted open files on Linux); not total bytes written.",
+    "process_cpu": "wait4 command rusage user/system time; reaped-descendant accounting is OS dependent. Do not add worker CPU to these fields.",
+    "process_wait4_peak_rss_bytes": "OS wait4 high-water RSS, not aggregate physical memory; Linux can include pre-exec inherited high-water state.",
+    "process_wall_seconds": "Before Popen through wait4 completion. Serial command invocation, including startup and supervisor/worker lifecycle.",
+    "query_validate_core_seconds": "Unavailable in the public API. Query/SHACL are measured end to end; no inferred core time is reported.",
+    "reasoning_seconds": "Full materialization phase including SQLite setup, semi-naive joins, fixpoint and cleanup/ANALYZE/VACUUM.",
+    "supervisor_peak_rss_bytes": "Supervisor process high-water RSS, recorded separately; not additive to peak_rss_bytes."
+  },
+  "phase_selection": [
+    "full_compile",
+    "full_materialize"
+  ],
+  "process_environment_overrides": {
+    "ONTOKILN_MAX_PACK_MIB": "256",
+    "RAYON_NUM_THREADS": "1",
+    "TMPDIR": "<work_directory>/scratch",
+    "TOKIO_WORKER_THREADS": "1"
+  },
+  "scales": [
+    {
+      "completed": true,
+      "facts": 1000000,
+      "input": {
+        "chain_max_nodes": 8,
+        "distinct_asserted_terms": 400138,
+        "expected_full_compiled_terms": 400140,
+        "expected_inferred_by_predicate": {
+          "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": 199998,
+          "http://www.w3.org/2000/01/rdf-schema#subClassOf": 1,
+          "http://www.w3.org/2000/01/rdf-schema#subPropertyOf": 1,
+          "urn:ontokiln:kernel-bench:inRegion": 99999,
+          "urn:ontokiln:kernel-bench:locatedIn": 99999,
+          "urn:ontokiln:kernel-bench:reach": 362493,
+          "urn:ontokiln:kernel-bench:relatedTo": 99999
+        },
+        "expected_inferred_facts": 862490,
+        "explicit_facts": 1000000,
+        "files": [
+          {
+            "bytes": 120338871,
+            "file": "input/data.nt",
+            "sha256": "b019dbb4a2ec61fb119fa1a994965b32e59cf12bed48955c7f58d3c1d4ab6528"
+          },
+          {
+            "bytes": 615,
+            "file": "rules.json",
+            "sha256": "37ea2a904289edfb8bcc5f47cce7cc2de63062f3ad072cd2d98da5ee70e98e95"
+          },
+          {
+            "bytes": 965,
+            "file": "shapes.ttl",
+            "sha256": "e567dae83f7aebdafed38bc5843ae47a1bc6a888c0aceafb83ffa2da3a08cb7a"
+          }
+        ],
+        "generator": "kernel-baseline-orders/v1",
+        "input_bytes": 120338871,
+        "records": 99999,
+        "source_document_id": "kernel-baseline-orders/v1/data"
+      },
+      "stages": [
+        {
+          "metadata": {
+            "explicit_rule_count": 3,
+            "phase_metrics": true,
+            "profile": "rdfs-supported-v1"
+          },
+          "name": "full_compile",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 1.8005719999999998,
+                "cpu_user_seconds": 6.712053,
+                "engine_seconds": 7.552115358,
+                "execution_seconds": 8.859659911,
+                "index_seconds": 4.113443417,
+                "io_read_bytes": 0,
+                "io_write_bytes": 266416128,
+                "parse_dictionary_seconds": 3.438671801,
+                "peak_rss_bytes": 311074816,
+                "peak_scratch_bytes": 251381235,
+                "supervisor_peak_rss_bytes": 6668288
+              },
+              "end_to_end_seconds": 8.86574672399911,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "cfd1edfea62da49877f4b46f2cea80a64509bd1cccd635db0f73e822b68ff011",
+                  "manifest_sha256": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/compile-0",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 245583872,
+                  "files": [
+                    {
+                      "allocated_bytes": 125222912,
+                      "bytes": 125222912,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120344576,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1235,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 245566470
+                },
+                "manifest_stats": {
+                  "distinct_terms": 400140,
+                  "explicit_facts": 1000000,
+                  "indexed_facts": 1000000,
+                  "parsed_facts": 1000000
+                }
+              },
+              "process_block_read_bytes": 0,
+              "process_block_write_bytes": 266473472,
+              "process_system_seconds": 1.9307940000000001,
+              "process_user_seconds": 6.906058,
+              "process_wait4_peak_rss_bytes": 304517120,
+              "process_wall_seconds": 8.865553560999615,
+              "request_sha256": "c3db4df948b329b5730caa6472bd225923e0452fe1a27f3c46689b2b2b9b2a72",
+              "response_bytes": 1869,
+              "response_sha256": "827734f2cf5796674dc7fb16a387042947c78cdd06a6e5a199f941f27acd5b2d",
+              "returncode": 0,
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 1.445132,
+                "cpu_user_seconds": 8.072042,
+                "engine_seconds": 8.511918099,
+                "execution_seconds": 9.817667081,
+                "index_seconds": 4.318374455000001,
+                "io_read_bytes": 0,
+                "io_write_bytes": 266416128,
+                "parse_dictionary_seconds": 4.193543363,
+                "peak_rss_bytes": 311177216,
+                "peak_scratch_bytes": 251381235,
+                "supervisor_peak_rss_bytes": 6447104
+              },
+              "end_to_end_seconds": 9.825586692000797,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "cfd1edfea62da49877f4b46f2cea80a64509bd1cccd635db0f73e822b68ff011",
+                  "manifest_sha256": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/compile-1",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 245583872,
+                  "files": [
+                    {
+                      "allocated_bytes": 125222912,
+                      "bytes": 125222912,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120344576,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1235,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 245566470
+                },
+                "manifest_stats": {
+                  "distinct_terms": 400140,
+                  "explicit_facts": 1000000,
+                  "indexed_facts": 1000000,
+                  "parsed_facts": 1000000
+                }
+              },
+              "process_block_read_bytes": 4096,
+              "process_block_write_bytes": 266489856,
+              "process_system_seconds": 1.5777649999999999,
+              "process_user_seconds": 8.309043,
+              "process_wait4_peak_rss_bytes": 304652288,
+              "process_wall_seconds": 9.825090826000633,
+              "request_sha256": "bae457cfc71423a0ff2bef4ff1b9c64aff85d77e0e76b61e249cc25be2b4b982",
+              "response_bytes": 1865,
+              "response_sha256": "1195b42845a395766b050bb36a138c2c1a29e1d8eed40f7216fed4eeaeb0f803",
+              "returncode": 0,
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.768751,
+                "cpu_user_seconds": 7.29492,
+                "engine_seconds": 7.466954963,
+                "execution_seconds": 8.352270075,
+                "index_seconds": 3.987246485,
+                "io_read_bytes": 0,
+                "io_write_bytes": 266436608,
+                "parse_dictionary_seconds": 3.479708268,
+                "peak_rss_bytes": 311316480,
+                "peak_scratch_bytes": 251381235,
+                "supervisor_peak_rss_bytes": 6647808
+              },
+              "end_to_end_seconds": 8.358729174000473,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "cfd1edfea62da49877f4b46f2cea80a64509bd1cccd635db0f73e822b68ff011",
+                  "manifest_sha256": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/compile-2",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 245579776,
+                  "files": [
+                    {
+                      "allocated_bytes": 125222912,
+                      "bytes": 125222912,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120340480,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1235,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 245566470
+                },
+                "manifest_stats": {
+                  "distinct_terms": 400140,
+                  "explicit_facts": 1000000,
+                  "indexed_facts": 1000000,
+                  "parsed_facts": 1000000
+                }
+              },
+              "process_block_read_bytes": 0,
+              "process_block_write_bytes": 266547200,
+              "process_system_seconds": 0.855443,
+              "process_user_seconds": 7.50306,
+              "process_wait4_peak_rss_bytes": 304635904,
+              "process_wall_seconds": 8.358190347000345,
+              "request_sha256": "b1a825ff1705fb10acf66bafcc30f99ee29696b43f4fd3ba769585b261047d2c",
+              "response_bytes": 1858,
+              "response_sha256": "2b10fa6b73acb1147064e5d6a82fabf72ff1786ecd791dd8fe7a24c25ae8be2b",
+              "returncode": 0,
+              "sample_index": 2,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 3,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 9.825586692000797,
+            "measured_status_counts": {
+              "COMPLETE": 3
+            },
+            "median_seconds": 8.86574672399911,
+            "min_seconds": 8.358729174000473,
+            "planned_measured_samples": 3,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 3,
+            "warmup_status_counts": {}
+          }
+        },
+        {
+          "metadata": {
+            "phase_metrics": true,
+            "profile": "rdfs-supported-v1"
+          },
+          "name": "full_materialize",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 1.048382,
+                "cpu_user_seconds": 9.568039,
+                "execution_seconds": 10.945079186,
+                "io_read_bytes": 65536,
+                "io_write_bytes": 296325120,
+                "peak_rss_bytes": 385736704,
+                "peak_scratch_bytes": 301161867,
+                "reasoning_seconds": 9.167266226,
+                "rule_join_candidate_rows": 1862482,
+                "supervisor_peak_rss_bytes": 6627328
+              },
+              "end_to_end_seconds": 10.950644683000064,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "23ae588fd907b86e6e612dd878bf2031fd0044ccde3eb3a18a38b5d3461f4982",
+                  "manifest_sha256": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/materialize-0",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 862490
+                },
+                "files": {
+                  "allocated_bytes": 284909568,
+                  "files": [
+                    {
+                      "allocated_bytes": 164552704,
+                      "bytes": 164552704,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120340480,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1385,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 284896412
+                },
+                "manifest_stats": {
+                  "executed_rule_evaluations": 136,
+                  "explicit_facts": 1000000,
+                  "fixpoint_iterations": 8,
+                  "indexed_facts": 1862490,
+                  "inferred_facts": 862490
+                }
+              },
+              "process_block_read_bytes": 69632,
+              "process_block_write_bytes": 296390656,
+              "process_system_seconds": 1.151781,
+              "process_user_seconds": 9.7999,
+              "process_wait4_peak_rss_bytes": 378986496,
+              "process_wall_seconds": 10.950212699000076,
+              "request_sha256": "eb16d377de77ee62578b002d8630499042e7804b61aea035a6094e69e315b9fd",
+              "response_bytes": 1847,
+              "response_sha256": "4480907c339ed6dab57f19a24f5a47bfaf05a3a16b4dbae4d5c25d5d1991eb71",
+              "returncode": 0,
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 1.493447,
+                "cpu_user_seconds": 9.822039,
+                "execution_seconds": 11.677174103,
+                "io_read_bytes": 0,
+                "io_write_bytes": 296325120,
+                "peak_rss_bytes": 385736704,
+                "peak_scratch_bytes": 301161867,
+                "reasoning_seconds": 9.665004315,
+                "rule_join_candidate_rows": 1862482,
+                "supervisor_peak_rss_bytes": 6356992
+              },
+              "end_to_end_seconds": 11.686996301999898,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "23ae588fd907b86e6e612dd878bf2031fd0044ccde3eb3a18a38b5d3461f4982",
+                  "manifest_sha256": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/materialize-1",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 862490
+                },
+                "files": {
+                  "allocated_bytes": 284909568,
+                  "files": [
+                    {
+                      "allocated_bytes": 164552704,
+                      "bytes": 164552704,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120340480,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1385,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 284896412
+                },
+                "manifest_stats": {
+                  "executed_rule_evaluations": 136,
+                  "explicit_facts": 1000000,
+                  "fixpoint_iterations": 8,
+                  "indexed_facts": 1862490,
+                  "inferred_facts": 862490
+                }
+              },
+              "process_block_read_bytes": 0,
+              "process_block_write_bytes": 296378368,
+              "process_system_seconds": 1.6807919999999998,
+              "process_user_seconds": 10.001746,
+              "process_wait4_peak_rss_bytes": 379379712,
+              "process_wall_seconds": 11.684099903999595,
+              "request_sha256": "822e8d298bcb90ce1d23905a7bdab392ed9d301f343bc05782d9c75f32924077",
+              "response_bytes": 1843,
+              "response_sha256": "04178a87c432c8cc3269a93325530c27fe29f83bec963016622ce4b2148f2a2a",
+              "returncode": 0,
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.710371,
+                "cpu_user_seconds": 9.114349,
+                "execution_seconds": 10.143471961,
+                "io_read_bytes": 65536,
+                "io_write_bytes": 296321024,
+                "peak_rss_bytes": 385548288,
+                "peak_scratch_bytes": 301161867,
+                "reasoning_seconds": 8.699564368,
+                "rule_join_candidate_rows": 1862482,
+                "supervisor_peak_rss_bytes": 6303744
+              },
+              "end_to_end_seconds": 10.163102324000647,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "23ae588fd907b86e6e612dd878bf2031fd0044ccde3eb3a18a38b5d3461f4982",
+                  "manifest_sha256": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-1000000/materialize-2",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+                  "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 1000000,
+                  "inferred_facts": 862490
+                },
+                "files": {
+                  "allocated_bytes": 284909568,
+                  "files": [
+                    {
+                      "allocated_bytes": 164552704,
+                      "bytes": 164552704,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 120340480,
+                      "bytes": 120338871,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1385,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 284896412
+                },
+                "manifest_stats": {
+                  "executed_rule_evaluations": 136,
+                  "explicit_facts": 1000000,
+                  "fixpoint_iterations": 8,
+                  "indexed_facts": 1862490,
+                  "inferred_facts": 862490
+                }
+              },
+              "process_block_read_bytes": 65536,
+              "process_block_write_bytes": 296357888,
+              "process_system_seconds": 0.775245,
+              "process_user_seconds": 9.356802,
+              "process_wait4_peak_rss_bytes": 379187200,
+              "process_wall_seconds": 10.160892597000384,
+              "request_sha256": "e126f656a04a3825f815e7601557f6f3ad02f3c44044be6012061a4c86b48586",
+              "response_bytes": 1847,
+              "response_sha256": "6ef67da715531aedc1704142cdc1597d512f720ab9e43cf18b7291c54a7153a1",
+              "returncode": 0,
+              "sample_index": 2,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 3,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 11.686996301999898,
+            "measured_status_counts": {
+              "COMPLETE": 3
+            },
+            "median_seconds": 10.950644683000064,
+            "min_seconds": 10.163102324000647,
+            "planned_measured_samples": 3,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 3,
+            "warmup_status_counts": {}
+          }
+        }
+      ]
+    },
+    {
+      "facts": 10000000,
+      "input": {
+        "chain_max_nodes": 8,
+        "distinct_asserted_terms": 4000138,
+        "expected_full_compiled_terms": 4000140,
+        "expected_inferred_by_predicate": {
+          "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": 1999998,
+          "http://www.w3.org/2000/01/rdf-schema#subClassOf": 1,
+          "http://www.w3.org/2000/01/rdf-schema#subPropertyOf": 1,
+          "urn:ontokiln:kernel-bench:inRegion": 999999,
+          "urn:ontokiln:kernel-bench:locatedIn": 999999,
+          "urn:ontokiln:kernel-bench:reach": 3624993,
+          "urn:ontokiln:kernel-bench:relatedTo": 999999
+        },
+        "expected_inferred_facts": 8624990,
+        "explicit_facts": 10000000,
+        "files": [
+          {
+            "bytes": 1204388870,
+            "file": "input/data.nt",
+            "sha256": "a7c6025027b9339a157add1cd280f939f518aa33f8aba7ed3e123ecd9292720d"
+          },
+          {
+            "bytes": 615,
+            "file": "rules.json",
+            "sha256": "37ea2a904289edfb8bcc5f47cce7cc2de63062f3ad072cd2d98da5ee70e98e95"
+          },
+          {
+            "bytes": 965,
+            "file": "shapes.ttl",
+            "sha256": "e567dae83f7aebdafed38bc5843ae47a1bc6a888c0aceafb83ffa2da3a08cb7a"
+          }
+        ],
+        "generator": "kernel-baseline-orders/v1",
+        "input_bytes": 1204388870,
+        "records": 999999,
+        "source_document_id": "kernel-baseline-orders/v1/data"
+      },
+      "stages": [
+        {
+          "metadata": {
+            "explicit_rule_count": 3,
+            "phase_metrics": true,
+            "profile": "rdfs-supported-v1"
+          },
+          "name": "full_compile",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 14.328559,
+                "cpu_user_seconds": 70.700154,
+                "engine_seconds": 77.43486068,
+                "execution_seconds": 87.260672766,
+                "index_seconds": 40.422142839,
+                "io_read_bytes": 1204420608,
+                "io_write_bytes": 5279883264,
+                "parse_dictionary_seconds": 37.012717551,
+                "peak_rss_bytes": 1271648256,
+                "peak_scratch_bytes": 3724791881,
+                "supervisor_peak_rss_bytes": 6451200
+              },
+              "end_to_end_seconds": 87.27019834299972,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "f71e3d6e0c63d37979ce73866202b1abc5f7f522ca136d492d886a3345caa766",
+                  "manifest_sha256": "3dc3912d1335d797d8a186b810707386cba432cb04490cdbad2a6066f7c90da9",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-10000000/compile-0",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "7212ea8ba4ec6187b57b46b7bdbb62a5c1acb0bad423d62ef4f76cd57bf5a197",
+                  "source_tree_digest": "75376441646c8048b714e0da10d48c70ce872197601a12aeee4b857be1450d30"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 10000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 2464665600,
+                  "files": [
+                    {
+                      "allocated_bytes": 1260253184,
+                      "bytes": 1260199936,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 1204396032,
+                      "bytes": 1204388870,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1241,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 2464593499
+                },
+                "manifest_stats": {
+                  "distinct_terms": 4000140,
+                  "explicit_facts": 10000000,
+                  "indexed_facts": 10000000,
+                  "parsed_facts": 10000000
+                }
+              },
+              "process_block_read_bytes": 1204420608,
+              "process_block_write_bytes": 5279965184,
+              "process_system_seconds": 15.260253,
+              "process_user_seconds": 72.408133,
+              "process_wait4_peak_rss_bytes": 1265123328,
+              "process_wall_seconds": 87.26948623499993,
+              "request_sha256": "d7a8cda4b78ec0e4b0157aa062b1de756c16d3c40d5a9cafb1d0512c64365129",
+              "response_bytes": 1879,
+              "response_sha256": "8fea9c1af0029d7bb53c9cbf0ff6194aef0c9dcf5a8ef8c0bc378b6877a6385b",
+              "returncode": 0,
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 15.137538,
+                "cpu_user_seconds": 80.7706,
+                "engine_seconds": 95.247173224,
+                "execution_seconds": 106.126956038,
+                "index_seconds": 51.719930901000005,
+                "io_read_bytes": 4733718528,
+                "io_write_bytes": 5281464320,
+                "parse_dictionary_seconds": 43.527242083,
+                "peak_rss_bytes": 1269747712,
+                "peak_scratch_bytes": 3724791881,
+                "supervisor_peak_rss_bytes": 6103040
+              },
+              "end_to_end_seconds": 106.13598520100004,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "f71e3d6e0c63d37979ce73866202b1abc5f7f522ca136d492d886a3345caa766",
+                  "manifest_sha256": "3dc3912d1335d797d8a186b810707386cba432cb04490cdbad2a6066f7c90da9",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-10000000/compile-1",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "7212ea8ba4ec6187b57b46b7bdbb62a5c1acb0bad423d62ef4f76cd57bf5a197",
+                  "source_tree_digest": "75376441646c8048b714e0da10d48c70ce872197601a12aeee4b857be1450d30"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 10000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 2465284096,
+                  "files": [
+                    {
+                      "allocated_bytes": 1260871680,
+                      "bytes": 1260199936,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 1204396032,
+                      "bytes": 1204388870,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1241,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 2464593499
+                },
+                "manifest_stats": {
+                  "distinct_terms": 4000140,
+                  "explicit_facts": 10000000,
+                  "indexed_facts": 10000000,
+                  "parsed_facts": 10000000
+                }
+              },
+              "process_block_read_bytes": 4735365120,
+              "process_block_write_bytes": 5281570816,
+              "process_system_seconds": 16.4969,
+              "process_user_seconds": 83.464147,
+              "process_wait4_peak_rss_bytes": 1263898624,
+              "process_wall_seconds": 106.13559988700035,
+              "request_sha256": "fb80e8bd20ec186a325b6f4e4b87d8cfc63c218e49b990c317489680c3ed76c9",
+              "response_bytes": 1885,
+              "response_sha256": "cca4b251a8d05fbe875efef5cdb6199ccd35e8908f49ab8b511fb5569c31b921",
+              "returncode": 0,
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 12.916101,
+                "cpu_user_seconds": 81.482484,
+                "engine_seconds": 87.001892994,
+                "execution_seconds": 97.659093765,
+                "index_seconds": 44.89182098599999,
+                "io_read_bytes": 3161251840,
+                "io_write_bytes": 5280968704,
+                "parse_dictionary_seconds": 42.110071697,
+                "peak_rss_bytes": 1271361536,
+                "peak_scratch_bytes": 3719532617,
+                "supervisor_peak_rss_bytes": 6598656
+              },
+              "end_to_end_seconds": 97.6670497770001,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "f71e3d6e0c63d37979ce73866202b1abc5f7f522ca136d492d886a3345caa766",
+                  "manifest_sha256": "3dc3912d1335d797d8a186b810707386cba432cb04490cdbad2a6066f7c90da9",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-10000000/compile-2",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "7212ea8ba4ec6187b57b46b7bdbb62a5c1acb0bad423d62ef4f76cd57bf5a197",
+                  "source_tree_digest": "75376441646c8048b714e0da10d48c70ce872197601a12aeee4b857be1450d30"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 10000000,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 2464862208,
+                  "files": [
+                    {
+                      "allocated_bytes": 1260449792,
+                      "bytes": 1260199936,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 1204396032,
+                      "bytes": 1204388870,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1241,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 2464593499
+                },
+                "manifest_stats": {
+                  "distinct_terms": 4000140,
+                  "explicit_facts": 10000000,
+                  "indexed_facts": 10000000,
+                  "parsed_facts": 10000000
+                }
+              },
+              "process_block_read_bytes": 3165921280,
+              "process_block_write_bytes": 5281050624,
+              "process_system_seconds": 14.246397,
+              "process_user_seconds": 83.68997,
+              "process_wait4_peak_rss_bytes": 1264508928,
+              "process_wall_seconds": 97.66682947300069,
+              "request_sha256": "e3e14f079641981be8b0f0469a7208adc15cf496eec8c73342a318f33c207630",
+              "response_bytes": 1885,
+              "response_sha256": "4b482cc2cea7debbd4e5e3d57e256e43efcc32d2f89bf7d92708ff912f5c2274",
+              "returncode": 0,
+              "sample_index": 2,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 3,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 106.13598520100004,
+            "measured_status_counts": {
+              "COMPLETE": 3
+            },
+            "median_seconds": 97.6670497770001,
+            "min_seconds": 87.27019834299972,
+            "planned_measured_samples": 3,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 3,
+            "warmup_status_counts": {}
+          }
+        },
+        {
+          "metadata": {
+            "phase_metrics": true,
+            "profile": "rdfs-supported-v1"
+          },
+          "name": "full_materialize",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 18.848423,
+                "cpu_user_seconds": 107.963602,
+                "execution_seconds": 131.485061689,
+                "io_read_bytes": 4658057216,
+                "io_write_bytes": 7272271872,
+                "peak_rss_bytes": 1129816064,
+                "peak_scratch_bytes": 4516960224,
+                "reasoning_seconds": 111.75784405,
+                "rule_join_candidate_rows": 18624982,
+                "supervisor_peak_rss_bytes": 6201344
+              },
+              "end_to_end_seconds": 131.491053877,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "315e85feccf1a6f46e68955f4b977d0ef92652b80b4da26b8af095f07673c509",
+                  "manifest_sha256": "bcf5b5e7ea010d68e5024f404f061cb3edcf3b24d371679fa3de5b7d6b9a6ac9",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-10000000/materialize-0",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "7212ea8ba4ec6187b57b46b7bdbb62a5c1acb0bad423d62ef4f76cd57bf5a197",
+                  "source_tree_digest": "75376441646c8048b714e0da10d48c70ce872197601a12aeee4b857be1450d30"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 10000000,
+                  "inferred_facts": 8624990
+                },
+                "files": {
+                  "allocated_bytes": 2861658112,
+                  "files": [
+                    {
+                      "allocated_bytes": 1657245696,
+                      "bytes": 1656283136,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 1204396032,
+                      "bytes": 1204388870,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1390,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 2860676848
+                },
+                "manifest_stats": {
+                  "executed_rule_evaluations": 136,
+                  "explicit_facts": 10000000,
+                  "fixpoint_iterations": 8,
+                  "indexed_facts": 18624990,
+                  "inferred_facts": 8624990
+                }
+              },
+              "process_block_read_bytes": 5117100032,
+              "process_block_write_bytes": 7272361984,
+              "process_system_seconds": 21.028512,
+              "process_user_seconds": 111.176802,
+              "process_wait4_peak_rss_bytes": 1123241984,
+              "process_wall_seconds": 131.49073009699987,
+              "request_sha256": "35bf4f2855df8db0cae4592f74dda79d11dc2be82b4edca6c03798f7fa9b4bf3",
+              "response_bytes": 1866,
+              "response_sha256": "abd7ad401d2866b04a351b3f03cc2fad302791b78026c4bacd2ddd2f0b6c9eb4",
+              "returncode": 0,
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 19.692065,
+                "cpu_user_seconds": 108.189111,
+                "execution_seconds": 133.763791999,
+                "io_read_bytes": 5333225472,
+                "io_write_bytes": 7588200448,
+                "peak_rss_bytes": 1129062400,
+                "peak_scratch_bytes": 4516960224,
+                "reasoning_seconds": 114.926519309,
+                "rule_join_candidate_rows": 18624982,
+                "supervisor_peak_rss_bytes": 6340608
+              },
+              "end_to_end_seconds": 133.77239927699975,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "315e85feccf1a6f46e68955f4b977d0ef92652b80b4da26b8af095f07673c509",
+                  "manifest_sha256": "bcf5b5e7ea010d68e5024f404f061cb3edcf3b24d371679fa3de5b7d6b9a6ac9",
+                  "path": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp/facts-10000000/materialize-1",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "7212ea8ba4ec6187b57b46b7bdbb62a5c1acb0bad423d62ef4f76cd57bf5a197",
+                  "source_tree_digest": "75376441646c8048b714e0da10d48c70ce872197601a12aeee4b857be1450d30"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 10000000,
+                  "inferred_facts": 8624990
+                },
+                "files": {
+                  "allocated_bytes": 2862731264,
+                  "files": [
+                    {
+                      "allocated_bytes": 1658318848,
+                      "bytes": 1656283136,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 1204396032,
+                      "bytes": 1204388870,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1390,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 2860676848
+                },
+                "manifest_stats": {
+                  "executed_rule_evaluations": 136,
+                  "explicit_facts": 10000000,
+                  "fixpoint_iterations": 8,
+                  "indexed_facts": 18624990,
+                  "inferred_facts": 8624990
+                }
+              },
+              "process_block_read_bytes": 5340758016,
+              "process_block_write_bytes": 7588327424,
+              "process_system_seconds": 21.754436,
+              "process_user_seconds": 111.057101,
+              "process_wait4_peak_rss_bytes": 1122992128,
+              "process_wall_seconds": 133.77210007399935,
+              "request_sha256": "a2835b150f68251e6062b6c13d9c75d2d7c648587ff184d7024a88bf0c624d8b",
+              "response_bytes": 1867,
+              "response_sha256": "3e8c66c48c8c91ed4da3ada533a5a206d684039416078b670285036d6d376b12",
+              "returncode": 0,
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 2,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 133.77239927699975,
+            "measured_status_counts": {
+              "COMPLETE": 2
+            },
+            "median_seconds": 132.63172657699988,
+            "min_seconds": 131.491053877,
+            "planned_measured_samples": 3,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 2,
+            "warmup_status_counts": {}
+          }
+        }
+      ]
+    }
+  ],
+  "schema_version": "ontokiln-kernel-scaling/v1",
+  "scope": "Full compilation and bounded positive-rule materialization only; manifest counts are checked, full fact content requires a separate read-only audit. Not a query/SHACL or arbitrary recursive-closure capacity claim.",
+  "scratch_policy": "All child TMPDIR paths are inside the isolated work_directory/scratch, on the selected work filesystem.",
+  "started_at_utc": "2026-11-13T03:48:16.384603+00:00",
+  "statistics": "Three planned independent builds per stage by default; medians/ranges use verified COMPLETE samples. Failures stop remaining repeats.",
+  "status": "RUNNING",
+  "updated_at_utc": "2026-11-13T03:58:44.434782+00:00",
+  "work_directory": "/workspace/scratch/002e4172a133/ontokiln-scaling-work/ontokiln-kernel-scaling-bvou9gqp"
+}

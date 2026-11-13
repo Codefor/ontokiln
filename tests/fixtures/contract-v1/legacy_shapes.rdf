@@ -1,0 +1,10 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+<urn:legacy:shape>
+    a sh:NodeShape ;
+    sh:targetNode <urn:contract:e0000> ;
+    sh:property <urn:legacy:property> .
+
+<urn:legacy:property>
+    sh:path <urn:legacy:missing> ;
+    sh:hasValue "required" .

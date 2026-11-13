@@ -1,0 +1,13 @@
+[
+  {"id":"all-explicit", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s ?p ?o }", "count":10000},
+  {"id":"leaf-types", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Leaf }", "count":1996},
+  {"id":"default-is-asserted", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Root }", "count":0},
+  {"id":"root-closure", "view":"closure", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Root }", "count":1996},
+  {"id":"root-inferred", "view":"inferred", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Root }", "count":1996},
+  {"id":"explicit-not-inferred", "view":"inferred", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Leaf }", "count":0},
+  {"id":"property-inheritance", "view":"closure", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s ex:related ?o }", "count":1996},
+  {"id":"join-and-filter", "query":"SELECT (COUNT(*) AS ?n) WHERE { ?s a ex:Leaf; ex:score ?v; ex:alias ex:bucket0 FILTER(?v < 100) }", "count":25},
+  {"id":"cycle-terminates", "view":"closure", "query":"ASK { ex:CycleA rdfs:subClassOf ex:CycleA }", "boolean":true},
+  {"id":"private-json-stays-literal", "query":"ASK { ex:private a ex:hidden }", "boolean":false},
+  {"id":"numeric-equality", "query":"ASK { ex:literal ex:p ?a; ex:q ?b FILTER(?a = ?b && !sameTerm(?a, ?b)) }", "boolean":true}
+]

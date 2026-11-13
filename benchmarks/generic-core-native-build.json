@@ -1,0 +1,44 @@
+{
+  "schema_version": "ontokiln-build/v1",
+  "source_revision": "881a4629e848ab636e9ed16dc7adfee5a6272398",
+  "kernel": {
+    "capabilities": [
+      "rdf-pack/v3",
+      "sparql/v1",
+      "positive-rules/v1",
+      "proofs/v1",
+      "full-source-doc/v2",
+      "full-execution/v1",
+      "shacl-core-and-local-select/v1"
+    ],
+    "contract_version": "ontokiln-core/v3",
+    "kernel_sha256": "c2856d7bcd293b44db25b7dc9c9449893389f74f4d4484b84a056a6d4a00cc99",
+    "pack_version": 3,
+    "source_revision": "881a4629e848ab636e9ed16dc7adfee5a6272398",
+    "version": "0.1.0"
+  },
+  "target": "aarch64-apple-darwin",
+  "toolchain": "1.95.0",
+  "cargo_lock_sha256": "a9cd80775481239663b5ccbefac81100b484b1e88ad51f5836be1c8d83d7c38a",
+  "build_entry_sha256": "8352597ee1006cc9ffa4043e30db559fb806aeb6b5052d802ccdc4d710f43087",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: aarch64-apple-darwin\nrelease: 1.95.0\nLLVM version: 22.1.2",
+  "rustflags": "",
+  "encoded_rustflags": "",
+  "asset": {
+    "filename": "ontokiln-aarch64-apple-darwin.tar.gz",
+    "sha256": "3d1211e1c15f2ff487cc8e5afed8b2cb2295a95c4d9d9d6d686a702c943c974f",
+    "binary_sha256": "f7ee8614c977d61b552fecf49fa78350539cf6ada3f8b97f091aeaab030f279e"
+  },
+  "native_validation": [
+    {
+      "check": "workspace_tests",
+      "status": "passed",
+      "log_sha256": "c56abdf78b9845f9988a718faf5c46c9882b482bc26057cb928b04d2e2d47bd7"
+    },
+    {
+      "check": "native_build",
+      "status": "passed",
+      "log_sha256": "db7ce6990dfe9b50a2a6b1ec274713550a0035eba0cc61275e05974c0d3a5a79"
+    }
+  ]
+}

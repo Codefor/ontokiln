@@ -1,40 +1,48 @@
-# OntoKiln 开发指南
+# OntoKiln 开发与评审约束
 
-OntoKiln 将指定目录的 Turtle / N-Triples 编译成不可变 RDF 快照，部署可只带 pack。当前仅接受 **pack v3**；升级 v1/v2 必须从源数据重编。v3 已验证一亿条去重显式三元组。[CLI 和 HTTP](README.md) · [查询、来源与证明](docs/query-service.md) · [早期设计与目标](docs/rust-design-v1.md)。
+## 当前定位
 
-| 工作 | 入口 | 需要保持的行为 |
-|---|---|---|
-| 编译、源码版本 | [compiler](crates/compiler/src/lib.rs) | 顺序稳定地扫描文件；文档内隔离空白节点；排序、去重但保留所有断言来源。核对 sources.json 中的源码和 TTL 摘要。相同输入重建相同 pack |
-| 离线索引 | [pack](crates/pack/src/lib.rs)、[候选区间](crates/pack/src/index.rs) | SPO 是规范行；POS/OSP 保存行号。所有 S/P/O 组合选最长前缀。写入临时文件后原子替换；加载时验证摘要、边界、排序及来源。词项 ID 不跨快照 |
-| 视图与证据 | [reasoner](crates/reasoner/src/lib.rs)、[proofs](crates/reasoner/src/proofs.rs)、[离线规则](crates/compiler/src/rules.rs) | 版本先于推导；每个前提都需在所选版本可见。区分 asserted/inferred/closure；优先显式事实，一条确定性的有根证明。RDFS 规则版本 rdfs-hierarchy-v1；自定义规则版本含程序摘要 |
-| SPARQL | [参数](crates/reasoner/src/parameters.rs)、[dataset](crates/reasoner/src/sparql.rs)、[spareval 补丁说明](vendor/spareval/ONTOKILN.md) | 显式参数槽绑定到 RDF 词项，保留变量作用域和解的重数。文件是具名图，默认图去重。不要将一般值相等改写为词项相等。算子剖析是可选项 |
-| 在线生命周期 | [HTTP](src/queries.rs)、[调度](src/execution.rs)、[工作进程](src/worker.rs)、[堆计量](src/allocation.rs) | TTL / pack 共用已验证的私有只读快照；启动时预留一份 pack 的临时磁盘。工作进程继承服务快照 FD，不按原始路径重开文件。先终止并 wait，再释放槽。JSONL 以 end 记录标志完整结果 |
-| 业务语义 | [版本化赋值链](examples/assignment/queries/assignment.rq)、[业务选择实验](examples/scenarios/README.md) | 来源为已有 RDF 声明，源码用于摘要核对。两个版本故意复用相同 IRI；结果不能跨版本。业务实验另有 14 个[独立预期](examples/scenarios/cases.json)，核对确定、候选、被排除的路径 |
+OntoKiln 是可嵌入的 **Rust 全内存 RDF 编译与推理内核**。当前且唯一支持的持久化格式是 **Pack v4**。无独立 Full/SQLite 引擎，无 Pack v3 兼容，无 HTTP、API-v1、Worker、Session、FaaS/Pod/Abase 治理。不要恢复已删除的历史接口或分支。
 
-服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。Rust 基准版本 1.93.1，依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。
+应用通过 `OntologyEngine::build(&[Source], profile, &[Rule])` 编译并物化规则，直接得到可查询 Engine；通过 `save_pack` 持久化；通过 `load_pack` 恢复；`query`、`query_bound`、`query_with_derived`、`validate`、`validate_shape_sources` 使用同一只读闭包。构建成功意味着不动点已完成，推导失败不能发布部分闭包。
 
-## 构建与验证
+## 源码职责
 
-```sh
+| 模块 | 唯一职责 |
+|---|---|
+| `crates/compiler/src/v4.rs` | 冻结摘要核验，RDF 解析，规范词典、事实和来源 |
+| `crates/compiler/src/v4_materialize.rs` | RDFS / Datalog / OWL 属性链等支持的正向规则闭包 |
+| `crates/pack/src/v4.rs` | 四元组、SPO/POS/OSP、位图/来源、原子 Pack 保存与完整性校验 |
+| `crates/reasoner/src/v4.rs` | 索引查询、SPARQL Dataset 适配及请求级派生 Overlay |
+| `src/engine.rs` | 统一内存对象、Pack 生命周期、查询与 SHACL 缓存 |
+| `src/rdf_graph.rs` / `src/shacl.rs` | 共享只读数据图、SHACL Core/Property Path/SPARQL |
+| `src/main.rs` | `build` / `query` / `validate` / `inspect` 四个本地薄 CLI |
+
+- 不按业务类/属性名/IRI 命名空间进行优化或分支；只实现可解释、通用的 RDF/规则/SHACL 语义。
+- RDF 具名图与文档来源分离；默认 SPARQL 图按所选视图做 SPO 去重并集；推导事实不改写显式来源；请求级 derived Overlay 不写回 Pack。
+- 确保数据摘要、Pack SHA-256、长度/索引完整性及异常输入检查；不得用输入声明的容量分配未验证的巨大数组。
+- 同一 Engine 可以被多线程共享；SHACL 缓存必须只存不可变数据，运行时 focus、规则临时状态和派生事实均请求级隔离。
+- 仅在确有业务需求时新增 Rust API；禁止引入数据库或服务端口。部署与分片见 [FaaS 适配任务](docs/adapters/faas-codex-prompt.md)。
+
+## 功能与性能门禁
+
+```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
-cargo test --workspace --all-features --locked
-cargo run --locked --example scenario_lab -- --compare
+cargo build --release --locked --bin ontokiln
+cargo build --release --locked --example v4_resident_bench
+python3 -B benchmarks/v4_resident_baseline.py \
+  --binary target/release/examples/v4_resident_bench \
+  --facts 100000 --samples 3 --warmups 1 --output target/v4-baselines/100k.json
 ```
 
-[引擎回归](tests/engines.rs)覆盖 mmap、并行确定性、视图、证明导出重载及 Datafrog/Ascent 差分。[集成测试](tests/demo.rs)覆盖删除 TTL 后独立加载、循环、空白节点及损坏包。[真实 HTTP 回归](tests/query_service.py)由 Cargo 集成测试启动，验证版本、参数、算子统计、输出和堆上限、超时，以及首行前和流式传输中断连。不能用仅检查取消标志的模拟测试替代。修改业务选择逻辑，可先重放 `scenario_lab -- --case V4 --trace`，再比较全部用例。
+CI 的冻结语料 100K/1M：固定 100000/1000000 显式事实，RDFS + 3 条自定义规则，独立期望 86240/862490 推导事实。必须精确核对 SPARQL 解的类型、词法形式、重复行与顺序及 SHACL targets/违规，再发布性能结论。
 
-## 预算与基准
+性能必须区分 compile、materialize、Reasoner init、save、load、first-query 和 resident-hot query/SHACL，单独记录完整 target 与指定 Shape/focus 两种 SHACL。公共 GitHub Runner 性能只是观测，不能与历史不同机器/不同配置数字直接计算“倍速”；固定宿主上三次以上同机 A/B 才允许强性能判断。
 
-CLI 和 HTTP 共用 SPARQL 核心。默认一次请求总共最多查看 **200,000,000 条候选索引行**；再次检查同一行再次计数，第 200,000,001 次触发 422。二分定位的键比较和中间解数量不计入扫描数。5 秒超时为 408，主动取消为 409，槽满为 429。流已经开始时，错误在末行。改预算时同步更新测试、README 和接口文档。堆增量、累计分配、共享 mmap、进程 RSS 分开报告。
+[基线合同](docs/v4-baseline.md) · [本地适配](docs/adapters/local-codex-prompt.md) · [核心 API](docs/core-v4.md)。
 
-```sh
-cargo build --release --locked --features ascent-engine --bin ontokiln --example scenario_lab
-python3 -B benchmarks/indexed_queries.py --output data/indexed-queries-v3.json
-python3 -B benchmarks/worker_memory.py --output data/worker-memory-v3.json
-```
+## 历史证据
 
-[亿级 v3 报告](benchmarks/indexed-queries-v3.md)使用同一生成器：1,113,595 / 11,126,095 / 100,000,000 条显式事实。亿级双类型 COUNT 和 FILTER EXISTS 都得到 1,123,584；当前固定模板各读 6,741,500 条候选行。修改优化器后重测两种模板及小图对照；答案不能变化，扫描量应解释。每种模板预热一次、串行测九次，按状态分别报告成功、超时和拒绝。另一次 counters 请求用于记录扫描和堆；完整 profile 单列，避免计入延迟。内存测试区分父进程就绪、运行峰值、请求结束以及每个子进程的峰值；共享页不可简单相加。
-
-常规编译、启动和层级实验运行 `benchmarks/run.py --output data/pack-v3.json`；批量、类型集合、SPARQL、离线规则运行 `benchmarks/capabilities.py --output data/pack-v3-capabilities.json`；均用 Python 3、按顺序跑，`--subjects 25000` 可快速检查。全量历史能力套件使用 `benchmarks/hundred_million.py`。v3 在线查询为每次请求新建工作进程，HTTP 类型位图不跨请求留存，不能把 v2 的热缓存成绩当作 v3。大型测试生成的 pack 不入库；正式报告应将实测 JSON 一起提交，记录引擎提交、构建特性、机器、预热和并发。[历史对照](benchmarks/README.md)
+`benchmarks/kernel-baseline/` 及旧 Full/SQLite/Pack v3 历史报告作为**只读审计证据**保留，旧脚本不支持当前 Pack v4 CLI，不得当作现行测试入口。当前可执行基线为 `v4_baseline_regression.py` 与 `v4_resident_baseline.py`。评审应同时检查所有新用例的独立 expected oracle，而不能只依赖 CI 绿色状态。

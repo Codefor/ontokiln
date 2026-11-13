@@ -1,0 +1,13 @@
+{
+  "schema_version": "ontokiln-benchmark-interruption/v1",
+  "observed_at_utc": "2026-11-13T04:03:31.499376+00:00",
+  "original_report": "/workspace/scratch/002e4172a133/ontokiln-kernel-scaling-46e0fb5-linux.json",
+  "original_sha256": "7f43945fb137ca35aaac39bea0aa1cdca3a70ca5dc6dc152cbc989977ee7c336",
+  "last_checkpoint": "2026-11-13T03:58:44.434782+00:00",
+  "reported_state": "RUNNING",
+  "planned_measured_samples": 12,
+  "complete_checkpointed_samples": 11,
+  "observation": "exec session 29988 became unavailable; no kernel_scaling.py or ontokiln process remained; request 12 had no response.json; no valid sample 12 end-to-end measurement or exit status was available",
+  "cause": "unknown; not attributed to engine budget exhaustion",
+  "handling": "retain original checkpoint unchanged; repeat complete study with the same binary, frozen harness and configuration; do not pool or fill the missing sample from response timing"
+}

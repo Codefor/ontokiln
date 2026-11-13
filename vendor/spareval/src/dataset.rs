@@ -309,6 +309,19 @@ impl PartialEq for ExpressionTerm {
                         language: rl,
                     },
                 ) => lv == rv && ll == rl,
+                #[cfg(feature = "sparql-12")]
+                (
+                    Self::DirLangStringLiteral {
+                        value: lv,
+                        language: ll,
+                        direction: ld,
+                    },
+                    Self::DirLangStringLiteral {
+                        value: rv,
+                        language: rl,
+                        direction: rd,
+                    },
+                ) => lv == rv && ll == rl && ld == rd,
                 (Self::BooleanLiteral(l), Self::BooleanLiteral(r)) => l == r,
                 (Self::IntegerLiteral(l), Self::IntegerLiteral(r)) => l == r,
                 (Self::DecimalLiteral(l), Self::DecimalLiteral(r)) => l == r,
@@ -517,6 +530,9 @@ impl From<bool> for ExpressionTerm {
 impl ExpressionTerm {
     /// Computes the term [Effective boolean value](https://www.w3.org/TR/sparql11-query/#ebv)
     pub(crate) fn effective_boolean_value(&self) -> Option<bool> {
+        if let Some(value) = crate::expression::integer_value(self) {
+            return Some(value != num_bigint::BigInt::from(0));
+        }
         match self {
             ExpressionTerm::BooleanLiteral(value) => Some((*value).into()),
             ExpressionTerm::StringLiteral(value) => Some(!value.is_empty()),

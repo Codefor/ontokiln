@@ -1,0 +1,28 @@
+   Compiling spareval v0.2.9 (/workspace/scratch/1ad35372e414/ontokiln-round4-baseline-test/vendor/spareval)
+   Compiling ontokiln-pack v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln-round4-baseline-test/crates/pack)
+   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln-round4-baseline-test)
+   Compiling ontokiln-compiler v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln-round4-baseline-test/crates/compiler)
+   Compiling ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln-round4-baseline-test/crates/reasoner)
+   Compiling oxigraph v0.5.13
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 14.80s
+     Running unittests src/lib.rs (/workspace/scratch/1ad35372e414/target-build/debug/deps/ontokiln-9941565c225ceb37)
+
+running 1 test
+path join: three-quad BGP, background=32, progress_steps=900
+path join: three-hop path, background=32, progress_steps=900
+path join: inverse two-hop path, background=32, progress_steps=400
+path join: three-quad BGP, background=8192, progress_steps=302600
+
+thread 'shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches' (1243) panicked at src/../tests/shacl/sqlite_store.rs:1154:13:
+three-quad BGP traversed unrelated predicate rows: background=8192, progress_steps=302600
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches ... FAILED
+
+failures:
+
+failures:
+    shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 54 filtered out; finished in 0.21s
+
+error: test failed, to rerun pass `--lib`

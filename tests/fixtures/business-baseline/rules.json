@@ -1,0 +1,10 @@
+{
+  "schema_version": "ontology-rule-ir/v1",
+  "rules": [
+    {
+      "rule_id": "urn:business-baseline:smoke:p-to-q",
+      "head": ["?s", "<urn:business-baseline:smoke:q>", "?value"],
+      "body": [["?s", "<urn:business-baseline:smoke:p>", "?value"]]
+    }
+  ]
+}

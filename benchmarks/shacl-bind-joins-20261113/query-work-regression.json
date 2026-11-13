@@ -1,0 +1,76 @@
+{
+  "metric": "SQLite progress-handler callback count times 100; diagnostic work units, not API latency",
+  "before_source": "b8ecf8046a286345926077318a78dde7541fb98b",
+  "after_source_tree": "6f0a61337de3c1d55de108e38e1c70ad5a3c7593",
+  "before": [
+    {
+      "case": "three-quad BGP",
+      "background": 32,
+      "progress_steps": 900
+    },
+    {
+      "case": "three-hop path",
+      "background": 32,
+      "progress_steps": 900
+    },
+    {
+      "case": "inverse two-hop path",
+      "background": 32,
+      "progress_steps": 400
+    },
+    {
+      "case": "three-quad BGP",
+      "background": 8192,
+      "progress_steps": 302600
+    }
+  ],
+  "after": [
+    {
+      "case": "three-quad BGP",
+      "background": 32,
+      "progress_steps": 400
+    },
+    {
+      "case": "three-hop path",
+      "background": 32,
+      "progress_steps": 400
+    },
+    {
+      "case": "inverse two-hop path",
+      "background": 32,
+      "progress_steps": 100
+    },
+    {
+      "case": "three-quad BGP",
+      "background": 8192,
+      "progress_steps": 400
+    },
+    {
+      "case": "three-hop path",
+      "background": 8192,
+      "progress_steps": 400
+    },
+    {
+      "case": "inverse two-hop path",
+      "background": 8192,
+      "progress_steps": 100
+    }
+  ],
+  "before_expected_failure": {
+    "returncode": 101,
+    "reason": "three-quad BGP traversed unrelated predicate rows",
+    "threshold": 20000
+  },
+  "all_shared_keys_prebound": {
+    "left_rows": 64,
+    "right_rows": 32,
+    "output_rows": 2048,
+    "progress_steps": 3000
+  },
+  "baseline_semantic_tests": 4,
+  "baseline_semantic_tests_status": "PASS",
+  "notes": [
+    "The old-source work diagnostic intentionally fails the unchanged 20,000-unit guard.",
+    "The old-source test stops at the first 8,192-background BGP failure; it does not record large-background path results."
+  ]
+}

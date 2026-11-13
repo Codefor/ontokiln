@@ -1,0 +1,66 @@
+name: Pack v4 contracts
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+      - name: Check formatting
+        run: cargo fmt --all --check
+      - name: Lint current memory engine
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Pack v4 library and integration regression
+        run: cargo test --workspace --locked
+      - name: Million-fact memory capacity and Pack integrity (release)
+        run: cargo test --release --test v4_scale --locked -- --ignored --nocapture
+      - name: Frozen Full corpus oracles on Pack v4 (100K, release)
+        run: |
+          cargo build --release --locked --bin ontokiln
+          RAYON_NUM_THREADS=1 python3 -B benchmarks/v4_baseline_regression.py             --binary target/release/ontokiln --facts 100000 --shacl
+      - name: Frozen Full million-fact corpus on Pack v4 (release)
+        run: |
+          RAYON_NUM_THREADS=1 python3 -B benchmarks/v4_baseline_regression.py --binary target/release/ontokiln --facts 1000000 --shacl
+  tag-initial-pack-v4:
+    name: Tag v0.1.0 after green main CI
+    needs: contracts
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'release: OntoKiln Pack v4 v0.1.0')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Assert release version
+        run: |
+          grep -Fx 'version = "0.1.0"' Cargo.toml
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Publish immutable annotated tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing="$(git ls-remote origin refs/tags/v0.1.0 | cut -f1)"
+          if [[ -n "$existing" ]]; then
+            peeled="$(git ls-remote origin 'refs/tags/v0.1.0^{}' | cut -f1)"
+            actual="${peeled:-$existing}"
+            if [[ "$actual" != "$GITHUB_SHA" ]]; then
+              echo "Refusing to overwrite an existing release tag" >&2
+              exit 1
+            fi
+            echo "v0.1.0 already points to this release"
+          else
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              tag -a v0.1.0 "$GITHUB_SHA" \
+              -m "OntoKiln Pack v4 single in-memory RDF compiler and reasoner (PR #1)"
+            git push origin refs/tags/v0.1.0
+          fi

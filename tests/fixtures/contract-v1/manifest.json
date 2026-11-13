@@ -1,0 +1,15 @@
+{
+  "entities": 1996,
+  "files": {
+    "data.ttl": {
+      "sha256": "9836ec0537516b4fd049a9f1ce23bfb89a3f36720b7838104be1ce3ec2d506fd",
+      "triples": 9981
+    },
+    "schema.ttl": {
+      "sha256": "82b9da16d1f4c9b7e6f03ba8a13ac81fc617006243087bc27a0c09cfdaa5a2d6",
+      "triples": 19
+    }
+  },
+  "schema_version": "ontokiln-contract-fixture/v1",
+  "triples": 10000
+}

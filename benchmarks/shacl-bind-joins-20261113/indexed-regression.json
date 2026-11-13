@@ -1,0 +1,1976 @@
+{
+  "schema_version": "ontokiln-indexed-regression/v1",
+  "status": "COMPLETE",
+  "started_at": "2026-11-13T06:39:38Z",
+  "method": {
+    "panel_sizes": [
+      250000,
+      22471664
+    ],
+    "templates": [
+      "intersection",
+      "exists"
+    ],
+    "warmups": 1,
+    "measurements": 9,
+    "counter_requests": 1,
+    "deadline_ms": 5000,
+    "max_visits": 200000000,
+    "max_visits_source": "explicit options.max_visits; same as engine MAX_VISITS",
+    "compile_rss_limit_bytes": 8053063680,
+    "rss_poll_seconds": 0.02,
+    "compile_limit_scope": "compiler process RSS, threads included; sampled then kill and wait4",
+    "threads": 1,
+    "tmpdir": "/workspace/scratch/1ad35372e414/round4-indexed-tmp",
+    "fixture_root": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures",
+    "compile_binary": "before",
+    "pack_shared_between_binaries": true,
+    "query_order": "before then after; intersection then exists",
+    "os_cache_flushed": false,
+    "build_features_caller_declaration": "default",
+    "build_profile_caller_declaration": "release"
+  },
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14",
+    "logical_cpus": 9,
+    "physical_memory_bytes": 10451427328,
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2",
+    "repository_head": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+    "repository_status": ""
+  },
+  "harness": [
+    {
+      "path": "/workspace/scratch/1ad35372e414/round4_indexed_regression.py",
+      "bytes": 22816,
+      "sha256": "64c153fc2764c11b9efd7d9a1da738b0de30a02321e9ec1bcc4530259a40a37e"
+    },
+    {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln/benchmarks/run.py",
+      "bytes": 12299,
+      "sha256": "7659fe7b29e631538936756c86b6de0b42634173b32c1fbcbee76430ce03d819"
+    },
+    {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln/benchmarks/capabilities.py",
+      "bytes": 9827,
+      "sha256": "39f504e7b88abdd659ee59dfa2a50ddf8fd8cdb7f82830ea001349786d771e7f"
+    },
+    {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln/Cargo.lock",
+      "bytes": 84062,
+      "sha256": "842f3a8fe680f1e9e93398c0c8f8c48ae84010397dc0641d02fc26034c3f213b"
+    },
+    {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln/rust-toolchain.toml",
+      "bytes": 86,
+      "sha256": "7d21c66a15f41bad66b82ed06a289f5dc8a6e3751951d2696bbf20ce296f2b0f"
+    },
+    {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner/src/sparql.rs",
+      "bytes": 17711,
+      "sha256": "38acc0b5ad47e8787628f8491db7244bfc4ea938b02a75f4d54df21ffeb46aa2"
+    }
+  ],
+  "binaries": {
+    "before": {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln-round3-after-bin",
+      "bytes": 22995720,
+      "sha256": "83680cfeca52cdd201ba02f9c40fa5bca19ad18a1a9443942054df83999d78c1",
+      "identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "features_caller_declaration": "default",
+      "profile_caller_declaration": "release"
+    },
+    "after": {
+      "path": "/workspace/scratch/1ad35372e414/ontokiln-round4-after-bin",
+      "bytes": 23050400,
+      "sha256": "c55432609a454dfb916b9d6e49183be93421ecc05098ee7b77c5e2716143195b",
+      "identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+        "pack_version": 3,
+        "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+        "version": "0.1.0"
+      },
+      "features_caller_declaration": "default",
+      "profile_caller_declaration": "release"
+    }
+  },
+  "datasets": [
+    {
+      "panels": 250000,
+      "expected_triples": 1113595,
+      "expected_count": 12500,
+      "expected_candidate_rows": 75000,
+      "directory": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/250000",
+      "status": "COMPLETE",
+      "generation": {
+        "status": "COMPLETE",
+        "started_at": "2026-11-13T06:39:38Z",
+        "seconds": 0.22949085100117372
+      },
+      "compile": {
+        "status": "COMPLETE",
+        "started_at": "2026-11-13T06:39:38Z",
+        "budget_exceeded": false,
+        "stderr_path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/250000/compile.stderr",
+        "pid": 16,
+        "process_reaped": true,
+        "last_rss_bytes": 0,
+        "sampled_peak_rss_bytes": 74440704,
+        "returncode": 0,
+        "wait4_peak_rss_bytes": 74440704,
+        "seconds": 2.6351033999999345,
+        "peak_rss_bytes": 74440704,
+        "stderr_sha256": "5d773a5f0c9ed17129c8d4db0c305f1efa9829bb96bbde542244d8dbd1508477",
+        "stderr_bytes": 63,
+        "stderr_tail": "compiled 5 RDF files, 1113595 parsed triples, 1113595 distinct\n"
+      },
+      "engines": [
+        {
+          "role": "before",
+          "status": "COMPLETE",
+          "startup": {
+            "pid": 19,
+            "process_reaped": true,
+            "metrics": {
+              "ready_seconds": 0.18561138500081142,
+              "ready_rss_bytes": 42921984,
+              "terms": 254237,
+              "pid": 19,
+              "peak_rss_bytes": 42803200
+            },
+            "status": "READY",
+            "last_rss_bytes": 0,
+            "sampled_peak_rss_bytes": 0,
+            "returncode": -15,
+            "wait4_peak_rss_bytes": 42803200
+          },
+          "records": [
+            {
+              "template": "intersection",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 88089389,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 42320729,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 39216578,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 48506106,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 41676228,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 40592302,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 47689399,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 39262346,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 43592084,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 40023389,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:41Z",
+              "elapsed_ns": 40448644,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "12500"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 75000
+            },
+            {
+              "template": "exists",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 48582381,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 54830403,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 42885795,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 41508528,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 47464828,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 42333427,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 42430955,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 41993253,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 41325561,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 42081536,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 44785651,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "12500"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 75000
+            }
+          ],
+          "runtime_identity_http_status": 200,
+          "runtime_identity": {
+            "kernel": {
+              "capabilities": [
+                "ontokiln-api/v1",
+                "rdf-pack/v3",
+                "sparql/v1",
+                "positive-rules/v1",
+                "proofs/v1",
+                "full-source-doc/v2",
+                "full-execution/v1",
+                "shacl-core-and-local-select/v1",
+                "values-bindings/v1",
+                "derived-query-data/v1"
+              ],
+              "contract_version": "ontokiln-core/v3",
+              "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+              "pack_version": 3,
+              "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+              "version": "0.1.0"
+            },
+            "pack_sha256": "3985547f00b73af5e8c9e18d7540e46c83c61da9c1f928525f1d34eddcc97019",
+            "pack_version": 3,
+            "schema_version": "ontokiln-pack-identity/v1",
+            "sources": [
+              {
+                "file": "lineage.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a",
+                "source_file": null
+              },
+              {
+                "file": "panels.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "f454064348045f926ccc005120ce2e61e2eface405bff135c4111d9d170bc679",
+                "source_file": null
+              },
+              {
+                "file": "segments.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "f2301d7228b9b2d590372a0284e55a6709d6fd7e4a5a09b0d342c1b52346c7f1",
+                "source_file": null
+              },
+              {
+                "file": "variants.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84",
+                "source_file": null
+              },
+              {
+                "file": "vocabulary.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da",
+                "source_file": null
+              }
+            ],
+            "terms": 254237,
+            "triples": 1113595
+          }
+        },
+        {
+          "role": "after",
+          "status": "COMPLETE",
+          "startup": {
+            "pid": 44,
+            "process_reaped": true,
+            "metrics": {
+              "ready_seconds": 0.13298024899995653,
+              "ready_rss_bytes": 43393024,
+              "terms": 254237,
+              "pid": 44,
+              "peak_rss_bytes": 43208704
+            },
+            "status": "READY",
+            "last_rss_bytes": 0,
+            "sampled_peak_rss_bytes": 0,
+            "returncode": -15,
+            "wait4_peak_rss_bytes": 43208704
+          },
+          "records": [
+            {
+              "template": "intersection",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 46522472,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 46836587,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 44578337,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:42Z",
+              "elapsed_ns": 36941492,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 38421975,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 39156777,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 39683194,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 40091273,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 40234259,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 37598507,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 37158411,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "12500"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 75000
+            },
+            {
+              "template": "exists",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 41779910,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 42919836,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 42064821,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 62908435,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 45261923,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 41527858,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 46546267,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 49543907,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 49879652,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 46076172,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 12500,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:39:43Z",
+              "elapsed_ns": 41250815,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "12500"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 75000
+            }
+          ],
+          "runtime_identity_http_status": 200,
+          "runtime_identity": {
+            "kernel": {
+              "capabilities": [
+                "ontokiln-api/v1",
+                "rdf-pack/v3",
+                "sparql/v1",
+                "positive-rules/v1",
+                "proofs/v1",
+                "full-source-doc/v2",
+                "full-execution/v1",
+                "shacl-core-and-local-select/v1",
+                "values-bindings/v1",
+                "derived-query-data/v1"
+              ],
+              "contract_version": "ontokiln-core/v3",
+              "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+              "pack_version": 3,
+              "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+              "version": "0.1.0"
+            },
+            "pack_sha256": "3985547f00b73af5e8c9e18d7540e46c83c61da9c1f928525f1d34eddcc97019",
+            "pack_version": 3,
+            "schema_version": "ontokiln-pack-identity/v1",
+            "sources": [
+              {
+                "file": "lineage.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a",
+                "source_file": null
+              },
+              {
+                "file": "panels.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "f454064348045f926ccc005120ce2e61e2eface405bff135c4111d9d170bc679",
+                "source_file": null
+              },
+              {
+                "file": "segments.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "f2301d7228b9b2d590372a0284e55a6709d6fd7e4a5a09b0d342c1b52346c7f1",
+                "source_file": null
+              },
+              {
+                "file": "variants.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84",
+                "source_file": null
+              },
+              {
+                "file": "vocabulary.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da",
+                "source_file": null
+              }
+            ],
+            "terms": 254237,
+            "triples": 1113595
+          }
+        }
+      ],
+      "fixture": {
+        "files": [
+          {
+            "path": "lineage.ttl",
+            "bytes": 915,
+            "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a"
+          },
+          {
+            "path": "panels.ttl",
+            "bytes": 21310637,
+            "sha256": "f454064348045f926ccc005120ce2e61e2eface405bff135c4111d9d170bc679"
+          },
+          {
+            "path": "segments.ttl",
+            "bytes": 2550126,
+            "sha256": "f2301d7228b9b2d590372a0284e55a6709d6fd7e4a5a09b0d342c1b52346c7f1"
+          },
+          {
+            "path": "variants.ttl",
+            "bytes": 1146,
+            "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84"
+          },
+          {
+            "path": "vocabulary.ttl",
+            "bytes": 541,
+            "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da"
+          }
+        ],
+        "tree_sha256": "3a070c04c2040591e025072c36d80bac9d3cad73cc4640d49f79a516cf2be8c8",
+        "bytes": 23863365
+      },
+      "query_assets": {
+        "files": [
+          {
+            "path": "bound.rq",
+            "bytes": 116,
+            "sha256": "f2f5b5306ba4f190f55bc341146e506a07cc7714772fbb61aed723e41d0d46bd"
+          },
+          {
+            "path": "exists.rq",
+            "bytes": 126,
+            "sha256": "a23084db06315c19ac582f6165c55dac4afec0a9139f73ba150aa8c1440b9209"
+          },
+          {
+            "path": "intersection.rq",
+            "bytes": 98,
+            "sha256": "501433d1737b7f46a2ecc68d2280226fb6bddfc1eb1e3906b997639d3c713b3c"
+          },
+          {
+            "path": "premium.rq",
+            "bytes": 89,
+            "sha256": "c6d6b548679951563cd4e49710d12e4089ad3ba739ff0d4ac62386e35322f502"
+          }
+        ],
+        "tree_sha256": "3e1a0ba03a8b5d683ed7d11f664623f90ce673c7455920f1e8234d4c51ced36e",
+        "bytes": 429
+      },
+      "pack": {
+        "path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/250000/panels.pack",
+        "bytes": 35759200,
+        "sha256": "3985547f00b73af5e8c9e18d7540e46c83c61da9c1f928525f1d34eddcc97019"
+      }
+    },
+    {
+      "panels": 22471664,
+      "expected_triples": 100000000,
+      "expected_count": 1123584,
+      "expected_candidate_rows": 6741500,
+      "directory": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/22471664",
+      "status": "COMPLETE",
+      "generation": {
+        "status": "COMPLETE",
+        "started_at": "2026-11-13T06:39:43Z",
+        "seconds": 16.31548691200078
+      },
+      "compile": {
+        "status": "COMPLETE",
+        "started_at": "2026-11-13T06:40:01Z",
+        "budget_exceeded": false,
+        "stderr_path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/22471664/compile.stderr",
+        "pid": 69,
+        "process_reaped": true,
+        "last_rss_bytes": 0,
+        "sampled_peak_rss_bytes": 5910085632,
+        "returncode": 0,
+        "wait4_peak_rss_bytes": 5910085632,
+        "seconds": 282.29686292899714,
+        "peak_rss_bytes": 5910085632,
+        "stderr_sha256": "c95055ddc1a25bd1626d932e9103469a2cc4f7b27816a8a323847cbcbd6108c5",
+        "stderr_bytes": 67,
+        "stderr_tail": "compiled 5 RDF files, 100000000 parsed triples, 100000000 distinct\n"
+      },
+      "engines": [
+        {
+          "role": "before",
+          "status": "COMPLETE",
+          "startup": {
+            "pid": 72,
+            "process_reaped": true,
+            "metrics": {
+              "ready_seconds": 17.637951483000506,
+              "ready_rss_bytes": 3249991680,
+              "terms": 22475901,
+              "pid": 72,
+              "peak_rss_bytes": 3249700864
+            },
+            "status": "READY",
+            "last_rss_bytes": 0,
+            "sampled_peak_rss_bytes": 0,
+            "returncode": -15,
+            "wait4_peak_rss_bytes": 3249700864
+          },
+          "records": [
+            {
+              "template": "intersection",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:04Z",
+              "elapsed_ns": 3848334214,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:08Z",
+              "elapsed_ns": 3669697933,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:11Z",
+              "elapsed_ns": 3265715692,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:15Z",
+              "elapsed_ns": 3248577839,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:18Z",
+              "elapsed_ns": 3344261165,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:21Z",
+              "elapsed_ns": 3241268729,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:24Z",
+              "elapsed_ns": 3665874815,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:28Z",
+              "elapsed_ns": 3511168137,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:32Z",
+              "elapsed_ns": 3672702858,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:35Z",
+              "elapsed_ns": 3526836337,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:39Z",
+              "elapsed_ns": 3549319763,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "1123584"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 6741500
+            },
+            {
+              "template": "exists",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:42Z",
+              "elapsed_ns": 3663559882,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:46Z",
+              "elapsed_ns": 3519188390,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:50Z",
+              "elapsed_ns": 3498847757,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:53Z",
+              "elapsed_ns": 3568131177,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:45:57Z",
+              "elapsed_ns": 3538289522,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:00Z",
+              "elapsed_ns": 3493880419,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:04Z",
+              "elapsed_ns": 3790272624,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:07Z",
+              "elapsed_ns": 3728042210,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:11Z",
+              "elapsed_ns": 3665119849,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:15Z",
+              "elapsed_ns": 3802556870,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:19Z",
+              "elapsed_ns": 3698404708,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "1123584"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 6741500
+            }
+          ],
+          "runtime_identity_http_status": 200,
+          "runtime_identity": {
+            "kernel": {
+              "capabilities": [
+                "ontokiln-api/v1",
+                "rdf-pack/v3",
+                "sparql/v1",
+                "positive-rules/v1",
+                "proofs/v1",
+                "full-source-doc/v2",
+                "full-execution/v1",
+                "shacl-core-and-local-select/v1",
+                "values-bindings/v1",
+                "derived-query-data/v1"
+              ],
+              "contract_version": "ontokiln-core/v3",
+              "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+              "pack_version": 3,
+              "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+              "version": "0.1.0"
+            },
+            "pack_sha256": "0253522dee38e1e65f4febc67560835181289f0ff26be20cb71b72d853cf2f6b",
+            "pack_version": 3,
+            "schema_version": "ontokiln-pack-identity/v1",
+            "sources": [
+              {
+                "file": "lineage.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a",
+                "source_file": null
+              },
+              {
+                "file": "panels.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "107682394b48cb8d475cd8894befeb6da75ff984fc7bb7d2c3f8a0bf3e07b95c",
+                "source_file": null
+              },
+              {
+                "file": "segments.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "0d810f844bdf7c3c908626132be3bd532bfff6e572b3fd86b3e3848b640f4e3e",
+                "source_file": null
+              },
+              {
+                "file": "variants.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84",
+                "source_file": null
+              },
+              {
+                "file": "vocabulary.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da",
+                "source_file": null
+              }
+            ],
+            "terms": 22475901,
+            "triples": 100000000
+          }
+        },
+        {
+          "role": "after",
+          "status": "COMPLETE",
+          "startup": {
+            "pid": 97,
+            "process_reaped": true,
+            "metrics": {
+              "ready_seconds": 16.10886478699831,
+              "ready_rss_bytes": 3250827264,
+              "terms": 22475901,
+              "pid": 97,
+              "peak_rss_bytes": 3250786304
+            },
+            "status": "READY",
+            "last_rss_bytes": 0,
+            "sampled_peak_rss_bytes": 0,
+            "returncode": -15,
+            "wait4_peak_rss_bytes": 3250786304
+          },
+          "records": [
+            {
+              "template": "intersection",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:39Z",
+              "elapsed_ns": 3434742125,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:42Z",
+              "elapsed_ns": 3273395863,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:45Z",
+              "elapsed_ns": 3407211600,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:49Z",
+              "elapsed_ns": 3506500078,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:52Z",
+              "elapsed_ns": 3416958711,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:56Z",
+              "elapsed_ns": 3528242926,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:46:59Z",
+              "elapsed_ns": 3415938195,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:03Z",
+              "elapsed_ns": 3366403846,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:06Z",
+              "elapsed_ns": 3363131188,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:09Z",
+              "elapsed_ns": 3349078497,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "intersection",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:13Z",
+              "elapsed_ns": 3368334348,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "1123584"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 6741500
+            },
+            {
+              "template": "exists",
+              "phase": "warmup",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:16Z",
+              "elapsed_ns": 3772013745,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 1,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:20Z",
+              "elapsed_ns": 3697507300,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 2,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:24Z",
+              "elapsed_ns": 3662995083,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 3,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:27Z",
+              "elapsed_ns": 4032477428,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 4,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:31Z",
+              "elapsed_ns": 3718084201,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 5,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:35Z",
+              "elapsed_ns": 3701364844,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 6,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:39Z",
+              "elapsed_ns": 3537485908,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 7,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:42Z",
+              "elapsed_ns": 4506531069,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 8,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:47Z",
+              "elapsed_ns": 4214922700,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "measured",
+              "sample": 9,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:51Z",
+              "elapsed_ns": 3696148586,
+              "timing": "capabilities.post_request_through_body_read"
+            },
+            {
+              "template": "exists",
+              "phase": "counters",
+              "sample": 0,
+              "status": "COMPLETE",
+              "http_status": 200,
+              "actual_count": 1123584,
+              "oracle_checked": true,
+              "started_at": "2026-11-13T06:47:55Z",
+              "elapsed_ns": 3549236660,
+              "timing": "capabilities.post_request_through_body_read",
+              "counter_body": {
+                "profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                },
+                "result": {
+                  "head": {
+                    "vars": [
+                      "n"
+                    ]
+                  },
+                  "results": {
+                    "bindings": [
+                      {
+                        "n": {
+                          "datatype": "http://www.w3.org/2001/XMLSchema#integer",
+                          "type": "literal",
+                          "value": "1123584"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "candidate_rows": 6741500
+            }
+          ],
+          "runtime_identity_http_status": 200,
+          "runtime_identity": {
+            "kernel": {
+              "capabilities": [
+                "ontokiln-api/v1",
+                "rdf-pack/v3",
+                "sparql/v1",
+                "positive-rules/v1",
+                "proofs/v1",
+                "full-source-doc/v2",
+                "full-execution/v1",
+                "shacl-core-and-local-select/v1",
+                "values-bindings/v1",
+                "derived-query-data/v1"
+              ],
+              "contract_version": "ontokiln-core/v3",
+              "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+              "pack_version": 3,
+              "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+              "version": "0.1.0"
+            },
+            "pack_sha256": "0253522dee38e1e65f4febc67560835181289f0ff26be20cb71b72d853cf2f6b",
+            "pack_version": 3,
+            "schema_version": "ontokiln-pack-identity/v1",
+            "sources": [
+              {
+                "file": "lineage.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a",
+                "source_file": null
+              },
+              {
+                "file": "panels.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "107682394b48cb8d475cd8894befeb6da75ff984fc7bb7d2c3f8a0bf3e07b95c",
+                "source_file": null
+              },
+              {
+                "file": "segments.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "0d810f844bdf7c3c908626132be3bd532bfff6e572b3fd86b3e3848b640f4e3e",
+                "source_file": null
+              },
+              {
+                "file": "variants.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84",
+                "source_file": null
+              },
+              {
+                "file": "vocabulary.ttl",
+                "module": "",
+                "revision": null,
+                "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da",
+                "source_file": null
+              }
+            ],
+            "terms": 22475901,
+            "triples": 100000000
+          }
+        }
+      ],
+      "fixture": {
+        "files": [
+          {
+            "path": "lineage.ttl",
+            "bytes": 915,
+            "sha256": "8859f8edc3e5782658e89c7ffaa76d145a199afa5f16c69b77e658a7d992ed3a"
+          },
+          {
+            "path": "panels.ttl",
+            "bytes": 1956822333,
+            "sha256": "107682394b48cb8d475cd8894befeb6da75ff984fc7bb7d2c3f8a0bf3e07b95c"
+          },
+          {
+            "path": "segments.ttl",
+            "bytes": 248929934,
+            "sha256": "0d810f844bdf7c3c908626132be3bd532bfff6e572b3fd86b3e3848b640f4e3e"
+          },
+          {
+            "path": "variants.ttl",
+            "bytes": 1146,
+            "sha256": "9bb8a460b4e31859adf0805dfb171a7383ccb045452f7df7f8f275c27e9f8b84"
+          },
+          {
+            "path": "vocabulary.ttl",
+            "bytes": 541,
+            "sha256": "7fbad4af09a3ba95f70ece2a1d9167801f1fce89cc0aed609c60b0d2f7bac0da"
+          }
+        ],
+        "tree_sha256": "5b922eef420a7569c7c1c3d5184228874f3d4422281b30d4814b6d6f87fe77a0",
+        "bytes": 2205754869
+      },
+      "query_assets": {
+        "files": [
+          {
+            "path": "bound.rq",
+            "bytes": 116,
+            "sha256": "f2f5b5306ba4f190f55bc341146e506a07cc7714772fbb61aed723e41d0d46bd"
+          },
+          {
+            "path": "exists.rq",
+            "bytes": 126,
+            "sha256": "a23084db06315c19ac582f6165c55dac4afec0a9139f73ba150aa8c1440b9209"
+          },
+          {
+            "path": "intersection.rq",
+            "bytes": 98,
+            "sha256": "501433d1737b7f46a2ecc68d2280226fb6bddfc1eb1e3906b997639d3c713b3c"
+          },
+          {
+            "path": "premium.rq",
+            "bytes": 89,
+            "sha256": "c6d6b548679951563cd4e49710d12e4089ad3ba739ff0d4ac62386e35322f502"
+          }
+        ],
+        "tree_sha256": "3e1a0ba03a8b5d683ed7d11f664623f90ce673c7455920f1e8234d4c51ced36e",
+        "bytes": 429
+      },
+      "pack": {
+        "path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/22471664/panels.pack",
+        "bytes": 3242956152,
+        "sha256": "0253522dee38e1e65f4febc67560835181289f0ff26be20cb71b72d853cf2f6b"
+      }
+    }
+  ],
+  "checkpoint_at": "2026-11-13T06:47:59Z",
+  "finished_at": "2026-11-13T06:47:59Z"
+}

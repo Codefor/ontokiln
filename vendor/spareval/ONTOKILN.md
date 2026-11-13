@@ -1,8 +1,11 @@
-# Local changes to spareval 0.2.6
+# Local changes to spareval 0.2.9
 
-Base: the published spareval 0.2.6 crate from [Oxigraph](https://github.com/oxigraph/oxigraph/tree/45e892308368d8b2c271d06dc04de17dfb6de80f/lib/spareval), under the included [MIT license](LICENSE-MIT). Cargo selects this copy through the workspace patch.
+Base: the published spareval 0.2.9 crate from [Oxigraph](https://docs.rs/crate/spareval/0.2.9/source/), under the included [MIT license](LICENSE-MIT). Cargo selects this copy through the workspace patch.
 
-* In `src/eval.rs`, probe a right-hand quad pattern with each left tuple when the optimizer has found nonempty join keys. Other joins retain the upstream algorithm. Preserve bag multiplicity and variable scopes when changing this path.
+* In `src/eval.rs`, probe a right-hand quad pattern with each left tuple when the optimizer has found nonempty join keys. With no declared keys, a conservative binding analysis also admits this physical join when the left side guarantees a shared variable is bound in every successful solution. The probe is used only if such a variable was unbound in the join's input; otherwise the original single-scan algorithm remains in place. Each new probe first checks compatibility with the original input bindings, preserving the independent right quad's handling of overwritten or omitted bindings. This avoids rescanning a predicate branch for fixed-focus paths without enabling expression folding or moving patterns across scopes. The analysis respects projections, intersects UNION guarantees, ignores optional-only bindings and rejects VALUES columns containing UNDEF; aggregates, SERVICE and lateral expressions add no guarantees. Execution and plan labels share the same admission helper, with the conditional path labeled `AdaptiveIndexBindJoin`. Other joins retain the upstream algorithm. Preserve bag multiplicity, RDF term identity, variable scopes and error propagation when changing this path.
+* `src/expression.rs` preserves RDF datatype/lexical identity in term-sensitive functions and evaluates unbounded XML Schema integer comparisons and basic arithmetic using `num-bigint`. The dataset and evaluator contexts expose original RDF terms for this purpose.
 * `src/metrics.rs` and plan serialization support optional inclusive candidate/allocation counters and bounded intermediate binding samples. Without full profiling, no per-iterator timers or samples are collected.
 
 When upgrading, reapply only these differences. Run the graph/scope, real HTTP, and 100M aggregate regressions described in the repository's AGENTS.md.
+
+Upgrade: rebased the existing join-probe and metrics changes onto the published 0.2.9 crate with a three-way merge against published 0.2.6. No application-specific evaluator patches are included.

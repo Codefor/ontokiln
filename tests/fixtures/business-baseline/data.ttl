@@ -1,0 +1,11 @@
+@prefix ex: <urn:business-baseline:smoke:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:a a ex:Record ; ex:p "alpha"@en .
+ex:b a ex:Record ; ex:p "007"^^xsd:integer .
+
+ex:Shape a sh:NodeShape ;
+    sh:targetClass ex:Record ;
+    sh:property ex:Property .
+ex:Property sh:path ex:p ; sh:minCount 1 .
