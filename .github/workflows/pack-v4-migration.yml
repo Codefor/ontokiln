@@ -1,0 +1,20 @@
+name: Pack v4 migration smoke
+on:
+  pull_request:
+    paths:
+      - crates/pack/src/v4.rs
+      - crates/pack/src/lib.rs
+      - .github/workflows/pack-v4-migration.yml
+permissions:
+  contents: read
+jobs:
+  v4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
+      - name: Format locally before testing
+        run: cargo fmt --all
+      - name: Pack v4 compile and focused tests
+        run: cargo test -p ontokiln-pack v4::tests --locked
