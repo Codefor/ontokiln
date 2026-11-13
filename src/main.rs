@@ -2,14 +2,16 @@
 //!
 //! The public CLI only builds, queries, validates and inspects Pack v4.
 //! Applications embed OntologyEngine directly and own its lifecycle.
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use clap::{Parser, Subcommand, ValueEnum};
 use ontokiln::engine::OntologyEngine;
-use ontokiln::local::{load_rules, load_sources, source_file};
+use ontokiln_compiler::v4::Source;
+use ontokiln_compiler::v4_materialize::Rule;
 use ontokiln_pack::v4::{PackV4, View};
-use serde_json::json;
+use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 #[derive(Parser)]
@@ -76,6 +78,73 @@ impl From<ViewMode> for View {
     }
 }
 
+fn format_for(path: &Path) -> Result<&'static str> {
+    Ok(match path.extension().and_then(|v| v.to_str()) {
+        Some("ttl") => "turtle",
+        Some("nt") => "ntriples",
+        Some("trig") => "trig",
+        Some("nq") => "nquads",
+        _ => bail!("unsupported RDF input extension: {}", path.display()),
+    })
+}
+
+fn source(path: PathBuf, document_id: String) -> Result<Source> {
+    let file_type = fs::symlink_metadata(&path)?.file_type();
+    ensure!(file_type.is_file(), "RDF source must be a regular file");
+    let bytes = fs::read(&path)?;
+    Ok(Source {
+        format: format_for(&path)?.to_owned(),
+        expected_sha256: format!("{:x}", Sha256::digest(bytes)),
+        document_id,
+        path,
+        base_iri: None,
+    })
+}
+
+fn sources(input: &Path) -> Result<Vec<Source>> {
+    if input.is_dir() {
+        let mut files = Vec::new();
+        for file in walkdir::WalkDir::new(input).follow_links(false) {
+            let file = file?;
+            if !file.file_type().is_file() || format_for(file.path()).is_err() {
+                continue;
+            }
+            let path = file.path().to_path_buf();
+            let relative = path.strip_prefix(input)?.to_string_lossy().into_owned();
+            files.push(source(path, relative)?);
+        }
+        files.sort_by(|a, b| a.document_id.cmp(&b.document_id));
+        ensure!(!files.is_empty(), "no RDF source documents");
+        Ok(files)
+    } else {
+        let sources: Vec<Source> = serde_json::from_slice(
+            &fs::read(input).with_context(|| format!("read {}", input.display()))?,
+        )?;
+        ensure!(!sources.is_empty(), "source manifest is empty");
+        Ok(sources)
+    }
+}
+
+fn rules(path: Option<&Path>) -> Result<Vec<Rule>> {
+    let Some(path) = path else {
+        return Ok(Vec::new());
+    };
+    let document: Value = serde_json::from_slice(&fs::read(path)?)?;
+    let entries = if let Some(rows) = document.as_array() {
+        rows.clone()
+    } else {
+        ensure!(
+            document["schema_version"] == "ontology-rule-ir/v1",
+            "unsupported rule IR schema"
+        );
+        document["rules"]
+            .as_array()
+            .context("ontology-rule-ir/v1 requires rules array")?
+            .clone()
+    };
+    Ok(serde_json::from_value(Value::Array(entries))?)
+}
+
 fn main() -> Result<()> {
     match Cli::parse().command {
         Command::Build {
@@ -89,8 +158,8 @@ fn main() -> Result<()> {
                 "Pack output already exists: {}",
                 pack.display()
             );
-            let sources = load_sources(&input)?;
-            let rules = load_rules(rules_file.as_deref())?;
+            let sources = sources(&input)?;
+            let rules = rules(rules_file.as_deref())?;
             let (engine, stats) = OntologyEngine::build(&sources, &profile, &rules)?;
             engine.save_pack(&pack)?;
             println!(
@@ -118,7 +187,7 @@ fn main() -> Result<()> {
                     .context("Shapes source has no filename")?
                     .to_string_lossy()
                     .into_owned();
-                let shape = source_file(path, id)?;
+                let shape = source(path, id)?;
                 engine.validate_shape_sources(&[shape], None, None, 64)?
             } else {
                 engine.validate(None, None, None, 64)?

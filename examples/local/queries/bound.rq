@@ -1,1 +1,0 @@
-SELECT ?property WHERE { ?component <urn:local:dependsOn> ?property } ORDER BY ?property

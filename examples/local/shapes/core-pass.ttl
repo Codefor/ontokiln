@@ -1,5 +1,0 @@
-@prefix ex: <urn:local:> .
-@prefix sh: <http://www.w3.org/ns/shacl#> .
-ex:Shape a sh:NodeShape; sh:targetClass ex:ModelProperty;
- sh:property [sh:path ex:dependsOn; sh:minCount 2];
- sh:property [sh:path ex:version; sh:hasValue "1"] .

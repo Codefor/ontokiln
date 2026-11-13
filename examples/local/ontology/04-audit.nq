@@ -1,2 +1,0 @@
-<urn:local:cardTitle> <urn:local:reviewed> "true"^^<http://www.w3.org/2001/XMLSchema#boolean> <urn:local:audit> .
-_:shared <urn:local:document> "nquads" <urn:local:audit> .

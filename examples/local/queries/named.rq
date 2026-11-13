@@ -1,1 +1,0 @@
-SELECT ?graph ?predicate WHERE { GRAPH ?graph { <urn:local:cardTitle> ?predicate ?value } } ORDER BY ?graph ?predicate

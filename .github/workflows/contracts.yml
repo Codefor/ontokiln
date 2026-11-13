@@ -24,10 +24,6 @@ jobs:
         run: python3 -B tests/benchmarks/test_v4_resident_baseline.py
       - name: Pack v4 library and integration regression
         run: cargo test --workspace --locked
-      - name: Resident local rebuild smoke
-        run: |
-          cargo build --locked --example local_reasoning
-          python3 -B tests/local_watch_smoke.py --binary target/debug/examples/local_reasoning
       - name: Million-fact memory capacity and Pack integrity (release)
         run: cargo test --release --test v4_scale --locked -- --ignored --nocapture
       - name: Frozen Full corpus oracles on Pack v4 (100K, release)

@@ -73,8 +73,6 @@ Rust 基准拒绝 Debug 构建，并报告真实编译器、target、代码 SHA�
 
 `--compare` 要求以上环境、生成器、源摘要、规模、规则数和查询集一致；代码 SHA / 二进制摘要允许变化，用于比较不同实现。缺少环境字段的报告必须重新生成。比较 JSON 同时保存编译、物化、保存、加载、每项首次/热查询、SHACL 首次/热校验的比值；不只检查热查询。低于毫秒的单次计时更容易受噪声影响，默认不设置速度门槛。
 
-本次 macOS 实测与完整 JSON 见 [本地 v4 基线](local-v4-baseline.md)。
-
 ## 固化观测样本
 
 历史 CI 的原始指标摘要随仓库保存在 [v4-baseline-observations.json](../benchmarks/v4-baseline-observations.json)，记录 100K/1M 的解析、物化、保存、加载、常驻查询、SHACL 全目标与单 focus 测试数据，并保留每组 GitHub Actions run ID、精确代码提交和测量边界。完整 JSON golden 报告保存在对应 run 的 v4-resident-benchmark artifact；这些公共 Runner 观测不是跨机器比较的速度门槛。

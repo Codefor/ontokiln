@@ -1,1 +1,0 @@
-SELECT (COUNT(DISTINCT ?document) AS ?count) WHERE { ?document <urn:local:document> ?format }
