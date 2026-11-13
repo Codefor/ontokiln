@@ -1,0 +1,52 @@
+name: OntoKiln resident baseline
+on:
+  pull_request:
+    paths:
+      - examples/v4_resident_bench.rs
+      - benchmarks/v4_resident_baseline.py
+      - crates/pack/src/v4.rs
+      - crates/compiler/src/v4.rs
+      - crates/compiler/src/v4_materialize.rs
+      - crates/reasoner/src/v4.rs
+      - src/engine.rs
+      - src/rdf_graph.rs
+      - src/shacl.rs
+      - .github/workflows/v4-resident.yml
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  resident-baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Pin Rust toolchain
+        run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
+      - name: Rustfmt diagnostic
+        run: cargo fmt --all
+      - name: Export formatted resident benchmark source
+        run: |
+          echo BEGIN_FORMATTED_RESIDENT_BENCH
+          cat examples/v4_resident_bench.rs
+          echo END_FORMATTED_RESIDENT_BENCH
+      - name: Compile release example
+        run: cargo build --release --locked --example v4_resident_bench
+      - name: Golden 100K corpus (three hot samples)
+        run: |
+          python3 -B benchmarks/v4_resident_baseline.py --facts 100000 --warmups 1 --samples 3 \
+            --binary target/release/examples/v4_resident_bench \
+            --output target/v4-baselines/100k.json
+      - name: Golden 1M corpus (one hot sample)
+        run: |
+          python3 -B benchmarks/v4_resident_baseline.py --facts 1000000 --warmups 1 --samples 1 \
+            --binary target/release/examples/v4_resident_bench \
+            --output target/v4-baselines/1m.json
+      - name: Preserve benchmark data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v4-resident-benchmark
+          path: target/v4-baselines/*.json
+          if-no-files-found: warn
