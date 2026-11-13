@@ -1,5 +1,7 @@
 # OntoKiln 本地性能实测
 
+最新的 [Full 查询与 SHACL 优化实测（2026-11-13）](kernel-20261113.md)包含同机 10K/100K 前后对照、常驻实例启动与热请求、编译/物化及空间代价，原始 JSON 随报告提交。
+
 Full 编译、物化、API 查询与 SHACL 的新基线工具为 [kernel_baseline.py](kernel_baseline.py)，
 方法与独立预期见[基线说明](../tests/benchmarks/README.md)。文件 API 与常驻实例分开计量，
 后者单列启动挂载时间和热请求时间；历史 pack 成绩不代表 Full 容量。
