@@ -1,0 +1,7 @@
+<urn:local:cardTitle> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <urn:local:DisplayProperty> .
+<urn:local:cardTitle> <urn:local:computedBy> <urn:local:combine> .
+<urn:local:combine> <urn:local:readsSlot> <urn:local:title> .
+<urn:local:title> <urn:local:computedBy> <urn:local:format> .
+<urn:local:format> <urn:local:readsSlot> <urn:local:rawTitle> .
+<urn:local:rawTitle> <urn:local:value> "Raw title"@en .
+_:shared <urn:local:document> "ntriples" .

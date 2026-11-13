@@ -124,6 +124,10 @@ fn memory_stats() -> Value {
 }
 
 fn main() -> Result<()> {
+    ensure!(
+        !cfg!(debug_assertions),
+        "resident performance benchmark requires cargo build --release"
+    );
     let args = Args::parse();
     ensure!(
         args.samples > 0 && args.samples <= 30 && args.warmups <= 30,
@@ -238,6 +242,8 @@ fn main() -> Result<()> {
     let after_validation = memory_stats();
     let report = json!({
         "schema_version":"ontokiln-v4-resident-benchmark/v1",
+        "build_identity":{"mode":"release", "rustc":env!("ONTOKILN_RUSTC_VERSION"),
+            "target":env!("ONTOKILN_TARGET"), "kernel":ontokiln::identity::kernel()},
         "input":{"sources":sources,"profile":args.profile,
             "rule_count":rules.len(), "query_count":measured_queries.len()},
         "facts":{"asserted":stats.explicit_facts,

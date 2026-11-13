@@ -1,0 +1,30 @@
+[
+  {
+    "path": "ontology/01-schema.ttl",
+    "document_id": "01-schema.ttl",
+    "format": "turtle",
+    "expected_sha256": "28bd2c2173304c5ffc89f0630a94c3b7d670c0fddfbe5c8596d53b41f7356160",
+    "base_iri": null
+  },
+  {
+    "path": "ontology/02-properties.nt",
+    "document_id": "02-properties.nt",
+    "format": "ntriples",
+    "expected_sha256": "33fa030a1a934963ae8c6f0d89170d31db6a42bc68baa0d0c91f7ae797d5b488",
+    "base_iri": null
+  },
+  {
+    "path": "ontology/03-named.trig",
+    "document_id": "03-named.trig",
+    "format": "trig",
+    "expected_sha256": "1f3f6ce0154c867f5f941ea57f9ae83048e7191b7604f9e38b964af6463dc5b3",
+    "base_iri": null
+  },
+  {
+    "path": "ontology/04-audit.nq",
+    "document_id": "04-audit.nq",
+    "format": "nquads",
+    "expected_sha256": "cc6691b27d133bff83027074022fc1344e725a8aa77fa155a68e113cdc174c85",
+    "base_iri": null
+  }
+]

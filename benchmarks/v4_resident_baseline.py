@@ -9,6 +9,8 @@ import argparse
 import hashlib
 import json
 import os
+import platform
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -28,8 +30,14 @@ def require(condition, message):
 
 
 def compare_reports(before, after):
-    for key in ("generator", "facts", "profile", "rule_count", "source_digest"):
-        require(before[key] == after[key], f"not comparable: differing {key}")
+    for key in ("generator", "facts", "profile", "rule_count", "source_digest",
+                "machine", "build_mode", "rayon_threads", "measurement"):
+        require(key in before and key in after and before[key] == after[key],
+                f"not comparable: missing or differing {key}")
+    for key in ("rustc", "target"):
+        require(before["benchmark"]["build_identity"][key] ==
+                after["benchmark"]["build_identity"][key],
+                f"not comparable: differing {key}")
     before_metrics = flatten_metrics(before)
     after_metrics = flatten_metrics(after)
     require(set(before_metrics) == set(after_metrics),
@@ -50,6 +58,10 @@ def flatten_metrics(report):
                in report["benchmark"]["build_ms"].items()}
     metrics.update({f"hot.query.{name}": data["median_ms"] for name, data
                     in report["benchmark"]["queries"].items()})
+    metrics.update({f"first.query.{name}": data["cold_after_load_ms"] for name, data
+                    in report["benchmark"]["queries"].items()})
+    metrics["first.shacl"] = report["benchmark"]["shacl"]["cold_after_load_ms"]
+    metrics["first.shacl_focused"] = report["benchmark"]["shacl_focused"]["first_ms"]
     metrics["hot.shacl"] = report["benchmark"]["shacl"]["median_ms"]
     metrics["hot.shacl_focused"] = report["benchmark"]["shacl_focused"]["median_ms"]
     return metrics
@@ -91,6 +103,8 @@ def execute(args):
             "--output", str(raw_report), "--profile", "rdfs-supported-v1",
             "--samples", str(args.samples), "--warmups", str(args.warmups),
         ]
+        if platform.system() == "Darwin":
+            command = ["/usr/bin/time", "-l", *command]
         completed = subprocess.run(
             command, capture_output=True, text=True, timeout=args.timeout,
             env={**os.environ, "RAYON_NUM_THREADS": args.threads}, check=False,
@@ -101,6 +115,16 @@ def execute(args):
         data = json.loads(raw_report.read_text(encoding="utf8"))
         require(data["schema_version"] == "ontokiln-v4-resident-benchmark/v1",
                 "unexpected benchmark result contract")
+        require(data["build_identity"]["mode"] == "release", "benchmark is not Release")
+        # Persist no ephemeral local directory identifiers in the public baseline.
+        data["input"]["sources"][0]["path"] = "input/data.nt"
+        peak_rss = data["memory"]["after_validation"]
+        peak_rss = peak_rss["peak_rss_kib"] if peak_rss else None
+        if platform.system() == "Darwin":
+            match = re.search(r"(\d+)\s+maximum resident set size", completed.stderr)
+            require(match is not None, "macOS time did not report process peak RSS")
+            peak_rss = int(match.group(1)) // 1024
+        data["memory"]["process_peak_rss_kib"] = peak_rss
         count = corpus["expected_inferred_facts"]
         expected = {"asserted": args.facts, "inferred": count,
                     "quads": args.facts + count}
@@ -161,7 +185,14 @@ def execute(args):
             "profile": "rdfs-supported-v1",
             "rule_count": 3,
             "source_digest": digest,
-            "build_mode": "release",
+            "build_mode": data["build_identity"]["mode"],
+            "machine": {
+                "id": hashlib.sha256(platform.node().encode()).hexdigest(),
+                "system": platform.system(), "release": platform.release(),
+                "architecture": platform.machine(), "cpu_count": os.cpu_count(),
+            },
+            "measurement": {"samples": args.samples, "warmups": args.warmups},
+            "binary_sha256": hashlib.sha256(args.binary.read_bytes()).hexdigest(),
             "rayon_threads": args.threads,
             "functional": {
                 "verified_queries": len(cases),
@@ -172,6 +203,9 @@ def execute(args):
             },
             "benchmark": data,
         }
+        if args.compare:
+            output["comparison"] = compare_reports(
+                json.loads(args.compare.read_text(encoding="utf8")), output)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(output, ensure_ascii=False,
                                           sort_keys=True, indent=2)+"\n", encoding="utf8")
@@ -186,13 +220,12 @@ def execute(args):
                 for name, case in data["queries"].items()},
             "resident_shacl_median_ms": data["shacl"]["median_ms"],
             "resident_shacl_focused_median_ms": data["shacl_focused"]["median_ms"],
-            "peak_rss_kib": data["memory"]["after_validation"]["peak_rss_kib"],
+            "peak_rss_kib": peak_rss,
             "report": str(args.output),
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True, indent=2))
         if args.compare:
-            comparison = compare_reports(
-                json.loads(args.compare.read_text(encoding="utf8")),output)
+            comparison = output["comparison"]
             print(json.dumps({"comparison": comparison},indent=2,sort_keys=True))
             if args.max_regression_ratio is not None:
                 failed = [name for name, value in comparison.items()

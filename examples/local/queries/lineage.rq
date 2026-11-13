@@ -1,0 +1,1 @@
+SELECT ?property WHERE { <urn:local:cardTitle> <urn:local:dependsOn> ?property } ORDER BY ?property

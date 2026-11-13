@@ -97,4 +97,19 @@ fn main() {
         "full source SHA required"
     );
     println!("cargo:rustc-env=ONTOKILN_BUILD_REVISION={revision}");
+    let compiler = Command::new(std::env::var_os("RUSTC").expect("Cargo RUSTC"))
+        .arg("--version")
+        .output()
+        .expect("Rust compiler identity");
+    assert!(compiler.status.success(), "Rust compiler identity");
+    println!(
+        "cargo:rustc-env=ONTOKILN_RUSTC_VERSION={}",
+        String::from_utf8(compiler.stdout)
+            .expect("compiler UTF-8")
+            .trim()
+    );
+    println!(
+        "cargo:rustc-env=ONTOKILN_TARGET={}",
+        std::env::var("TARGET").expect("Cargo target")
+    );
 }

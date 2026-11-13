@@ -1,0 +1,4 @@
+@prefix ex: <urn:local:> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+ex:Shape a sh:NodeShape; sh:targetNode ex:cardTitle;
+ sh:property [sh:path ex:missing; sh:minCount 1] .

@@ -1,0 +1,2 @@
+@prefix ex: <urn:local:> .
+ex:release { ex:cardTitle ex:version "1" . _:shared ex:document "trig" . }

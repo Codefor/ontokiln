@@ -2,6 +2,7 @@
 //! Applications own the persistence, deployment and lifetime of the engine.
 pub mod engine;
 pub mod identity;
+pub mod local;
 pub mod query;
 pub mod rdf_graph;
 pub mod shacl;

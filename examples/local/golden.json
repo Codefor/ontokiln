@@ -1,0 +1,79 @@
+{
+  "rdfs.rq": {
+    "head": {},
+    "boolean": true
+  },
+  "lineage.rq": {
+    "head": {
+      "vars": [
+        "property"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "property": {
+            "type": "uri",
+            "value": "urn:local:rawTitle"
+          }
+        },
+        {
+          "property": {
+            "type": "uri",
+            "value": "urn:local:title"
+          }
+        }
+      ]
+    }
+  },
+  "named.rq": {
+    "head": {
+      "vars": [
+        "graph",
+        "predicate"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "graph": {
+            "type": "uri",
+            "value": "urn:local:audit"
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "urn:local:reviewed"
+          }
+        },
+        {
+          "graph": {
+            "type": "uri",
+            "value": "urn:local:release"
+          },
+          "predicate": {
+            "type": "uri",
+            "value": "urn:local:version"
+          }
+        }
+      ]
+    }
+  },
+  "blank-nodes.rq": {
+    "head": {
+      "vars": [
+        "count"
+      ]
+    },
+    "results": {
+      "bindings": [
+        {
+          "count": {
+            "type": "literal",
+            "value": "4",
+            "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+          }
+        }
+      ]
+    }
+  }
+}

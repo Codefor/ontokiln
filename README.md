@@ -33,6 +33,27 @@ let same_engine = OntologyEngine::load_pack(std::path::Path::new("/tmp/ontology.
 
 Pack v4 是唯一接受的 Pack 格式，不提供 v3 读取或升级服务。FaaS 负责生命周期、发布和路由，OntoKiln 不承载 FaaS 服务框架。
 
+## macOS / Linux 本地开发
+
+仅需 Rust 1.95.0；黄金样例和应用启动不需要 Abase、容器或远程服务。首次获取 Cargo 依赖后可离线构建：`cargo build --release --locked --offline`。
+
+四个 CLI 命令保持不变。`--sources` 接受递归 `.ttl/.trig/.nt/.nq` 目录或严格的 JSON `Source` 数组。目录按相对 UTF-8 文件名固定文档顺序；manifest 保留显式顺序，文件路径相对于 manifest 解析。编译器验证每份文件的 SHA-256；空白节点身份以文档为作用域。规则接受已有 Rule 数组或 `ontology-rule-ir/v1`，未知字段、非法规则、不完整闭包、损坏 Pack 都会失败。
+
+完整例子见 [本地黄金样例](examples/local/README.md)，涵盖模型属性血缘、RDFS、Property Chain、Datalog、具名图、参数和 SHACL 正反例。
+
+连续查询使用 [常驻 Rust Library 示例](examples/local_reasoning.rs)：
+
+```bash
+cargo build --release --locked --example local_reasoning
+./target/release/examples/local_reasoning --sources examples/local/ontology \
+  --rules examples/local/rules.json --profile rdfs-property-chain-v1 \
+  --pack-dir target/local-generations --watch
+```
+
+此例在一个进程内保留 `OntologyEngine`，支持 `query FILE`、`validate [FILE]`、`rebuild`、`quit`。可选 `--watch` 每秒比较源文件/规则内容；有变化后重新全量编译并保存、重载新 Pack，全部成功后替换 Engine。失败时保留旧版本。轮询与编译是串行的，期间请求排队；每一代使用新的 Pack 文件，保留回放版本。应用可直接调用 `local::load_sources/load_rules` 和 `OntologyEngine::build()`，或只调用 `OntologyEngine::load_pack()`，复用同一个 Engine 执行多次 `query()/validate()`。`local` 只提供文件适配，不定义另一套 RDF 或规则执行语义。
+
+本地与 FaaS 消费者共享同一 Engine、Pack、规则 IR、SPARQL 和 SHACL。回归测试验证目录、manifest、直接嵌入、Pack 重载的结果一致；FaaS 发布、存储、路由和实际部署不属于此本地开发例子的验证范围。
+
 ## 验证
 
 ```bash

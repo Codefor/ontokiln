@@ -1,0 +1,1 @@
+ASK WHERE { <urn:local:cardTitle> a <urn:local:ModelProperty> }
