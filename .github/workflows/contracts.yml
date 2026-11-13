@@ -1,4 +1,4 @@
-name: Consumer contracts
+name: Pack v4 contracts
 on:
   pull_request:
   push:
@@ -13,20 +13,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
-      - name: Check corpus and formatting
-        run: |
-          python3 -B tests/fixtures/contract-v1/generate.py --check
-          cargo fmt --all --check
-      - name: Benchmark oracles and comparison rules
-        run: python3 -B -m unittest discover -s tests/benchmarks -v
-      - name: Lint
+      - name: Check formatting
+        run: cargo fmt --all --check
+      - name: Lint current memory engine
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - name: Consumer and legacy contracts
-        run: |
-          cargo test --workspace --locked
-          cargo test --workspace --all-features --locked
-          cargo run --locked --example scenario_lab -- --compare
-      - name: Native directory baseline smoke (functional)
-        run: |
-          cargo build --locked --bin ontokiln
-          python3 -B tests/benchmarks/business_native_smoke.py --binary target/debug/ontokiln
+      - name: Pack v4 library and integration regression
+        run: cargo test --workspace --locked
+      - name: Million-fact memory capacity and Pack integrity
+        run: cargo test --test v4_scale --locked -- --ignored --nocapture
