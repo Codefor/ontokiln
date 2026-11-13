@@ -214,21 +214,17 @@ mod tests {
     #[test]
     fn construct_asset_executes_without_mutating_pack() {
         let dir = tempdir().unwrap();
-        let (engine, _) = OntologyEngine::build(
-            &[source(dir.path(), "data.ttl", "<urn:s> <urn:p> <urn:o> .")],
-            "no-rules-v1",
-            &[],
-        ).unwrap();
+        let input = source(dir.path(), "data.ttl", "<urn:s> <urn:p> <urn:o> .");
+        let (engine, _) = OntologyEngine::build(&[input], "no-rules-v1", &[]).unwrap();
         let before = engine.pack().quad_count();
         let construct = "CONSTRUCT { <urn:derived> <urn:p> ?o } WHERE { <urn:s> <urn:p> ?o }";
         let result = engine.derived_query(construct, View::Closure).unwrap();
         let value = String::from_utf8(result).unwrap();
         assert!(value.contains("<urn:derived> <urn:p> <urn:o>"));
         assert_eq!(engine.pack().quad_count(), before);
-        assert!(engine.query("ASK { <urn:derived> <urn:p> <urn:o> }", View::Closure).is_ok());
-        let response: Value = serde_json::from_slice(
-            &engine.query("ASK { <urn:derived> <urn:p> <urn:o> }", View::Closure).unwrap()
-        ).unwrap();
+        let ask = "ASK { <urn:derived> <urn:p> <urn:o> }";
+        let response = engine.query(ask, View::Closure).unwrap();
+        let response: Value = serde_json::from_slice(&response).unwrap();
         assert_eq!(response["boolean"], false);
     }
 
