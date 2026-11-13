@@ -10,7 +10,7 @@ use oxrdf::Term;
 use sparesults::{QueryResultsFormat, QueryResultsSerializer};
 use spareval::{InternalQuad, QueryEvaluator, QueryResults, QueryableDataset};
 use spargebra::{Query, SparqlParser};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::io::{self, Write};
 use std::path::Path;
 
@@ -73,6 +73,18 @@ impl EngineV4 {
         view: View,
         bindings: &[(oxrdf::Variable, oxrdf::Term)],
     ) -> Result<Vec<u8>> {
+        self.execute_bound_overlay(query, view, bindings, &[])
+    }
+
+    /// Request-scoped derived facts are visible only in the SPARQL default
+    /// graph. They neither modify the Pack nor appear in its named graphs.
+    pub fn execute_bound_overlay(
+        &self,
+        query: &Query,
+        view: View,
+        bindings: &[(oxrdf::Variable, oxrdf::Term)],
+        added: &[[Term; 3]],
+    ) -> Result<Vec<u8>> {
         // Query admission (local SELECT/ASK, no SERVICE/FROM) remains the
         // caller's responsibility, as for the existing Reasoner::write_sparql.
         ensure!(
@@ -84,10 +96,17 @@ impl EngineV4 {
             View::Inferred => &self.named_inferred,
             View::Closure => &self.named_closure,
         };
+        let encode = |term: &Term| {
+            self.pack.term_id(&term.to_string())
+                .map_or_else(|| Encoded::External(term.clone()), Encoded::Stored)
+        };
+        let overlay: HashSet<[Encoded; 3]> = added.iter()
+            .map(|[s,p,o]| [encode(s), encode(p), encode(o)]).collect();
         let graph = Dataset {
             pack: &self.pack,
             view,
             names,
+            overlay: &overlay,
         };
         // Input variables can appear only inside FILTER/BOUND. Avoid logical
         // rewrites that fold them as unbound before substitutions are applied.
@@ -138,6 +157,7 @@ struct Dataset<'a> {
     pack: &'a PackV4,
     view: View,
     names: &'a [u32],
+    overlay: &'a HashSet<[Encoded; 3]>,
 }
 impl<'a> QueryableDataset<'a> for Dataset<'a> {
     type InternalTerm = Encoded;
@@ -181,20 +201,45 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
                 Some(Encoded::External(_)) => None,
             }
         };
+        let subject_bound = subject.cloned();
+        let predicate_bound = predicate.cloned();
+        let object_bound = object.cloned();
+        let overlay = self.overlay;
+        let overlay_rows = overlay.iter()
+            .filter(move |row| {
+                subject_bound.as_ref().is_none_or(|s| s == &row[0])
+                    && predicate_bound.as_ref().is_none_or(|p| p == &row[1])
+                    && object_bound.as_ref().is_none_or(|o| o == &row[2])
+            })
+            .map(|row| Ok(InternalQuad {
+                subject: row[0].clone(),
+                predicate: row[1].clone(),
+                object: row[2].clone(),
+                graph_name: None,
+            }));
         let (Some(s), Some(p), Some(o)) = (bound(subject), bound(predicate), bound(object)) else {
+            if graph == Some(None) {
+                return Box::new(overlay_rows) as Rows<'a>;
+            }
             return Box::new(std::iter::empty()) as Rows<'a>;
         };
         let pack = self.pack;
         let view = self.view;
         match graph {
-            Some(None) => Box::new(pack.union_triples(s, p, o, view).map(|[s, p, o]| {
-                Ok(InternalQuad {
-                    subject: Encoded::Stored(s),
-                    predicate: Encoded::Stored(p),
-                    object: Encoded::Stored(o),
-                    graph_name: None,
-                })
-            })) as Rows<'a>,
+            Some(None) => {
+                let base = pack.union_triples(s,p,o,view)
+                    .filter(move |row| !overlay.contains(&[
+                        Encoded::Stored(row[0]), Encoded::Stored(row[1]),
+                        Encoded::Stored(row[2]),
+                    ]))
+                    .map(|[s,p,o]| Ok(InternalQuad {
+                        subject: Encoded::Stored(s),
+                        predicate: Encoded::Stored(p),
+                        object: Encoded::Stored(o),
+                        graph_name: None,
+                    }));
+                Box::new(base.chain(overlay_rows)) as Rows<'a>
+            }
             Some(Some(Encoded::Stored(graph_id))) => {
                 if !self.names.contains(graph_id) {
                     return Box::new(std::iter::empty()) as Rows<'a>;
@@ -271,6 +316,34 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&named).unwrap();
         assert_eq!(json["results"]["bindings"][0]["g"]["value"], "urn:g");
     }
+    #[test]
+    fn request_local_overlay_is_visible_only_to_default_graph() {
+        let engine = engine();
+        let derived = [[
+            "<urn:derived>".parse::<Term>().unwrap(),
+            "<urn:p>".parse::<Term>().unwrap(),
+            "<urn:o>".parse::<Term>().unwrap(),
+        ]];
+        let q = SparqlParser::new().parse_query(
+            "ASK WHERE { <urn:derived> <urn:p> <urn:o> }"
+        ).unwrap();
+        let inside: serde_json::Value = serde_json::from_slice(
+            &engine.execute_bound_overlay(&q,View::Closure,&[],&derived).unwrap()
+        ).unwrap();
+        let outside: serde_json::Value = serde_json::from_slice(
+            &engine.execute(&q,View::Closure).unwrap()
+        ).unwrap();
+        assert_eq!(inside["boolean"],true);
+        assert_eq!(outside["boolean"],false);
+        let named = SparqlParser::new().parse_query(
+            "ASK WHERE { GRAPH <urn:g> { <urn:derived> <urn:p> <urn:o> } }"
+        ).unwrap();
+        let response: serde_json::Value = serde_json::from_slice(
+            &engine.execute_bound_overlay(&named,View::Closure,&[],&derived).unwrap()
+        ).unwrap();
+        assert_eq!(response["boolean"],false);
+    }
+
     #[test]
     fn v4_ask_and_pack_reload_retain_results() {
         let engine = engine();
