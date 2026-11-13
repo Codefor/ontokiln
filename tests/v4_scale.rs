@@ -1,7 +1,8 @@
 //! Production-scale Pack v4 smoke, with independent fixed expectations.
 //! Run intentionally with --ignored to keep ordinary contract tests fast.
 use ontokiln::engine::OntologyEngine;
-use ontokiln_compiler::v4::Source;
+use ontokiln_compiler::v4::{Source, compile_sources};
+use ontokiln_compiler::v4_materialize::materialize;
 use ontokiln_pack::v4::View;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
@@ -31,9 +32,13 @@ fn one_million_explicit_facts_build_save_reload_and_count() {
         base_iri: None,
     };
 
-    let start = Instant::now();
-    let (engine, stats) = OntologyEngine::build(&[source], "no-rules-v1", &[]).unwrap();
-    let build_seconds = start.elapsed().as_secs_f64();
+    let started = Instant::now();
+    let asserted = compile_sources(&[source]).unwrap();
+    let compile_seconds = started.elapsed().as_secs_f64();
+    let (materialized, stats) = materialize(asserted, "no-rules-v1", &[]).unwrap();
+    let materialize_seconds = started.elapsed().as_secs_f64() - compile_seconds;
+    let engine = OntologyEngine::from_pack(materialized).unwrap();
+    let build_seconds = started.elapsed().as_secs_f64();
     assert_eq!(stats.explicit_facts, 1_000_000);
     assert_eq!(stats.inferred_facts, 0);
     assert_eq!(engine.pack().quad_count(), 1_000_000);
@@ -61,7 +66,7 @@ fn one_million_explicit_facts_build_save_reload_and_count() {
         fs::metadata(&pack).unwrap().len()
     );
     eprintln!(
-        "v4 million-fact acceptance: build={build_seconds:.3}s save={save_seconds:.3}s load={load_seconds:.3}s pack_bytes={}",
+        "v4 million-fact acceptance: compile={compile_seconds:.3}s materialize={materialize_seconds:.3}s build={build_seconds:.3}s save={save_seconds:.3}s load={load_seconds:.3}s pack_bytes={}",
         fs::metadata(&pack).unwrap().len()
     );
 }

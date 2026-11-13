@@ -552,6 +552,26 @@ pub fn materialize(
         profile != "no-rules-v1" || user_rules.is_empty(),
         "UNSUPPORTED_RULE_PROFILE: no-rules does not accept rules"
     );
+    // A no-rules compile_sources() result is already a complete immutable
+    // Pack with normalized facts, provenance, and SPO/POS/OSP indexes.
+    // Reconstructing the dictionary and all four Relation/hash indexes here
+    // performs redundant work over every explicit quad.
+    if profile == "no-rules-v1"
+        && pack.metadata().profile_id == "no-rules-v1"
+        && pack.metadata().fixpoint_reached
+    {
+        ensure!(
+            pack.matching(None, None, None, None, ontokiln_pack::v4::View::Inferred)
+                .next()
+                .is_none(),
+            "Pack v4 no-rules input must be asserted-only"
+        );
+        let stats = Materialization {
+            explicit_facts: pack.quad_count(),
+            ..Materialization::default()
+        };
+        return Ok((pack, stats));
+    }
     if profile == "rdfs-property-chain-v1" {
         rules.extend(property_chain_rules(&pack)?);
     }
@@ -713,6 +733,24 @@ mod tests {
             .collect();
         PackV4::from_statements(words, rows, Metadata::new("no-rules-v1", true)).unwrap()
     }
+    #[test]
+    fn no_rules_returns_already_indexed_pack_without_rebuilding() {
+        let original = fixture(&[
+            ("<urn:alice>", "<urn:knows>", "<urn:bob>"),
+            ("<urn:bob>", "<urn:knows>", "<urn:alice>"),
+        ], false);
+        let root = tempfile::tempdir().unwrap();
+        let before = root.path().join("before.pack");
+        original.save(&before).unwrap();
+        let (after, stats) = materialize(original, "no-rules-v1", &[]).unwrap();
+        assert_eq!(stats.explicit_facts, 2);
+        assert_eq!(stats.inferred_facts, 0);
+        assert_eq!(stats.fixpoint_iterations, 0);
+        let completed = root.path().join("after.pack");
+        after.save(&completed).unwrap();
+        assert_eq!(std::fs::read(before).unwrap(), std::fs::read(completed).unwrap());
+    }
+
     #[test]
     fn datalog_recursive_joins_reach_fixpoint_and_preserve_asserted() {
         let input = fixture(
