@@ -172,6 +172,15 @@ pub(crate) fn verify(directory: &Path) -> Result<Value> {
 
 /// Return the digest of the same manifest bytes whose declarations were verified.
 pub(crate) fn verify_with_manifest_digest(directory: &Path) -> Result<(Value, String)> {
+    verify_manifest(directory, false)
+}
+
+/// Read compatible snapshots without rewriting their original producer identity.
+pub(crate) fn verify_read_manifest(directory: &Path) -> Result<(Value, String)> {
+    verify_manifest(directory, true)
+}
+
+fn verify_manifest(directory: &Path, compatible_read: bool) -> Result<(Value, String)> {
     regular(&directory.join("manifest.json"))?;
     let manifest_bytes = fs::read(directory.join("manifest.json"))?;
     let manifest: Value = serde_json::from_slice(&manifest_bytes)?;
@@ -185,8 +194,24 @@ pub(crate) fn verify_with_manifest_digest(directory: &Path) -> Result<(Value, St
     );
     let files = inventory(directory)?;
     if manifest["schema_version"] == "kernel-manifest-v2" {
+        let current = crate::identity::kernel();
+        let mut producer = manifest["kernel"].clone();
+        if compatible_read {
+            for (field, length) in [("source_revision", 40), ("kernel_sha256", 64)] {
+                ensure!(
+                    producer[field]
+                        .as_str()
+                        .is_some_and(|value| value.len() == length
+                            && value
+                                .bytes()
+                                .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))),
+                    "FORMAT_VERSION_UNSUPPORTED|invalid native producer identity"
+                );
+                producer[field] = current[field].clone();
+            }
+        }
         ensure!(
-            manifest["kernel"] == crate::identity::kernel()
+            producer == current
                 && manifest["proof_coverage"]
                     == json!({"mode":"closure-only", "per_fact_proof":"not_recorded"})
                 && (manifest["kind"] != "reasoned" || manifest["fixpoint_reached"] == true),

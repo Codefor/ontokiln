@@ -50,9 +50,8 @@ impl FullSnapshot {
             metadata.len() <= max_bytes,
             "BUDGET_EXHAUSTED|snapshot exceeds mount disk allowance"
         );
-        let (manifest, manifest_digest) =
-            crate::full_artifact::verify_with_manifest_digest(&source)
-                .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+        let (manifest, manifest_digest) = crate::full_artifact::verify_read_manifest(&source)
+            .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Self::mount_verified(&source, manifest, manifest_digest, max_bytes, None)
     }
 

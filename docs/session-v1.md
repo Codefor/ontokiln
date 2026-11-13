@@ -41,6 +41,12 @@ change this view. Hot requests do not reopen the source, hash the complete
 artifact, or copy its database. Descriptors are internal process resources and
 cannot be supplied through API v1 JSON.
 
+Read admission retains a native artifact's original producer metadata. Differences
+limited to valid source-revision and kernel digests are accepted when every other
+kernel field, artifact format and semantic version matches. Inventory, input,
+semantic-fingerprint and completion checks still apply. The manifest is not
+rewritten; construction and materialization retain exact producer admission.
+
 The first stdout line is a control record, not an API response:
 
 ```json
