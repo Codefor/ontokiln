@@ -222,8 +222,7 @@ fn validate_data(
         &shapes,
         &reachable,
         &foci,
-        max_depth,
-        work_budget,
+        ValidationLimits { max_depth, work_budget },
         native_cache,
     )?;
     data.check_error()?;
@@ -808,14 +807,18 @@ fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
     Ok(graph)
 }
 
+struct ValidationLimits {
+    max_depth: usize,
+    work_budget: usize,
+}
+
 fn validate_composed(
     data: &ValidationData<'_>,
     queries: &PreparedQueries<'_>,
     shapes: &IndexedGraph<'_>,
     reachable: &BTreeSet<String>,
     foci: &BTreeMap<String, BTreeSet<String>>,
-    max_depth: usize,
-    work_budget: usize,
+    limits: ValidationLimits,
     native_cache: Option<&OnceLock<std::result::Result<InMemoryGraph, String>>>,
 ) -> Result<Value> {
     let mut context = Composed {
@@ -829,8 +832,8 @@ fn validate_composed(
         cache: BTreeMap::new(),
         active: BTreeSet::new(),
         visits: 0,
-        max_depth,
-        work_budget,
+        max_depth: limits.max_depth,
+        work_budget: limits.work_budget,
     };
     let mut violations = vec![];
     for (shape, nodes) in foci {
