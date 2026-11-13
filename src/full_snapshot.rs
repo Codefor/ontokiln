@@ -1,4 +1,4 @@
-//! Verified Full snapshots owned by a long-lived supervisor.
+//! Verified Full snapshots shared by one-shot calls and long-lived supervisors.
 //!
 //! Mounting pays the inventory and copy costs once. The private copy is unlinked
 //! and its only writable descriptor is closed before requests can use it. Workers
@@ -13,7 +13,7 @@ use std::{
     ffi::{CStr, c_char, c_int, c_void},
     fs::{self, File},
     io,
-    os::{fd::AsRawFd, unix::process::CommandExt},
+    os::{fd::AsRawFd, unix::fs::MetadataExt, unix::process::CommandExt},
     path::{Path, PathBuf},
     process::Command,
     ptr,
@@ -52,6 +52,22 @@ impl FullSnapshot {
         let (manifest, manifest_digest) =
             crate::full_artifact::verify_with_manifest_digest(&source)
                 .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+        Self::mount_verified(&source, manifest, manifest_digest, max_bytes, None)
+    }
+
+    /// Freeze a database using metadata already returned together by
+    /// `verify_with_manifest_digest`. Callers retain their validation ordering
+    /// without rereading the inventory or manufacturing a canonical JSON digest.
+    pub(crate) fn mount_verified(
+        source: &Path,
+        manifest: Value,
+        manifest_digest: String,
+        max_bytes: u64,
+        reservation_path: Option<&Path>,
+    ) -> Result<Self> {
+        ensure!(max_bytes > 0, "BUDGET_EXHAUSTED|zero mount disk allowance");
+        let source = std::path::absolute(source)?;
+        let database_path = source.join("facts.sqlite");
         ensure!(
             matches!(manifest["kind"].as_str(), Some("compiled" | "reasoned"))
                 && (manifest["kind"] != "reasoned" || manifest["fixpoint_reached"] == true),
@@ -75,15 +91,26 @@ impl FullSnapshot {
         // Unlink at zero bytes, before the potentially long copy. Signals or an
         // abrupt process exit during mounting cannot leave database bytes behind.
         path.close()?;
-        crate::full_artifact::freeze_into(&database_path, &mut writer, digest, max_bytes).map_err(
-            |error| {
-                if error.to_string().starts_with("BUDGET_EXHAUSTED|") {
-                    error
-                } else {
-                    anyhow::anyhow!("INVALID_DATASET|{error}")
-                }
-            },
-        )?;
+        if let Some(reservation_path) = reservation_path {
+            let metadata = database.metadata()?;
+            // The supervisor must account for this anonymous copy even on
+            // platforms without /proc. Publish the reservation before writing
+            // data, and identify its inode so descriptor samples do not double
+            // charge the reader, writer or SQLite's duplicate descriptor.
+            crate::full_execution::write_atomic(
+                reservation_path,
+                &serde_json::json!({
+                    "bytes": bytes,
+                    "dev": metadata.dev(),
+                    "ino": metadata.ino(),
+                }),
+            )?;
+        }
+        // The copy must never outgrow the verified reservation, even if the
+        // source grows after inventory verification and the request has spare
+        // scratch allowance. The supervisor charges this inode by reservation.
+        crate::full_artifact::freeze_into(&database_path, &mut writer, digest, bytes)
+            .map_err(|error| anyhow::anyhow!("INVALID_DATASET|{error}"))?;
         drop(writer);
         validate_descriptor(database.as_raw_fd(), bytes)?;
         Ok(Self {
@@ -606,6 +633,122 @@ mod tests {
                 .unwrap();
             assert_eq!(check, "ok");
         }
+    }
+
+    #[test]
+    fn verified_mount_keeps_the_checked_identity_and_rechecks_database_bytes() {
+        let directory = artifact();
+        let (manifest, digest) =
+            crate::full_artifact::verify_with_manifest_digest(directory.path()).unwrap();
+        // One-shot callers have already checked the raw manifest precondition.
+        // A second inventory read would change that identity and add full I/O.
+        fs::remove_file(directory.path().join("manifest.json")).unwrap();
+        let snapshot = FullSnapshot::mount_verified(
+            directory.path(),
+            manifest.clone(),
+            digest.clone(),
+            1024 * 1024,
+            None,
+        )
+        .unwrap();
+        assert_eq!(snapshot.manifest_sha256(), digest);
+        let db = open_readonly(Path::new(&snapshot.database_locator())).unwrap();
+        assert_eq!(
+            db.query_row::<i64, _, _>("SELECT SUM(n) FROM values_test", [], |r| r.get(0))
+                .unwrap(),
+            41
+        );
+        fs::write(
+            directory.path().join("facts.sqlite"),
+            b"replaced after verification",
+        )
+        .unwrap();
+        let error =
+            FullSnapshot::mount_verified(directory.path(), manifest, digest, 1024 * 1024, None)
+                .err()
+                .unwrap();
+        assert!(error.to_string().starts_with("INVALID_DATASET|"));
+    }
+
+    #[test]
+    fn one_shot_reservation_identifies_anonymous_snapshot_bytes() {
+        let source = artifact();
+        let control = tempfile::tempdir().unwrap();
+        let reservation = control.path().join("snapshot-reservation.json");
+        let (manifest, digest) =
+            crate::full_artifact::verify_with_manifest_digest(source.path()).unwrap();
+        let snapshot = FullSnapshot::mount_verified(
+            source.path(),
+            manifest,
+            digest,
+            1024 * 1024,
+            Some(&reservation),
+        )
+        .unwrap();
+        let record: Value = serde_json::from_slice(&fs::read(&reservation).unwrap()).unwrap();
+        let metadata = snapshot.database.metadata().unwrap();
+        assert_eq!(
+            record,
+            json!({
+                "bytes":snapshot.database_bytes(), "dev":metadata.dev(), "ino":metadata.ino()
+            })
+        );
+        assert_eq!(metadata.nlink(), 0);
+    }
+
+    #[test]
+    fn source_growth_after_verification_cannot_outgrow_the_reservation() {
+        use std::io::Write;
+
+        let source = artifact();
+        let control = tempfile::tempdir().unwrap();
+        let reservation = control.path().join("snapshot-reservation.json");
+        let (manifest, digest) =
+            crate::full_artifact::verify_with_manifest_digest(source.path()).unwrap();
+        let database = source.path().join("facts.sqlite");
+        let verified_bytes = fs::metadata(&database).unwrap().len();
+        let expected = manifest["files"]["facts.sqlite"]["sha256"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        fs::OpenOptions::new()
+            .append(true)
+            .open(&database)
+            .unwrap()
+            .write_all(&[0; 4096])
+            .unwrap();
+
+        // The enlarged source still fits the request's total allowance. It must
+        // be rejected at the reservation boundary, before a digest-only failure
+        // could leave extra anonymous bytes invisible to the supervisor.
+        let allowance = verified_bytes + 16384;
+        assert!(fs::metadata(&database).unwrap().len() < allowance);
+        let error = FullSnapshot::mount_verified(
+            source.path(),
+            manifest,
+            digest,
+            allowance,
+            Some(&reservation),
+        )
+        .err()
+        .unwrap();
+        assert!(error.to_string().starts_with("INVALID_DATASET|"));
+        assert!(
+            error
+                .to_string()
+                .contains("snapshot exceeds mount disk allowance")
+        );
+        let record: Value = serde_json::from_slice(&fs::read(&reservation).unwrap()).unwrap();
+        assert_eq!(record["bytes"], verified_bytes);
+
+        // Retain the anonymous output ourselves to observe the same bounded
+        // copy's failed-write behavior; mount_verified closes its file on error.
+        let mut output = tempfile::tempfile().unwrap();
+        let error =
+            crate::full_artifact::freeze_into(&database, &mut output, &expected, verified_bytes)
+                .unwrap_err();
+        assert!(error.to_string().starts_with("BUDGET_EXHAUSTED|"));
+        assert_eq!(output.metadata().unwrap().len(), 0);
     }
 
     #[test]

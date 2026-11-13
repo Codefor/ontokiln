@@ -466,25 +466,44 @@ fn worker_dataset(path: &Path, request: &Value) -> Result<Dataset> {
 }
 
 struct ReadSnapshot {
-    _copy: Option<tempfile::TempDir>,
+    _owned: Option<crate::full_snapshot::FullSnapshot>,
     database: PathBuf,
 }
 
-fn read_snapshot(path: &Path, meta: &Value, request: &Value) -> Result<ReadSnapshot> {
+fn read_snapshot(
+    path: &Path,
+    meta: &Value,
+    manifest_sha256: Option<&str>,
+    request: &Value,
+    max_bytes: u64,
+) -> Result<ReadSnapshot> {
     if let Some(mounted) = request.get("_mounted_snapshot") {
         let descriptor = mounted["descriptor"]
             .as_i64()
             .context("snapshot descriptor")?;
         Ok(ReadSnapshot {
-            _copy: None,
+            _owned: None,
             database: format!("ontokiln-fd:{descriptor}").into(),
         })
     } else {
-        let copy = tempfile::tempdir()?;
-        snapshot(path, meta, copy.path())?;
+        let reservation = Path::new(
+            request["_request_directory"]
+                .as_str()
+                .context("supervisor request directory")?,
+        )
+        .join("snapshot-reservation.json");
+        let snapshot = crate::full_snapshot::FullSnapshot::mount_verified(
+            path,
+            meta["manifest"].clone(),
+            manifest_sha256
+                .context("snapshot manifest digest")?
+                .to_owned(),
+            max_bytes,
+            Some(&reservation),
+        )?;
         Ok(ReadSnapshot {
-            database: copy.path().join("facts.sqlite"),
-            _copy: Some(copy),
+            database: snapshot.database_locator().into(),
+            _owned: Some(snapshot),
         })
     }
 }
@@ -512,18 +531,6 @@ fn check_manifest_digest(actual: Option<&str>, expected: Option<&str>) -> Result
             "INVALID_DATASET|dataset manifest digest does not match expected_manifest_sha256"
         );
     }
-    Ok(())
-}
-
-fn snapshot(path: &Path, meta: &Value, target: &Path) -> Result<()> {
-    crate::full_artifact::freeze(
-        &path.join("facts.sqlite"),
-        &target.join("facts.sqlite"),
-        meta["manifest"]["files"]["facts.sqlite"]["sha256"]
-            .as_str()
-            .context("snapshot digest")?,
-    )
-    .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
     Ok(())
 }
 
@@ -680,7 +687,13 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     crate::query::local_derived_query(text)
                         .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
                 }
-                let snapshot = read_snapshot(path, &meta, &value)?;
+                let snapshot = read_snapshot(
+                    path,
+                    &meta,
+                    manifest_sha256.as_deref(),
+                    &value,
+                    limits.scratch_bytes.unwrap_or(u64::MAX),
+                )?;
                 let mut overlay = Vec::new();
                 let mut unique = std::collections::BTreeSet::new();
                 let mut intermediate_rows = 0u64;
@@ -763,7 +776,13 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
             );
             let copy = tempfile::tempdir()?;
-            let snapshot = read_snapshot(path, &meta, &value)?;
+            let snapshot = read_snapshot(
+                path,
+                &meta,
+                manifest_sha256.as_deref(),
+                &value,
+                limits.scratch_bytes.unwrap_or(u64::MAX),
+            )?;
             let mut frozen = Vec::new();
             for (i, source) in shapes.iter().enumerate() {
                 let dest = copy.path().join(format!("shape-{i}.rdf"));

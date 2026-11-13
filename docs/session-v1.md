@@ -4,6 +4,13 @@
 `ontokiln api --request ... --result ...` file protocol is unchanged. Both
 transports execute API v1 operations in supervised workers.
 
+Both entry points use the same `FullSnapshot` lifecycle and SQLite FD reader.
+The file command owns an ephemeral instance that ends with its request; the
+session owns the instance until EOF or cancellation. This is one engine with two
+instance lifetimes, not separate legacy and new query implementations. Production
+services should keep the instance inside their adapter while exposing unchanged
+API v1 requests to application code.
+
 ```sh
 ontokiln api-session --dataset /absolute/path/to/reasoned \
   --snapshot-bytes 4294967296
@@ -106,6 +113,17 @@ marks from earlier requests. Request scratch excludes the already reserved
 snapshot, including duplicate descriptors referencing its inode. Temporary files
 and external Shapes snapshots remain chargeable.
 
+One-shot requests reserve their anonymous database size inside the request's
+scratch allowance before copying. The supervisor reads that reservation on both
+Linux and macOS; Linux deduplicates descriptors by device/inode so the same
+snapshot is not counted again by its open-file sampler. The reported peak
+includes this reservation plus sampled temporary files. An interrupted copy can
+therefore report its reserved size even when fewer bytes were physically copied.
+Copying cannot exceed the verified reserved size; source growth after verification
+is rejected as an invalid dataset. Linux can also sample other open-deleted
+temporary files through `/proc`; the reservation does not provide equivalent
+visibility into every SQLite temporary file on macOS.
+
 Closing stdin drains the current request and exits. SIGTERM/SIGINT during a
 request returns `CANCELLED` after worker reaping, then ends the session. Linux
 retains the parent-death signal for abrupt supervisor death. Clients should
@@ -121,12 +139,23 @@ before/after measurements remain separate from this different timing boundary.
 This adapter reuses the database image. Worker processes, SQLite page caches,
 query plans, and SHACL evaluation graphs are still request-scoped. Full SHACL
 still loads the visible triple union into memory. Navigation now uses SPO ranges
-and a lazy POS reference index; class targets traverse inverse subclass/type
+and a lazy POS reference index; explicit class targets traverse inverse subclass/type
 indexes. Simple property paths avoid a second query dataset, and unused
 per-schema Rudof target indexes are no longer rebuilt. Native Core constraints
 still use a Rudof graph; complex paths and SHACL-SPARQL can create an additional
 query dataset on first use. Selecting one focus node does not avoid the initial
 Full graph load.
+
+Target selection keeps the existing [Full contract](full.md#shacl). A shape's
+`rdfs:Class` annotation does not add an implicit target; consumers continue to
+declare `sh:targetClass` or provide an explicit focus.
+
+New Full compilations include a covering SPO index matching the query reader's
+pagination order. Existing compatible snapshots remain readable, but upgrading
+the binary does not add an index to their immutable database. Recompile the
+sources to obtain this index; materializing an older compiled image preserves
+its existing indexes. Indexes remain outside the public SQLite read contract,
+and new artifacts require their own content digests.
 
 This does not establish disk-native SHACL, full OWL/SHACL compatibility, or
 100 million fact Full capacity. The [baseline methodology](../tests/benchmarks/README.md)
@@ -138,3 +167,19 @@ limits, timeouts, cancellation, and reaping. Native VFS tests cover short reads,
 offset errors, read-only enforcement, and disk-backed temporary sorting. Linux
 is tested locally; the POSIX implementation must also be validated on macOS
 before claiming measured platform parity.
+
+## Cold starts and application rollout
+
+A new Bundle still pays full verification and one private snapshot copy. A
+long-lived application should mount the replacement, run representative reads
+and validation, then mark that instance ready and route new work to it. Retain
+the old instance until its current request finishes. Readiness and per-Pod ref
+switching belong to the application; this engine does not implement a global ref.
+
+Every request still starts an isolated worker, opens a SQLite connection and
+prepares its own query or validation state. Warm-up can populate operating-system
+file pages and detect errors; it does not retain worker-local query plans or
+SHACL graphs for the next worker. Replacing the binary alone therefore updates
+the implementation but cannot create cross-request state when the caller still
+starts and exits a process for every request. That caller must change its internal
+adapter to retain an instance; its outward API v1 contract need not change.

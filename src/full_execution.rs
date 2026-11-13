@@ -188,6 +188,23 @@ fn disk(path: &Path) -> Result<u64> {
     Ok(bytes)
 }
 
+#[derive(serde::Deserialize)]
+struct SnapshotReservation {
+    bytes: u64,
+    #[cfg(target_os = "linux")]
+    dev: u64,
+    #[cfg(target_os = "linux")]
+    ino: u64,
+}
+
+fn snapshot_reservation(directory: &Path) -> Result<Option<SnapshotReservation>> {
+    match fs::read(directory.join("snapshot-reservation.json")) {
+        Ok(bytes) => Ok(Some(serde_json::from_slice(&bytes)?)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
 pub fn run_files(request_path: &Path, result_path: &Path) -> Result<()> {
     run_files_with(request_path, result_path, |reply, path| {
         write_atomic(path, reply)
@@ -346,10 +363,17 @@ pub(crate) fn run_files_with_snapshot(
             let supervisor_rss = rss(std::process::id());
             request_supervisor_peak = request_supervisor_peak.max(supervisor_rss);
             peak_rss = peak_rss.max(rss(worker.0.id()).saturating_add(supervisor_rss));
-            peak_disk = peak_disk
-                .max(disk(control.path())? + stage.as_ref().map_or(Ok(0), |s| disk(s.path()))?);
+            // A one-shot snapshot is anonymous on every platform. Reserve its
+            // verified size before copying, including when /proc is unavailable.
+            // Long-lived sessions reserve their snapshot separately at startup.
+            let reservation = snapshot_reservation(control.path())?;
+            let current_disk = disk(control.path())?
+                .saturating_add(stage.as_ref().map_or(Ok(0), |s| disk(s.path()))?)
+                .saturating_add(reservation.as_ref().map_or(0, |r| r.bytes));
             #[cfg(target_os = "linux")]
-            if let Ok(entries) = fs::read_dir(format!("/proc/{}/fd", worker.0.id())) {
+            let current_disk = if let Ok(entries) =
+                fs::read_dir(format!("/proc/{}/fd", worker.0.id()))
+            {
                 let deleted = entries
                     .flatten()
                     .filter_map(|e| {
@@ -360,6 +384,11 @@ pub(crate) fn run_files_with_snapshot(
                     })
                     .filter(|metadata| {
                         use std::os::unix::fs::MetadataExt;
+                        if reservation.as_ref().is_some_and(|reservation| {
+                            reservation.dev == metadata.dev() && reservation.ino == metadata.ino()
+                        }) {
+                            return false;
+                        }
                         // The mounted read-only database is charged once at
                         // startup, not as per-request temporary disk. VFS dup
                         // descriptors refer to the same inode and are excluded.
@@ -372,14 +401,21 @@ pub(crate) fn run_files_with_snapshot(
                                 .unwrap_or(true)
                         })
                     })
-                    .map(|m| m.len())
-                    .sum::<u64>();
-                peak_disk = peak_disk.max(
-                    disk(control.path())?
-                        + stage.as_ref().map_or(Ok(0), |s| disk(s.path()))?
-                        + deleted,
-                );
-            }
+                    .fold(std::collections::BTreeMap::new(), |mut files, metadata| {
+                        use std::os::unix::fs::MetadataExt;
+                        // A one-shot FullSnapshot and its SQLite connection
+                        // own distinct descriptors for the same anonymous file.
+                        // Charge its logical bytes once, not once per handle.
+                        files.insert((metadata.dev(), metadata.ino()), metadata.len());
+                        files
+                    })
+                    .values()
+                    .fold(0u64, |total, bytes| total.saturating_add(*bytes));
+                current_disk.saturating_add(deleted)
+            } else {
+                current_disk
+            };
+            peak_disk = peak_disk.max(current_disk);
             ensure!(
                 peak_rss <= memory
                     && peak_disk <= disk_budget

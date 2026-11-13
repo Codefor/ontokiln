@@ -1,7 +1,7 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
 //! Validation is called only inside the killable Rust worker.
 use crate::rdf_graph::{
-    Graph, IndexedGraph, PreparedQueries, RDF, RDFS, SH, ShaclBudgetExceeded, iri, value,
+    Graph, IndexedGraph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, iri, value,
 };
 use anyhow::{Result, ensure};
 use rudof_rdf::rdf_impl::InMemoryGraph;
@@ -58,11 +58,6 @@ pub fn validate_with_depth(
             ),
             "selected SHACL shape is unavailable"
         );
-        let implicit_class = shapes.has_type(shape, &iri(&format!("{RDFS}Class")));
-        ensure!(
-            !implicit_class || shape.starts_with('<'),
-            "SHACL shape with an implicit class target must be an IRI"
-        );
         let mut nodes = BTreeSet::new();
         if let Some(focus) = focus {
             nodes.insert(focus.to_owned());
@@ -70,11 +65,6 @@ pub fn validate_with_depth(
             nodes.extend(shapes.objects(shape, &iri(&format!("{SH}targetNode"))));
             for class in shapes.objects(shape, &iri(&format!("{SH}targetClass"))) {
                 nodes.extend(data.instances_of(&class));
-            }
-            // A shape that is also an rdfs:Class in the shapes graph targets
-            // that class's SHACL instances in the data graph (SHACL 2.1.3.3).
-            if implicit_class {
-                nodes.extend(data.instances_of(shape));
             }
             for p in shapes.objects(shape, &iri(&format!("{SH}targetSubjectsOf"))) {
                 nodes.extend(data.with_predicate(&p).map(|t| t[0].clone()));

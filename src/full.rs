@@ -753,6 +753,7 @@ fn compile(v: Value) -> Result<Value> {
         INSERT INTO source_facts SELECT DISTINCT g,s,p,o,document FROM raw ORDER BY g,s,p,o,document;
         CREATE INDEX source_facts_spo ON source_facts(s,p,o,document,g);
         DROP TABLE raw; DROP TABLE bnodes;
+        CREATE INDEX facts_spo ON facts(s,p,o,g,explicit);
         CREATE INDEX facts_pos ON facts(p,o,s,g); CREATE INDEX facts_osp ON facts(o,s,p,g);
         ANALYZE; COMMIT; VACUUM;"))?;
     let count: i64 = sql(c.query_row("SELECT COUNT(*) FROM facts", [], |r| r.get(0)))?;

@@ -52,9 +52,10 @@ class Sessions(unittest.TestCase):
         cls.manifest = json.loads((cls.dataset / "manifest.json").read_text())
 
     @classmethod
-    def call_file(cls, operation):
+    def call_file(cls, operation, limits=None):
         request, result = cls.root / "file.request.json", cls.root / "file.result.json"
-        request.write_text(json.dumps({"contract": CONTRACT, "request_id": "file", "operation": operation}))
+        request.write_text(json.dumps({"contract": CONTRACT, "request_id": "file", "operation": operation,
+                                       "limits": limits or {}}))
         subprocess.run([BINARY, "api", "--request", request, "--result", result], check=True, timeout=30)
         reply = json.loads(result.read_text())
         assert reply["status"] == "COMPLETE", reply
@@ -118,6 +119,15 @@ class Sessions(unittest.TestCase):
             self.assertLessEqual(reply["execution"]["metrics"]["peak_scratch_bytes"], 32768)
         process.stdin.close()
         self.assertEqual(process.wait(timeout=5), 0)
+
+    def test_one_shot_uses_the_same_snapshot_without_double_charging_its_descriptors(self):
+        database_bytes = (self.dataset / "facts.sqlite").stat().st_size
+        allowance = database_bytes + 32768
+        reply = self.call_file(self.query(), {"scratch_bytes": allowance})
+        self.assertEqual(reply["result"]["items"][0]["value"]["value"], "7")
+        self.assertGreaterEqual(reply["execution"]["metrics"]["peak_scratch_bytes"], database_bytes)
+        self.assertLessEqual(reply["execution"]["metrics"]["peak_scratch_bytes"], allowance)
+        self.assertNotIn("snapshot_reused", reply["execution"]["metrics"])
 
     def test_mounted_image_survives_source_corruption_and_removal(self):
         directory = self.root / "replaceable"

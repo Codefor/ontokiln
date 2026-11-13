@@ -67,7 +67,7 @@ class Validation(unittest.TestCase):
                             "shapes": [self.source(PREFIXES + text)], **options}, error)
         return result if error else result["report"]
 
-    def test_explicit_and_implicit_targets_follow_transitive_subclasses_and_cycles(self):
+    def test_explicit_class_targets_follow_transitive_subclasses_and_cycles(self):
         # Renaming all nonstandard IRIs leaves target discovery and constraints unchanged.
         for namespace in ("urn:example:", "https://other.example/model/"):
             with self.subTest(namespace=namespace):
@@ -82,7 +82,7 @@ ex:unrelated ex:name "Unrelated" .
 ex:other a ex:Elsewhere .
 """)
                 report = self.validate(dataset, prefix + """
-ex:Person a sh:NodeShape, rdfs:Class;
+ex:Person a sh:NodeShape, rdfs:Class; sh:targetClass ex:Person;
     sh:property [sh:path ex:name; sh:minCount 1] .
 ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
     sh:property [sh:path ex:name; sh:minCount 1] .
@@ -98,7 +98,7 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
                 self.assertEqual({v["focus_node"] for v in report["violations"]},
                                  {namespace + "bob"})
 
-    def test_implicit_class_declaration_comes_from_shapes_and_focus_overrides_targets(self):
+    def test_class_annotations_keep_explicit_target_contract_and_focus_override(self):
         dataset = self.compile("""
 <urn:Shape> a rdfs:Class .
 <urn:member> a <urn:Shape> .
@@ -111,6 +111,10 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
         self.assertTrue(report["conforms"])
         implicit = shape + "\n<urn:Shape> a rdfs:Class ."
         report = self.validate(dataset, implicit)
+        self.assertEqual(report["target_count"], 0)
+        self.assertTrue(report["conforms"])
+        explicit = implicit + "\n<urn:Shape> sh:targetClass <urn:Shape> ."
+        report = self.validate(dataset, explicit)
         self.assertEqual(report["target_count"], 1)
         self.assertEqual(report["violations"][0]["focus_node"], "urn:member")
         report = self.validate(dataset, implicit, focus_node="<urn:outsider>")
@@ -127,21 +131,23 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
            <urn:Student> rdfs:subClassOf <urn:Person> . }
 """, "trig")
         report = self.validate(dataset, """
-<urn:Person> a sh:NodeShape, rdfs:Class;
+<urn:Person> a sh:NodeShape, rdfs:Class; sh:targetClass <urn:Person>;
     sh:property [sh:path <urn:name>; sh:minCount 1] .
 """)
         self.assertEqual(report["target_count"], 1)
         self.assertEqual(len(report["violations"]), 1)
 
-    def test_blank_class_shapes_are_ill_formed_even_with_an_explicit_focus(self):
+    def test_class_annotations_do_not_change_blank_shape_acceptance(self):
         dataset = self.compile('<urn:a> <urn:present> true .')
         for kind in ("NodeShape", "PropertyShape"):
             with self.subTest(kind=kind):
                 path = "; sh:path <urn:present>" if kind == "PropertyShape" else ""
                 shape = f"_:shape a sh:{kind}, rdfs:Class{path} ."
                 for options in ({}, {"focus_node": "<urn:a>"}):
-                    self.validate(dataset, shape, error="EXECUTION_FAILED", **options)
-        # Ordinary anonymous shapes remain valid when they do not denote classes.
+                    report = self.validate(dataset, shape, **options)
+                    self.assertTrue(report["conforms"])
+                    self.assertEqual(report["target_count"], 1 if options else 0)
+        # Ordinary anonymous shapes keep the same explicit targeting behavior.
         report = self.validate(dataset, """
 [] a sh:NodeShape; sh:targetNode <urn:a>;
     sh:property [sh:path <urn:present>; sh:minCount 1] .
