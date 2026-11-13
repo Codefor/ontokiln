@@ -3,17 +3,17 @@
 //! SHACL shares a lazily built validation graph across requests.
 use crate::rdf_graph::{Graph, RDF, SH, iri};
 use anyhow::{Context, Result, ensure};
-use oxigraph::io::{RdfFormat, RdfParser};
-use sha2::{Digest, Sha256};
-use std::fs;
 use ontokiln_compiler::{
     v4::{Source, compile_sources},
     v4_materialize::{Materialization, Rule, materialize},
 };
 use ontokiln_pack::v4::{PackV4, View};
 use ontokiln_reasoner::v4::EngineV4;
+use oxigraph::io::{RdfFormat, RdfParser};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -81,7 +81,8 @@ impl OntologyEngine {
     /// has its own blank-node scope, and no file bytes are trusted without
     /// checking the caller's SHA-256 precondition.
     pub fn validate_shape_sources(
-        &self, sources: &[Source],
+        &self,
+        sources: &[Source],
         selected_shapes: Option<&BTreeSet<String>>,
         focus_node: Option<&str>,
         max_depth: usize,
@@ -89,25 +90,31 @@ impl OntologyEngine {
         let mut shapes = Graph::default();
         for source in sources {
             let meta = fs::symlink_metadata(&source.path)?;
-            ensure!(meta.file_type().is_file(),
-                "SHACL source must be a regular non-symlink file");
-            let bytes=fs::read(&source.path)?;
-            ensure!(format!("{:x}",Sha256::digest(&bytes))==source.expected_sha256,
-                "SHACL source digest mismatch: {}",source.document_id);
-            let format=match source.format.as_str() {
-                "turtle"=>RdfFormat::Turtle,
-                "ntriples"=>RdfFormat::NTriples,
-                "trig"=>RdfFormat::TriG,
-                "nquads"=>RdfFormat::NQuads,
-                _=>anyhow::bail!("unsupported SHACL RDF source format"),
+            ensure!(
+                meta.file_type().is_file(),
+                "SHACL source must be a regular non-symlink file"
+            );
+            let bytes = fs::read(&source.path)?;
+            ensure!(
+                format!("{:x}", Sha256::digest(&bytes)) == source.expected_sha256,
+                "SHACL source digest mismatch: {}",
+                source.document_id
+            );
+            let format = match source.format.as_str() {
+                "turtle" => RdfFormat::Turtle,
+                "ntriples" => RdfFormat::NTriples,
+                "trig" => RdfFormat::TriG,
+                "nquads" => RdfFormat::NQuads,
+                _ => anyhow::bail!("unsupported SHACL RDF source format"),
             };
-            let mut parser=RdfParser::from_format(format).rename_blank_nodes();
-            if let Some(base)=source.base_iri.as_deref() {
-                parser=parser.with_base_iri(base)?;
+            let mut parser = RdfParser::from_format(format).rename_blank_nodes();
+            if let Some(base) = source.base_iri.as_deref() {
+                parser = parser.with_base_iri(base)?;
             }
             for quad in parser.for_reader(bytes.as_slice()) {
-                let quad=quad.with_context(||format!(
-                    "SHACL source parse failed: {}",source.document_id))?;
+                let quad = quad.with_context(|| {
+                    format!("SHACL source parse failed: {}", source.document_id)
+                })?;
                 shapes.triples.insert([
                     quad.subject.to_string(),
                     quad.predicate.to_string(),
@@ -115,7 +122,7 @@ impl OntologyEngine {
                 ]);
             }
         }
-        self.validate(Some(&shapes),selected_shapes,focus_node,max_depth)
+        self.validate(Some(&shapes), selected_shapes, focus_node, max_depth)
     }
 
     /// Validate external Shapes, or Shapes within the data graph when None.
@@ -252,24 +259,37 @@ mod tests {
     }
     #[test]
     fn external_shapes_are_loaded_and_digest_checked() {
-        let dir=tempdir().unwrap();
-        let (engine,_)=OntologyEngine::build(&[source(
-            dir.path(),"data.ttl","<urn:person> <urn:age> \"42\" ."
-        )],"no-rules-v1",&[]).unwrap();
-        let shapes=format!(
+        let dir = tempdir().unwrap();
+        let (engine, _) = OntologyEngine::build(
+            &[source(
+                dir.path(),
+                "data.ttl",
+                "<urn:person> <urn:age> \"42\" .",
+            )],
+            "no-rules-v1",
+            &[],
+        )
+        .unwrap();
+        let shapes = format!(
             "<urn:Shape> a <{SH}NodeShape> .\n\
              <urn:Shape> <{SH}targetNode> <urn:person> .\n\
              <urn:Shape> <{SH}property> _:p .\n\
              _:p <{SH}path> <urn:name> .\n\
              _:p <{SH}minCount> 1 .\n"
         );
-        let spec=source(dir.path(),"shape.ttl",&shapes);
-        let result=engine.validate_shape_sources(&[spec.clone()],None,None,64).unwrap();
-        assert_eq!(result["conforms"],false);
-        assert_eq!(result["checked_shapes"],1);
-        assert!(result["violations"].as_u64().unwrap()>0);
-        fs::write(&spec.path,"<urn:changed> <urn:p> <urn:o> .").unwrap();
-        assert!(engine.validate_shape_sources(&[spec],None,None,64).is_err());
+        let spec = source(dir.path(), "shape.ttl", &shapes);
+        let result = engine
+            .validate_shape_sources(&[spec.clone()], None, None, 64)
+            .unwrap();
+        assert_eq!(result["conforms"], false);
+        assert_eq!(result["checked_shapes"], 1);
+        assert!(result["violations"].as_u64().unwrap() > 0);
+        fs::write(&spec.path, "<urn:changed> <urn:p> <urn:o> .").unwrap();
+        assert!(
+            engine
+                .validate_shape_sources(&[spec], None, None, 64)
+                .is_err()
+        );
     }
 
     #[test]
