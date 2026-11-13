@@ -1,0 +1,1247 @@
+{
+  "artifacts": {
+    "compiled": {
+      "baseline_artifact": {
+        "content_digest": "cfd1edfea62da49877f4b46f2cea80a64509bd1cccd635db0f73e822b68ff011",
+        "manifest_sha256": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+        "path": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+      },
+      "baseline_sample_index": 0,
+      "baseline_stage": "full_compile",
+      "database_after": {
+        "bytes": 125222912,
+        "ctime_ns": 1794540455583624611,
+        "inode": 3018405,
+        "mtime_ns": 1794540455583624611,
+        "sha256": "95fbcfe52d0d1c0b2583a0b32c6060c46f8c89d890972249691f26c31d705921"
+      },
+      "database_before": {
+        "bytes": 125222912,
+        "ctime_ns": 1794540455583624611,
+        "inode": 3018405,
+        "mtime_ns": 1794540455583624611,
+        "sha256": "95fbcfe52d0d1c0b2583a0b32c6060c46f8c89d890972249691f26c31d705921"
+      },
+      "database_manifest_record": {
+        "bytes": 125222912,
+        "sha256": "95fbcfe52d0d1c0b2583a0b32c6060c46f8c89d890972249691f26c31d705921"
+      },
+      "database_state_unchanged": true,
+      "manifest_kind": "compiled",
+      "manifest_schema": "kernel-manifest-v1",
+      "manifest_sha256_after": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+      "manifest_sha256_before": "d3e92da6e7bea061cd51b2133039790b8ce11f3e0c8bcc44b42725f31c6cd6f0",
+      "manifest_stats": {
+        "distinct_terms": 400140,
+        "explicit_facts": 1000000,
+        "indexed_facts": 1000000,
+        "parsed_facts": 1000000
+      },
+      "manifest_unchanged": true,
+      "path": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0"
+    },
+    "reasoned": {
+      "baseline_artifact": {
+        "content_digest": "23ae588fd907b86e6e612dd878bf2031fd0044ccde3eb3a18a38b5d3461f4982",
+        "manifest_sha256": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+        "path": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0",
+        "profile_id": "rdfs-supported-v1",
+        "semantic_fingerprint": "61833f34e35d1f48a736d9f6acc74a96075d1cc77fe5b22fb8c6a4eb0be2201a",
+        "source_tree_digest": "7a711f3f90cf96c2491f3b3612c1d83a5adfd23f1cf50cd1962e7b22455c0e14"
+      },
+      "baseline_sample_index": 0,
+      "baseline_stage": "full_materialize",
+      "database_after": {
+        "bytes": 164552704,
+        "ctime_ns": 1794540482976300351,
+        "inode": 3018505,
+        "mtime_ns": 1794540482976300351,
+        "sha256": "5289926be0b81868d54446ffef2f92d20fb5479d7054bb42e116ea469819cb51"
+      },
+      "database_before": {
+        "bytes": 164552704,
+        "ctime_ns": 1794540482976300351,
+        "inode": 3018505,
+        "mtime_ns": 1794540482976300351,
+        "sha256": "5289926be0b81868d54446ffef2f92d20fb5479d7054bb42e116ea469819cb51"
+      },
+      "database_manifest_record": {
+        "bytes": 164552704,
+        "sha256": "5289926be0b81868d54446ffef2f92d20fb5479d7054bb42e116ea469819cb51"
+      },
+      "database_state_unchanged": true,
+      "manifest_kind": "reasoned",
+      "manifest_schema": "kernel-manifest-v1",
+      "manifest_sha256_after": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+      "manifest_sha256_before": "761bdfc4829c8416a39835d5e073e38a1ead045f5435d5a23206f83e07f79c4f",
+      "manifest_stats": {
+        "executed_rule_evaluations": 136,
+        "explicit_facts": 1000000,
+        "fixpoint_iterations": 8,
+        "indexed_facts": 1862490,
+        "inferred_facts": 862490
+      },
+      "manifest_unchanged": true,
+      "path": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0"
+    }
+  },
+  "baseline": {
+    "binary": "/workspace/scratch/002e4172a133/ontokiln/target/release/ontokiln",
+    "binary_sha256_now": "1fb31975bc3f81980e5c89650364c1fad56d6b5f75b59dc5bef21c900faefc0c",
+    "binary_sha256_recorded": "1fb31975bc3f81980e5c89650364c1fad56d6b5f75b59dc5bef21c900faefc0c",
+    "facts": 1000000,
+    "kernel_identity": {
+      "capabilities": [
+        "ontokiln-api/v1",
+        "rdf-pack/v3",
+        "sparql/v1",
+        "positive-rules/v1",
+        "proofs/v1",
+        "full-source-doc/v2",
+        "full-execution/v1",
+        "shacl-core-and-local-select/v1",
+        "values-bindings/v1",
+        "derived-query-data/v1"
+      ],
+      "contract_version": "ontokiln-core/v3",
+      "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+      "pack_version": 3,
+      "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+      "version": "0.1.0"
+    },
+    "path": "/workspace/scratch/002e4172a133/ontokiln-kernel-baseline-46e0fb5-linux.json",
+    "runtime_sqlite_recorded": "3.54.1",
+    "sha256": "13c80093a68ef31b510b9c4cab3a6fe687b5b7697b112555054318d08a598aca",
+    "status": "COMPLETE_WITH_FAILURES"
+  },
+  "cases": [
+    {
+      "artifact_kind": "compiled",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "asserted",
+        "0",
+        "0",
+        "0"
+      ],
+      "cursor_position": "first",
+      "explain_wall_seconds_diagnostic_only": 0.004745785000523028,
+      "probe": {
+        "bind_parameters": [
+          0,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 199,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "asserted"
+      }
+    },
+    {
+      "artifact_kind": "compiled",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "asserted",
+        "200070",
+        "0",
+        "0"
+      ],
+      "cursor_position": "middle",
+      "explain_wall_seconds_diagnostic_only": 0.002055402000223694,
+      "probe": {
+        "bind_parameters": [
+          200070,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 199,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "asserted"
+      }
+    },
+    {
+      "artifact_kind": "compiled",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "asserted",
+        "400139",
+        "0",
+        "0"
+      ],
+      "cursor_position": "tail",
+      "explain_wall_seconds_diagnostic_only": 0.0027714960006051115,
+      "probe": {
+        "bind_parameters": [
+          400139,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/compile-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 199,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=1 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "asserted"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "inferred",
+        "0",
+        "0",
+        "0"
+      ],
+      "cursor_position": "first",
+      "explain_wall_seconds_diagnostic_only": 0.002671694999662577,
+      "probe": {
+        "bind_parameters": [
+          0,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "inferred"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "inferred",
+        "200070",
+        "0",
+        "0"
+      ],
+      "cursor_position": "middle",
+      "explain_wall_seconds_diagnostic_only": 0.0016728529999454622,
+      "probe": {
+        "bind_parameters": [
+          200070,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "inferred"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "inferred",
+        "400139",
+        "0",
+        "0"
+      ],
+      "cursor_position": "tail",
+      "explain_wall_seconds_diagnostic_only": 0.0012442639999790117,
+      "probe": {
+        "bind_parameters": [
+          400139,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 54,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 55,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE explicit=0 AND (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "inferred"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "closure",
+        "0",
+        "0",
+        "0"
+      ],
+      "cursor_position": "first",
+      "explain_wall_seconds_diagnostic_only": 0.002471341999807919,
+      "probe": {
+        "bind_parameters": [
+          0,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 52,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 53,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "closure"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "closure",
+        "200070",
+        "0",
+        "0"
+      ],
+      "cursor_position": "middle",
+      "explain_wall_seconds_diagnostic_only": 0.0013610910000352305,
+      "probe": {
+        "bind_parameters": [
+          200070,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 52,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 53,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "closure"
+      }
+    },
+    {
+      "artifact_kind": "reasoned",
+      "command": [
+        "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+        "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "closure",
+        "400139",
+        "0",
+        "0"
+      ],
+      "cursor_position": "tail",
+      "explain_wall_seconds_diagnostic_only": 0.001341997000054107,
+      "probe": {
+        "bind_parameters": [
+          400139,
+          0,
+          0
+        ],
+        "database": "/workspace/scratch/002e4172a133/ontokiln-benchmark-work/ontokiln-kernel-baseline-dh_eumu3/facts-1000000/materialize-0/facts.sqlite",
+        "database_readonly": true,
+        "explain_sql": "EXPLAIN QUERY PLAN SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "open_flags": [
+          "SQLITE_OPEN_READONLY",
+          "SQLITE_OPEN_NOMUTEX"
+        ],
+        "plan_column_names": [
+          "id",
+          "parent",
+          "notused",
+          "detail"
+        ],
+        "plan_rows": [
+          {
+            "aux": 208,
+            "detail": "SEARCH facts USING PRIMARY KEY (ANY(g) AND (s,p,o)>(?,?,?))",
+            "id": 5,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR DISTINCT",
+            "id": 52,
+            "parent": 0
+          },
+          {
+            "aux": 0,
+            "detail": "USE TEMP B-TREE FOR ORDER BY",
+            "id": 53,
+            "parent": 0
+          }
+        ],
+        "pragmas": {
+          "cache_size": -4096,
+          "mmap_size": 0,
+          "query_only": 1,
+          "temp_store": 1
+        },
+        "query_was_executed": false,
+        "sql": "SELECT DISTINCT s,p,o,0 FROM facts WHERE (s,p,o)>(?,?,?) ORDER BY s,p,o LIMIT 256",
+        "sqlite_compile_options": [
+          "ATOMIC_INTRINSICS=1",
+          "COMPILER=gcc-14.2.0",
+          "DEFAULT_AUTOVACUUM",
+          "DEFAULT_CACHE_SIZE=-2000",
+          "DEFAULT_FILE_FORMAT=4",
+          "DEFAULT_FOREIGN_KEYS",
+          "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+          "DEFAULT_MMAP_SIZE=0",
+          "DEFAULT_PAGE_SIZE=4096",
+          "DEFAULT_PCACHE_INITSZ=20",
+          "DEFAULT_RECURSIVE_TRIGGERS",
+          "DEFAULT_SECTOR_SIZE=4096",
+          "DEFAULT_SYNCHRONOUS=2",
+          "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+          "DEFAULT_WAL_SYNCHRONOUS=2",
+          "DEFAULT_WORKER_THREADS=0",
+          "DIRECT_OVERFLOW_READ",
+          "ENABLE_API_ARMOR",
+          "ENABLE_COLUMN_METADATA",
+          "ENABLE_DBSTAT_VTAB",
+          "ENABLE_FTS3",
+          "ENABLE_FTS3_PARENTHESIS",
+          "ENABLE_FTS5",
+          "ENABLE_LOAD_EXTENSION",
+          "ENABLE_RTREE",
+          "ENABLE_STAT4",
+          "HAVE_ISNAN",
+          "MALLOC_SOFT_LIMIT=1024",
+          "MAX_ATTACHED=10",
+          "MAX_COLUMN=2000",
+          "MAX_COMPOUND_SELECT=500",
+          "MAX_DEFAULT_PAGE_SIZE=8192",
+          "MAX_EXPR_DEPTH=1000",
+          "MAX_FUNCTION_ARG=1000",
+          "MAX_LENGTH=1000000000",
+          "MAX_LIKE_PATTERN_LENGTH=50000",
+          "MAX_MMAP_SIZE=0x7fff0000",
+          "MAX_PAGE_COUNT=0xfffffffe",
+          "MAX_PAGE_SIZE=65536",
+          "MAX_SCHEMA=10000000",
+          "MAX_SQL_LENGTH=1000000000",
+          "MAX_TRIGGER_DEPTH=1000",
+          "MAX_VARIABLE_NUMBER=32766",
+          "MAX_VDBE_OP=250000000",
+          "MAX_WORKER_THREADS=8",
+          "MUTEX_PTHREADS",
+          "SOUNDEX",
+          "SYSTEM_MALLOC",
+          "TEMP_STORE=1",
+          "THREADSAFE=1",
+          "USE_URI"
+        ],
+        "sqlite_source_id": "2026-10-16 14:45:20 555e07ef33f69a0957d24d8e555b702464a131d6f1607f4c3c1e4551e8e6ca76",
+        "sqlite_version": "3.54.1",
+        "sqlite_version_number": 3054001,
+        "statement_is_explain": 2,
+        "view": "closure"
+      }
+    }
+  ],
+  "created_at_utc": "2026-11-13T03:38:03.896834+00:00",
+  "method": {
+    "allowed_other_sql": "connection-local PRAGMA setters and readback only",
+    "cursor_distinct_terms_basis": 400140,
+    "cursor_policy": "Representative lower-bound keys derived from compiled manifest distinct_terms; not observed page-end tuples. No facts/terms query was executed to obtain cursors.",
+    "immutable_inputs": "original published artifacts opened SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX; no copied/modified database, index, or statistics",
+    "interpretation_limit": "EQP records actual selected plan shape; it does not measure scanned rows, sort work, or speedup.",
+    "operation": "EXPLAIN QUERY PLAN only; the underlying SELECT was never stepped",
+    "sqlite_guard": "sqlite3_db_readonly(main)==1 and sqlite3_stmt_isexplain(statement)==2 are required"
+  },
+  "probe": {
+    "compile_command": [
+      "/usr/bin/cc",
+      "-std=c11",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain.c",
+      "-I/workspace/scratch/002e4172a133/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libsqlite3-sys-0.39.1/sqlite3",
+      "/workspace/scratch/002e4172a133/ontokiln/target/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/out/libsqlite3.a",
+      "-ldl",
+      "-lpthread",
+      "-lm",
+      "-o",
+      "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain"
+    ],
+    "compiler_version": "cc (Debian 14.2.0-19) 14.2.0",
+    "engine_library_build_output": "/workspace/scratch/002e4172a133/ontokiln/target/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/output",
+    "engine_library_build_output_sha256": "8c450ba611c7f3695c74dd34a6ce2b5683bc5b0561fd00880adc2a90b1f6015e",
+    "engine_link_evidence": [
+      "cargo:rustc-link-lib=static=sqlite3",
+      "cargo:rustc-link-search=native=/workspace/scratch/002e4172a133/ontokiln/target/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/out"
+    ],
+    "executable": "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain",
+    "executable_sha256": "828eda24f9bdc09cb4cf34edc51f91b7dc08276fe3e5d4d041102a1eeff28b6f",
+    "ldd": "linux-vdso.so.1 (0x00007fe0bbc46000)\n\tlibm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fe0bb939000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fe0bb745000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007fe0bbc48000)",
+    "matching_header": "/workspace/scratch/002e4172a133/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libsqlite3-sys-0.39.1/sqlite3/sqlite3.h",
+    "matching_header_sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c",
+    "source": "/workspace/scratch/002e4172a133/ontokiln-sqlite-explain-46e0fb5/sqlite_explain.c",
+    "source_sha256": "931c6f87794f3fd157a776f1a7f7af979a5ac7705c68fc3e5b6f6d8e884c69fa",
+    "static_library": "/workspace/scratch/002e4172a133/ontokiln/target/release/build/libsqlite3-sys-fe564f7ce5c0f8cf/out/libsqlite3.a",
+    "static_library_bytes": 3287882,
+    "static_library_sha256": "d13d5e31bb0874596cbb0a705473af3f72b71520eb13a16569a7bea82bb52460"
+  },
+  "schema_version": "ontokiln-sqlite-eqp-evidence/v1",
+  "validation": {
+    "all_cases_use_engine_sqlite_version": true,
+    "all_database_hashes_match_manifest": true,
+    "all_database_states_unchanged": true,
+    "all_manifests_unchanged": true,
+    "binary_matches_baseline": true,
+    "case_count": 9
+  }
+}

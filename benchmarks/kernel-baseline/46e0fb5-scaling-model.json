@@ -1,0 +1,76 @@
+{
+  "schema_version": "ontokiln-kernel-scaling-model/v1",
+  "raw_report_sha256": "4ee704f7fbe9af51deb263c532a6651c98c8d1405e78d3354ce3d87ac5f6a113",
+  "kernel": {
+    "capabilities": [
+      "ontokiln-api/v1",
+      "rdf-pack/v3",
+      "sparql/v1",
+      "positive-rules/v1",
+      "proofs/v1",
+      "full-source-doc/v2",
+      "full-execution/v1",
+      "shacl-core-and-local-select/v1",
+      "values-bindings/v1",
+      "derived-query-data/v1"
+    ],
+    "contract_version": "ontokiln-core/v3",
+    "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+    "pack_version": 3,
+    "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+    "version": "0.1.0"
+  },
+  "limits": {
+    "max_bytes": 4194304,
+    "max_derived_facts": 10000000,
+    "max_intermediate_rows": 100000000,
+    "max_iterations": 100,
+    "max_rows": 100000,
+    "max_term_bytes": 1048576,
+    "max_validation_depth": 64,
+    "memory_bytes": 4294967296,
+    "scratch_bytes": 8589934592,
+    "timeout_ms": 300000.0
+  },
+  "anchor_sizes": [
+    1000000,
+    10000000
+  ],
+  "projection_size": 100000000,
+  "assumptions": [
+    "Similar term-length distribution, distinct-term/explicit-fact ratio, predicate cardinality, locality and source provenance density",
+    "Same fixed rules and bounded 8-node-chain closure shape",
+    "No claim of unchanged OS page-cache or physical device behavior",
+    "Scenario calculations are not confidence intervals or performance guarantees"
+  ],
+  "stages": {
+    "full_compile": {
+      "median_seconds_1m": 8.767070343999876,
+      "median_seconds_10m": 94.22116968499904,
+      "input_facts_per_second_1m": 114063.18881476676,
+      "input_facts_per_second_10m": 106133.26106470636,
+      "microseconds_per_input_fact_1m": 8.767070343999876,
+      "microseconds_per_input_fact_10m": 9.422116968499903,
+      "time_ratio": 10.747167068128222,
+      "unit_cost_change_percent": 7.4716706812822276,
+      "effective_alpha": 1.031294000175242,
+      "seconds_100m_linear": 942.2116968499904,
+      "seconds_100m_nlogn_shape": 1076.8133678285606,
+      "seconds_100m_empirical": 1012.6106519591428
+    },
+    "full_materialize": {
+      "median_seconds_1m": 11.045819980001397,
+      "median_seconds_10m": 128.96216079200167,
+      "input_facts_per_second_1m": 90531.98420855249,
+      "input_facts_per_second_10m": 77542.12505890493,
+      "microseconds_per_input_fact_1m": 11.045819980001397,
+      "microseconds_per_input_fact_10m": 12.896216079200167,
+      "time_ratio": 11.675200304322301,
+      "unit_cost_change_percent": 16.75200304322302,
+      "effective_alpha": 1.0672643402287834,
+      "seconds_100m_linear": 1289.6216079200167,
+      "seconds_100m_nlogn_shape": 1473.8532661943048,
+      "seconds_100m_empirical": 1505.6590589248397
+    }
+  }
+}

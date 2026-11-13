@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare kernel_baseline.py JSON reports without treating failed work as faster.
+"""Compare kernel baseline or scaling reports without treating failed work as faster.
 
 Exit 0 means the recorded configurations are comparable, not that performance
 improved. Exit 1 means non-comparable; exit 2 means invalid input or CLI usage.
@@ -15,6 +15,9 @@ import sys
 
 
 SCHEMA = "ontokiln-kernel-baseline/v1"
+SCALING_SCHEMA = "ontokiln-kernel-scaling/v1"
+SUPPORTED_SCHEMAS = {SCHEMA, SCALING_SCHEMA}
+SCALING_METHOD_FIELDS = {"driver_sha256": 64, "harness_sha256": 64, "harness_source_revision": 40}
 SCRIPT = "benchmarks/kernel_baseline.py"
 METRICS = {
     "end_to_end_seconds": "seconds",
@@ -38,6 +41,7 @@ NOTES = [
     "Build declarations and rustc_on_path are recorded provenance, not independent proof of how a binary was built. Different engine identities are allowed.",
     "API RSS, supervisor RSS and wait4 RSS are distinct measurements; do not add them. Engine compile time overlaps parse/index phases; query/SHACL core time is unavailable.",
     "File and mounted-session reads have different timing boundaries; their configurations are deliberately non-comparable. Session mounts are one-time diagnostic samples and are not hidden in per-request times.",
+    "Baseline and scaling reports are separate study schemas. Scaling comparisons require matching selected phases, driver and harness provenance; build receipt digests and local paths are not execution configuration.",
 ]
 
 
@@ -70,20 +74,28 @@ def indexed(items, key, label):
     return result
 
 
+def runtime_environment(value):
+    # This variable is consumed by build.rs and embedded in kernel identity;
+    # all other recorded environment keys remain execution configuration.
+    return ({key: item for key, item in value.items() if key != "ONTOKILN_BUILD_REVISION"}
+            if isinstance(value, dict) else value)
+
+
 def recorded_configuration(report):
     env = report.get("environment", {})
     require(isinstance(env, dict), "environment must be an object")
     config = report.get("configuration", {})
     require(isinstance(config, dict), "configuration must be an object")
     affinity = env.get("cpu_affinity")
-    overrides = report.get("process_environment_overrides")
-    relevant = env.get("relevant_environment")
+    overrides = runtime_environment(report.get("process_environment_overrides"))
+    relevant = runtime_environment(env.get("relevant_environment"))
     effective = {**relevant, **overrides} if isinstance(relevant, dict) and isinstance(overrides, dict) else None
-    return {
+    recorded = {
         "configuration": {key: value for key, value in config.items()
                           if key not in {"binary", "output", "work_dir", "keep_work_dir"}},
         **{key: report.get(key) for key in ["limits", "cache_policy", "scratch_policy", "concurrency",
-                                           "process_environment_overrides", "scope", "metric_definitions"]},
+                                           "scope", "metric_definitions"]},
+        "process_environment_overrides": overrides,
         **{"environment." + key: env.get(key) for key in [
             "cpu_model", "logical_cpus", "platform", "machine", "physical_memory_bytes",
             "rustc_on_path", "python", "cgroup_limits_raw",
@@ -93,6 +105,10 @@ def recorded_configuration(report):
         "environment.filesystem": at(env, "filesystem.filesystem"),
         "method.script_sha256": env.get("provenance_files", {}).get(SCRIPT),
     }
+    if report.get("schema_version") == SCALING_SCHEMA:
+        recorded["phase_selection"] = report.get("phase_selection")
+        recorded.update({"method." + field: at(report, "method." + field) for field in SCALING_METHOD_FIELDS})
+    return recorded
 
 
 def outcome(stage):
@@ -154,15 +170,33 @@ def compare(before, after, min_samples=3):
             issues.append({"field": field, "reason": "recorded values differ", "before": left, "after": right})
 
     for label, report in [("before", before), ("after", after)]:
-        if report.get("schema_version") != SCHEMA:
+        schema = report.get("schema_version")
+        if not isinstance(schema, str) or schema not in SUPPORTED_SCHEMAS:
             issues.append({"field": label + ".schema_version", "reason": "unsupported report schema",
-                           "value": report.get("schema_version")})
+                           "value": schema})
         if report.get("status") not in {"COMPLETE", "COMPLETE_WITH_FAILURES"}:
             issues.append({"field": label + ".status", "reason": "report is unfinished or aborted",
                            "value": report.get("status")})
+        if schema == SCALING_SCHEMA:
+            phases = report.get("phase_selection")
+            if not (isinstance(phases, list) and phases and all(isinstance(p, str) and p for p in phases)
+                    and len(set(phases)) == len(phases)):
+                issues.append({"field": label + ".phase_selection",
+                               "reason": "scaling reports require a nonempty list of distinct phase names", "value": phases})
+            for field, length in SCALING_METHOD_FIELDS.items():
+                value = at(report, "method." + field)
+                if not (isinstance(value, str) and len(value) == length
+                        and all(c in "0123456789abcdef" for c in value)):
+                    issues.append({"field": label + ".method." + field,
+                                   "reason": f"scaling provenance requires {length} lowercase hexadecimal characters", "value": value})
+    check("schema_version", before.get("schema_version"), after.get("schema_version"))
     left_config, right_config = recorded_configuration(before), recorded_configuration(after)
-    for field in left_config:
-        check(field, left_config[field], right_config[field])
+    for field in sorted(left_config.keys() | right_config.keys()):
+        check(field, left_config.get(field), right_config.get(field))
+    for label, report, config in [("before", before, left_config), ("after", after, right_config)]:
+        if report.get("schema_version") == SCALING_SCHEMA:
+            check(label + ".method.harness_sha256_matches_script_provenance",
+                  config.get("method.harness_sha256"), config.get("method.script_sha256"))
     left_scales = indexed(before.get("scales"), "facts", "scales")
     right_scales = indexed(after.get("scales"), "facts", "scales")
     require(left_scales and right_scales, "reports require at least one measured scale")
@@ -185,6 +219,10 @@ def compare(before, after, min_samples=3):
         check(f"scales[{facts}].input", left["input"], right["input"])
         ls = indexed(left.get("stages"), "name", "stages")
         rs = indexed(right.get("stages"), "name", "stages")
+        for label, report, stages in [("before", before, ls), ("after", after, rs)]:
+            phases = report.get("phase_selection")
+            if report.get("schema_version") == SCALING_SCHEMA and isinstance(phases, list) and all(isinstance(p, str) for p in phases):
+                check(f"{label}.scales[{facts}].selected_phases_present", sorted(phases), sorted(stages))
         check(f"scales[{facts}].stages", sorted(ls), sorted(rs))
         for name in sorted(ls.keys() | rs.keys()):
             l, r = ls.get(name), rs.get(name)
@@ -225,9 +263,11 @@ def compare(before, after, min_samples=3):
         stages.append({"facts": facts, "stage": name, "before": lout, "after": rout,
                        "comparison_blockers": blocked, "metrics": metrics})
     identity_keys = ["binary_sha256", "repository_head", "repository_dirty", "kernel_identity"]
+    method_fields = ["method.script_sha256", "metric_definitions", "phase_selection"] + [
+        "method." + field for field in SCALING_METHOD_FIELDS]
     return {"schema_version": "ontokiln-kernel-baseline-comparison/v1", "comparable": comparable,
-            "methodology_changed": (left_config["method.script_sha256"] != right_config["method.script_sha256"]
-                                    or left_config["metric_definitions"] != right_config["metric_definitions"]),
+            "methodology_changed": (before.get("schema_version") != after.get("schema_version")
+                                    or any(left_config.get(field) != right_config.get(field) for field in method_fields)),
             "minimum_successful_samples": min_samples, "issues": issues,
             "before": {"status": before.get("status"), "engine": {k: at(before, "environment." + k) for k in identity_keys}},
             "after": {"status": after.get("status"), "engine": {k: at(after, "environment." + k) for k in identity_keys}},
@@ -253,7 +293,7 @@ def markdown(report):
              "Recorded configurations: **" + ("COMPARABLE" if report["comparable"] else "NON-COMPARABLE") + "**.", "",
              f"Report status: {report['before']['status']} → {report['after']['status']}. Minimum verified measured samples: {report['minimum_successful_samples']}.", ""]
     if report["methodology_changed"]:
-        lines += ["**Measurement methodology changed** (script hash or metric definitions); percentages are suppressed.", ""]
+        lines += ["**Measurement methodology changed** (study schema, script/driver/harness provenance, selected phases or metric definitions); percentages are suppressed.", ""]
     if report["issues"]:
         lines += ["## Comparability issues", ""]
         lines += [f"- `{cell(issue['field'])}`: {cell(issue['reason'])}." for issue in report["issues"]]

@@ -52,6 +52,23 @@ def stage(value):
     return value["scales"][0]["stages"][0]
 
 
+def scaling_report():
+    value = report()
+    value["schema_version"] = compare.SCALING_SCHEMA
+    value["phase_selection"] = ["full_compile", "full_materialize"]
+    value["method"] = {"harness_source_revision": "4" * 40,
+                       "harness_path": "/old/checkout/benchmarks/kernel_baseline.py",
+                       "harness_sha256": value["environment"]["provenance_files"][compare.SCRIPT],
+                       "driver_sha256": "f" * 64, "build_receipt_sha256": "b" * 64,
+                       "stage_filter": "compile/materialize only"}
+    value["build_receipt"] = {"binary_sha256": value["environment"]["binary_sha256"],
+                              "kernel": copy.deepcopy(value["environment"]["kernel_identity"])}
+    materialize = copy.deepcopy(stage(value))
+    materialize["name"] = "full_materialize"
+    value["scales"][0]["stages"].append(materialize)
+    return value
+
+
 class ComparisonTests(unittest.TestCase):
     def test_same_configuration_different_engine_compares_raw_verified_samples(self):
         before, after = report(), report()
@@ -67,6 +84,42 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(metrics["api_metrics.index_seconds"]["change_percent"], -50)
         self.assertEqual(metrics["api_metrics.peak_rss_bytes"]["change_percent"], -25)
         self.assertEqual(metrics["api_metrics.peak_rss_bytes"]["after"]["samples"], 3)
+
+    def test_build_revision_is_provenance_not_runtime_configuration(self):
+        for source in ["relevant_environment", "process_environment_overrides"]:
+            for revision in ["new", None]:
+                with self.subTest(source=source, revision=revision):
+                    before, after = report(), report()
+                    left = before["environment"][source] if source == "relevant_environment" else before[source]
+                    right = after["environment"][source] if source == "relevant_environment" else after[source]
+                    left["ONTOKILN_BUILD_REVISION"] = "old"
+                    if revision is not None:
+                        right["ONTOKILN_BUILD_REVISION"] = revision
+                    before["environment"]["kernel_identity"]["source_revision"] = "old"
+                    after["environment"]["kernel_identity"]["source_revision"] = "new"
+                    originals = copy.deepcopy((before, after))
+                    result = compare.compare(before, after)
+                    self.assertTrue(result["comparable"])
+                    self.assertEqual(result["before"]["engine"]["kernel_identity"]["source_revision"], "old")
+                    self.assertEqual(result["after"]["engine"]["kernel_identity"]["source_revision"], "new")
+                    self.assertEqual((before, after), originals)
+
+    def test_single_runtime_environment_changes_remain_non_comparable(self):
+        for source in ["relevant_environment", "process_environment_overrides"]:
+            for key in ["RAYON_NUM_THREADS", "TOKIO_WORKER_THREADS", "ONTOKILN_MAX_PACK_MIB", "TMPDIR"]:
+                with self.subTest(source=source, key=key):
+                    before, after = report(), report()
+                    if source == "relevant_environment":
+                        # An explicit override would correctly hide an inherited value.
+                        before["process_environment_overrides"].pop(key, None)
+                        after["process_environment_overrides"].pop(key, None)
+                        left, right = before["environment"][source], after["environment"][source]
+                    else:
+                        left, right = before[source], after[source]
+                    left[key], right[key] = "1", "4"
+                    result = compare.compare(before, after)
+                    self.assertFalse(result["comparable"])
+                    self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
 
     def test_input_hash_generator_and_workload_changes_are_non_comparable(self):
         mutations = [lambda r: r["scales"][0]["input"]["files"][0].update(sha256="e" * 64),
@@ -214,6 +267,110 @@ class ComparisonTests(unittest.TestCase):
         self.assertIn("does not establish the same physical host", rendered)
         self.assertIn("not statistical significance", rendered)
         self.assertIn("n=3", rendered)
+
+
+class ScalingComparisonTests(unittest.TestCase):
+    def test_scaling_allows_new_engine_receipt_and_local_paths(self):
+        before, after = scaling_report(), scaling_report()
+        after["environment"].update(binary_sha256="e" * 64, repository_head="new",
+                                    kernel_identity={"kernel_sha256": "9" * 64})
+        before["environment"]["relevant_environment"]["ONTOKILN_BUILD_REVISION"] = "old"
+        after["environment"]["relevant_environment"]["ONTOKILN_BUILD_REVISION"] = "new"
+        after["method"].update(build_receipt_sha256="e" * 64, harness_path="/new/checkout/kernel_baseline.py")
+        after["build_receipt"] = {"binary_sha256": "e" * 64, "kernel": {"kernel_sha256": "9" * 64}}
+        after["configuration"].update(binary="/new/ontokiln", output="/new/scaling.json")
+        stage(after)["samples"] = [sample(.5), sample(1), sample(1.5)]
+        originals = copy.deepcopy((before, after))
+        result = compare.compare(before, after)
+        self.assertTrue(result["comparable"])
+        self.assertFalse(result["methodology_changed"])
+        self.assertEqual(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"], -50)
+        self.assertEqual((before, after), originals)
+
+    def test_cross_schema_reports_are_rejected_in_both_directions(self):
+        for before, after in [(report(), scaling_report()), (scaling_report(), report())]:
+            with self.subTest(before=before["schema_version"]):
+                result = compare.compare(before, after)
+                self.assertFalse(result["comparable"])
+                self.assertTrue(result["methodology_changed"])
+                self.assertTrue(any(issue["field"] == "schema_version" for issue in result["issues"]))
+                for item in result["stages"]:
+                    self.assertIsNone(item["metrics"]["end_to_end_seconds"]["change_percent"])
+
+    def test_scaling_method_changes_suppress_percentages(self):
+        for field, value in [("driver_sha256", "e" * 64), ("harness_sha256", "e" * 64),
+                             ("harness_source_revision", "e" * 40), ("phase_selection", ["full_compile"])]:
+            with self.subTest(field=field):
+                before, after = scaling_report(), scaling_report()
+                if field == "phase_selection":
+                    after[field] = value
+                    after["scales"][0]["stages"].pop()
+                else:
+                    after["method"][field] = value
+                    if field == "harness_sha256":
+                        after["environment"]["provenance_files"][compare.SCRIPT] = value
+                result = compare.compare(before, after)
+                self.assertFalse(result["comparable"])
+                self.assertTrue(result["methodology_changed"])
+                self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
+                self.assertIn("Measurement methodology changed", compare.markdown(result))
+
+    def test_missing_or_invalid_scaling_provenance_is_not_comparable(self):
+        for field in ["driver_sha256", "harness_sha256", "harness_source_revision", "phase_selection"]:
+            for invalid in [None, "unknown", ""]:
+                with self.subTest(field=field, invalid=invalid):
+                    before, after = scaling_report(), scaling_report()
+                    for value in [before, after]:
+                        target = value if field == "phase_selection" else value["method"]
+                        if invalid is None:
+                            target.pop(field)
+                        else:
+                            target[field] = invalid
+                    self.assertFalse(compare.compare(before, after)["comparable"])
+
+    def test_scaling_harness_declaration_must_match_recorded_script_hash(self):
+        before, after = scaling_report(), scaling_report()
+        for value in [before, after]:
+            value["method"]["harness_sha256"] = "e" * 64
+        result = compare.compare(before, after)
+        self.assertFalse(result["comparable"])
+        self.assertTrue(any("matches_script_provenance" in issue["field"] for issue in result["issues"]))
+
+    def test_scaling_selected_phases_must_be_nonempty_unique_and_present(self):
+        for phases in [[], ["full_compile", "full_compile"], ["full_compile", "unmeasured"]]:
+            with self.subTest(phases=phases):
+                before, after = scaling_report(), scaling_report()
+                before["phase_selection"] = after["phase_selection"] = phases
+                self.assertFalse(compare.compare(before, after)["comparable"])
+
+    def test_scaling_retains_failure_warmup_and_minimum_sample_gates(self):
+        for mode in ["failed", "warmup", "too_few"]:
+            with self.subTest(mode=mode):
+                before, after = scaling_report(), scaling_report()
+                if mode == "failed":
+                    after["status"] = "COMPLETE_WITH_FAILURES"
+                    stage(after)["samples"][0] = {"status": "BUDGET_EXHAUSTED", "end_to_end_seconds": .001}
+                elif mode == "warmup":
+                    for value in [before, after]:
+                        stage(value)["summary"]["planned_warmup_samples"] = 1
+                    stage(before)["samples"].insert(0, sample(4, warmup=True))
+                    stage(after)["samples"].insert(0, {"status": "FAILED", "warmup": True, "end_to_end_seconds": .001})
+                else:
+                    for value in [before, after]:
+                        stage(value)["samples"].pop()
+                        stage(value)["summary"]["planned_measured_samples"] = 2
+                result = compare.compare(before, after)
+                self.assertTrue(result["comparable"])
+                measured = result["stages"][0]
+                self.assertIsNone(measured["metrics"]["end_to_end_seconds"]["change_percent"])
+                self.assertTrue(measured["comparison_blockers"])
+
+    def test_scaling_does_not_relax_transport_or_guard_configuration(self):
+        for key, left, right in [("read_transport", "file", "session"),
+                                 ("snapshot_guard", "content", "manifest")]:
+            before, after = scaling_report(), scaling_report()
+            before["configuration"][key], after["configuration"][key] = left, right
+            self.assertFalse(compare.compare(before, after)["comparable"])
 
 
 if __name__ == "__main__":

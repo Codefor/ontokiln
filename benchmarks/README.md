@@ -1,10 +1,14 @@
 # OntoKiln 本地性能实测
 
-最新的 [Full 查询与 SHACL 优化实测（2026-11-13）](kernel-20261113.md)包含同机 10K/100K 前后对照、常驻实例启动与热请求、编译/物化及空间代价，原始 JSON 随报告提交。
+**编译与推理规模基线（2026-11-13）：** [1M / 10M 实测与 100M 条件推演](kernel-baseline/46e0fb5-scaling.md)。固定 `46e0fb5` release 内核、单线程、4 GiB RSS / 8 GiB scratch；每阶段三次独立测量，附原始数据、计算模型和计时后事实审计。编译 8.77 / 94.22 s，物化 11.05 / 128.96 s；亿级为条件估算，未声称已实测通过。
 
-Full 编译、物化、API 查询与 SHACL 的新基线工具为 [kernel_baseline.py](kernel_baseline.py)，
-方法与独立预期见[基线说明](../tests/benchmarks/README.md)。文件 API 与常驻实例分开计量，
-后者单列启动挂载时间和热请求时间；历史 pack 成绩不代表 Full 容量。
+**Full 优化前基线（2026-11-13）：** [API 契约复核与 10K / 100K / 1M 编译、规则物化、SPARQL、SHACL 实测](kernel-baseline/README.md)，附逐样本 JSON、release 构建记录和 SQLite 执行计划。被测提交为 `46e0fb5`；百万级两项全图统计触及 60 秒预算，五项 SHACL 触及 512 MiB RSS 预算，均保留失败记录。
+
+独立的 [Full 查询与 SHACL 优化实测（2026-11-13）](kernel-20261113.md)包含同机 10K/100K 前后对照、常驻实例启动与热请求、编译/物化及空间代价，原始 JSON 随报告提交。其被测内核与规模范围单独记录。
+
+Full 编译、物化、API 查询与 SHACL 的基线工具为 [kernel_baseline.py](kernel_baseline.py)，方法与独立预期见[基线说明](../tests/benchmarks/README.md)。后续新增的文件 API 与常驻实例测量分开计量，后者单列启动挂载时间和热请求时间；`46e0fb5` 报告不包含后续常驻快照或 SHACL 索引改动的收益。[A/B 比较工具](compare_kernel_baseline.py)
+
+以下保留历史 pack 与在线服务实测。其机器、版本、负载和计时边界不同，不能直接与 Full 基线计算加速比。
 
 2026-11-06，Apple M2 Pro（12 核，32 GiB），macOS 26.6.2 arm64，Rust 1.93.1，release 构建。服务与压测客户端运行在同一台机器。在线服务使用 `rdfs-hierarchy-v1`，业务血缘与上下文选择使用仓库中的 Rust 实验程序。[逐轮测量与查询分位数](baseline.json) · [复现脚本](run.py)
 

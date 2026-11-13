@@ -1,0 +1,46 @@
+{
+  "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+  "source_tree": "f87335ca4a97b0290f56cae4185fc63c9e714cc7",
+  "kernel": {
+    "capabilities": [
+      "ontokiln-api/v1",
+      "rdf-pack/v3",
+      "sparql/v1",
+      "positive-rules/v1",
+      "proofs/v1",
+      "full-source-doc/v2",
+      "full-execution/v1",
+      "shacl-core-and-local-select/v1",
+      "values-bindings/v1",
+      "derived-query-data/v1"
+    ],
+    "contract_version": "ontokiln-core/v3",
+    "kernel_sha256": "af47e93d7adf7ccb70d1fbf69bd7e8f61467e4c2a339b85d2d5a99924d9acf2b",
+    "pack_version": 3,
+    "source_revision": "46e0fb5b6089e9f5bacb8494437c956e21e936a2",
+    "version": "0.1.0"
+  },
+  "binary_sha256": "1fb31975bc3f81980e5c89650364c1fad56d6b5f75b59dc5bef21c900faefc0c",
+  "command": [
+    "cargo",
+    "build",
+    "--release",
+    "--locked",
+    "--offline",
+    "--bin",
+    "ontokiln"
+  ],
+  "build_environment": {
+    "RUSTFLAGS": "",
+    "CARGO_ENCODED_RUSTFLAGS": null,
+    "CARGO_BUILD_JOBS": "4",
+    "ONTOKILN_BUILD_REVISION": "46e0fb5b6089e9f5bacb8494437c956e21e936a2"
+  },
+  "build_features": "default",
+  "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2",
+  "cargo_lock_sha256": "a9cd80775481239663b5ccbefac81100b484b1e88ad51f5836be1c8d83d7c38a",
+  "build_log_sha256": "e11d78d0276f333c2dd7ea7f2fb059239c21e096bd324a8f7a395c57ed9bd488",
+  "release_contract_checks": 6,
+  "release_contract_checks_status": "passed",
+  "release_contract_log_sha256": "3aada91ebb93c2b4092615fb518d0d106d75e50fa7e8c30420995ec3b6e5ecba"
+}

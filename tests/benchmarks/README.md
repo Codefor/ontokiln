@@ -21,6 +21,7 @@ python3 -B benchmarks/kernel_baseline.py \
 
 python3 -B benchmarks/kernel_baseline.py \
   --binary target/release/ontokiln --output data/kernel-baseline.json \
+  --work-dir data/kernel-work \
   --build-profile release --build-features default
 ```
 
@@ -66,6 +67,12 @@ separately from the per-worker API metrics. The mount snapshot allowance equals
 two retained Full snapshots can coexist during a scale. Session startup is not
 amortized into request latency and the default file-API measurements do not
 claim to show the benefit of snapshot reuse.
+
+Choose a work directory on the filesystem you intend to measure; `/tmp` may be
+tmpfs. The harness puts child-process scratch on the same filesystem and records
+the actual type. The published [46e0fb5 baseline](../../benchmarks/kernel-baseline/README.md)
+includes the raw report, build receipt and subsequent read-only planner evidence.
+
 
 The default is three independent pack compilations, three independent Full
 compilations, and three independent materializations. Each query has one
@@ -221,3 +228,40 @@ timing boundaries and are rejected as equivalent configurations. Compare file
 before/after to isolate internal changes, and retain separate session numbers
 with their one-time mount cost to assess snapshot reuse. Matching metadata still
 does not prove an idle, identical physical host or statistical significance.
+
+Add `--format json` for machine-readable output. Engine identities may change;
+build-only `ONTOKILN_BUILD_REVISION` is provenance, while runtime thread counts,
+pack limits and scratch policy still affect comparability. Exit 0 means comparable
+recorded conditions, 1 means non-comparable, and 2 means invalid input.
+
+The published [46e0fb5 baseline](../../benchmarks/kernel-baseline/README.md)
+used the frozen `46e0fb5` script and both snapshot digest guards. The later script
+adds transport/guard configuration and changes its method hash; its default is
+content-only. It must not be compared directly with that frozen report as an
+unchanged method. For a new paired study use the same script on both binaries
+with `--read-transport file --snapshot-guard manifest`, or preserve the original
+frozen harness for both sides. Keep session mount/request observations separate.
+
+
+## Focused compilation/materialization scaling
+
+`benchmarks/kernel_scaling.py` runs only Full compilation and materialization
+through the frozen `46e0fb5` harness. It verifies the harness SHA-256 before
+importing it and checks both the binary SHA-256 and kernel identity against a
+separately produced build receipt. It records its own driver hash and the selected
+phases in the distinct `ontokiln-kernel-scaling/v1` schema. Unselected workloads
+are outside this study, not silently skipped failures.
+
+The [1M/10M report and 100M scenarios](../../benchmarks/kernel-baseline/46e0fb5-scaling.md)
+include the exact command, raw measurements, build receipt, independent post-timing
+SQL audit and scope limits. The 4 GiB study reruns both sizes with the same budgets;
+it must not be spliced with the earlier 512 MiB report. No large generated input
+or SQLite database is committed.
+
+The comparator accepts matching scaling schemas as well as matching full-baseline
+schemas. It rejects cross-schema comparisons, mismatched phase sets, missing actual
+stages, or inconsistent driver/frozen-harness identities. Build-receipt hashes and
+local harness paths are provenance, not runtime settings. Runtime budgets, inputs,
+timing boundaries and host metadata remain part of the comparison gate. Changing
+the measured engine is allowed; changing the measurement method suppresses the
+performance comparison.
