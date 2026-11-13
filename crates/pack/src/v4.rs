@@ -273,12 +273,20 @@ impl PackV4 {
         graph: Option<u32>,
         view: View,
     ) -> Matches<'_> {
-        let (permutation, order) = if predicate.is_some() {
-            (&self.pos, 1)
-        } else if object.is_some() {
-            (&self.osp, 2)
-        } else {
+        // Pick the index with the longest bound prefix. Choosing POS merely
+        // because P is bound forces an O(N_p) scan for every S+P lookup in
+        // joins: use SPO for S+P, POS for P+O and OSP for O+S.
+        let (permutation, order) = if subject.is_some() && predicate.is_some()
+            || subject.is_some() && object.is_none()
+            || subject.is_none() && predicate.is_none() && object.is_none()
+        {
             (&self.spo, 0)
+        } else if predicate.is_some() && object.is_some()
+            || predicate.is_some() && subject.is_none()
+        {
+            (&self.pos, 1)
+        } else {
+            (&self.osp, 2)
         };
         let bound = match order {
             1 => [predicate, object, subject],
@@ -788,6 +796,22 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn index_selector_prefers_longest_bound_prefix_for_joins() {
+        let pack = fixture();
+        let selected = |subject, predicate, object| {
+            pack.matching(subject, predicate, object, None, View::Closure)
+                .permutation.as_ptr()
+        };
+        assert_eq!(selected(Some(3), Some(2), None), pack.spo.as_ptr());
+        assert_eq!(selected(Some(3), None, Some(1)), pack.osp.as_ptr());
+        assert_eq!(selected(None, Some(2), Some(1)), pack.pos.as_ptr());
+        assert_eq!(selected(Some(3), None, None), pack.spo.as_ptr());
+        assert_eq!(selected(None, Some(2), None), pack.pos.as_ptr());
+        assert_eq!(selected(None, None, Some(1)), pack.osp.as_ptr());
+        assert_eq!(selected(None, None, None), pack.spo.as_ptr());
     }
 
     #[test]
