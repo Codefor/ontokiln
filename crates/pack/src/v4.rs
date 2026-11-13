@@ -211,15 +211,24 @@ impl PackV4 {
     }
 
     /// Borrow the canonical dictionary; IDs are local to this Pack.
-    pub fn terms(&self) -> &[String] { &self.terms }
+    pub fn terms(&self) -> &[String] {
+        &self.terms
+    }
 
     /// Iterate the physical quads with asserted/source provenance.
     pub fn statements(&self) -> impl Iterator<Item = Statement> + '_ {
-        self.quads.iter().copied().enumerate().map(|(row, quad)| Statement {
-            quad,
-            asserted: self.is_asserted(row),
-            sources: self.sources(row).expect("validated provenance offsets").to_vec(),
-        })
+        self.quads
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(row, quad)| Statement {
+                quad,
+                asserted: self.is_asserted(row),
+                sources: self
+                    .sources(row)
+                    .expect("validated provenance offsets")
+                    .to_vec(),
+            })
     }
 
     pub fn metadata(&self) -> &Metadata {

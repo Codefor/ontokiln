@@ -22,13 +22,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
-      - name: Format workspace for diagnostic
-        run: cargo fmt --all
-      - name: Export formatted v4 materializer
-        run: |
-          echo BEGIN_FORMATTED_V4_MATERIALIZER
-          cat crates/compiler/src/v4_materialize.rs
-          echo END_FORMATTED_V4_MATERIALIZER
+      - name: Check formatting
+        run: cargo fmt --all --check
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked
