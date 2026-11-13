@@ -41,6 +41,18 @@ jobs:
           echo BEGIN_FORMATTED_V4_IDENTITY
           cat src/identity.rs
           echo END_FORMATTED_V4_IDENTITY
+          echo BEGIN_FORMATTED_V4_CLI_TEST
+          cat tests/v4_cli.rs
+          echo END_FORMATTED_V4_CLI_TEST
+          echo BEGIN_FORMATTED_V4_PACK_LIB
+          cat crates/pack/src/lib.rs
+          echo END_FORMATTED_V4_PACK_LIB
+          echo BEGIN_FORMATTED_V4_COMPILER_LIB
+          cat crates/compiler/src/lib.rs
+          echo END_FORMATTED_V4_COMPILER_LIB
+          echo BEGIN_FORMATTED_V4_REASONER_LIB
+          cat crates/reasoner/src/lib.rs
+          echo END_FORMATTED_V4_REASONER_LIB
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked
