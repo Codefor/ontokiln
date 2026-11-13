@@ -1,0 +1,6 @@
+PREFIX ex: <urn:business-baseline:smoke:>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+ASK {
+  ex:a ex:q "alpha"@en .
+  ex:b ex:q "007"^^xsd:integer .
+}

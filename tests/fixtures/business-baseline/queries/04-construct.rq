@@ -1,0 +1,6 @@
+PREFIX ex: <urn:business-baseline:smoke:>
+CONSTRUCT {
+  ?s ex:temporary ?value .
+} WHERE {
+  ?s ex:q ?value .
+}

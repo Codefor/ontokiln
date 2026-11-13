@@ -117,6 +117,7 @@ class BusinessRepositoryTests(unittest.TestCase):
     def run_driver(self, *extra, prepare_only=False, binary=True, repository=True, env=None):
         fixtures.write_json(self.fake / "config.json", self.config)
         command = [sys.executable, "-B", str(DRIVER), "--work-dir", str(self.work),
+                   "--jobs", "1", "--memory-mib", "64", "--scratch-mib", "64",
                    "--build-samples", "1", "--read-samples", "1", "--warmups", "0"]
         if repository:
             command.extend(["--ontology-repo", str(self.repository)])

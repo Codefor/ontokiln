@@ -253,6 +253,7 @@ class BusinessBaselineTests(unittest.TestCase):
         self.read_directory = self.input_cwd / "templates/reads"
         self.read_directory.mkdir(parents=True)
         self.query = {"contract": "ontokiln-api/v1", "request_id": "consumer-query",
+                      "limits": {"memory_bytes": 64 * 1024**2, "scratch_bytes": 64 * 1024**2},
                       "operation": {"kind": "query", "dataset": "old-business-snapshot",
                                     "expected_content_digest": "a" * 64,
                                     "expected_manifest_sha256": "b" * 64,
@@ -263,6 +264,7 @@ class BusinessBaselineTests(unittest.TestCase):
                                     "derived_queries": ["CONSTRUCT { ?s <urn:business:q> ?o } WHERE { ?s <urn:business:p> ?o }"],
                                     "view": "closure", "require": ["select-ask/v1"], "revision": None}}
         self.validation = {"contract": "ontokiln-api/v1", "request_id": "consumer-validation",
+                           "limits": {"memory_bytes": 64 * 1024**2, "scratch_bytes": 64 * 1024**2},
                            "operation": {"kind": "validate", "dataset": "old-business-snapshot",
                                          "shapes": [self.source("rdf/shapes.ttl", "turtle")],
                                          "shapes_from_dataset": False, "selected_shapes": [],
@@ -284,7 +286,7 @@ class BusinessBaselineTests(unittest.TestCase):
             write_json(self.read_directory / "validate.json", self.validation)
         command = [sys.executable, "-B", str(DRIVER), "--binary", str(self.binary),
                    "--compile-request", str(self.compile_path), "--input-cwd", str(self.input_cwd),
-                   "--work-dir", str(self.work), "--build-samples", str(build_samples),
+                   "--work-dir", str(self.work), "--jobs", "1", "--build-samples", str(build_samples),
                    "--read-samples", str(read_samples), "--warmups", str(warmups)]
         if reads:
             command.extend(["--read-requests", str(self.read_directory)])
@@ -325,9 +327,11 @@ class BusinessBaselineTests(unittest.TestCase):
                                   "max_iterations": 5, "max_derived_facts": 6,
                                   "max_intermediate_rows": 9, "max_validation_depth": 3,
                                   "max_term_bytes": 4567}
-        self.query["limits"] = {"max_rows": 0, "max_bytes": 0, "max_derived_facts": 0,
+        self.query["limits"] = {"memory_bytes": 64 * 1024**2, "scratch_bytes": 64 * 1024**2,
+                                "max_rows": 0, "max_bytes": 0, "max_derived_facts": 0,
                                 "max_intermediate_rows": 0, "max_iterations": 0}
-        self.validation["limits"] = {"max_validation_depth": 7, "max_rows": 4}
+        self.validation["limits"] = {"memory_bytes": 64 * 1024**2, "scratch_bytes": 64 * 1024**2,
+                                     "max_validation_depth": 7, "max_rows": 4}
         originals = [copy.deepcopy(value) for value in (self.compile, self.query, self.validation)]
         (self.read_directory / "ignored.txt").write_text("this is not a JSON request")
         result = self.run_driver(build_samples=3, read_samples=3, warmups=1)

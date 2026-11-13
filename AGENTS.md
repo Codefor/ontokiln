@@ -60,6 +60,20 @@ cargo run --locked --example scenario_lab -- --compare
 
 ## 预算与基准
 
+### 集成性能回归的统一入口
+
+真实与合成本体目录工作负载的集成性能回归统一使用 [business_baseline.py](benchmarks/business_baseline.py)，通过 `--ontology-repo` 自动生成请求；需要精确控制时使用同一入口的显式请求模式。使用方式与结果边界见[业务基线指南](benchmarks/business-baseline.md)。不要另建一套隐含不同输入选择、计时或预算口径的目录基准入口。
+
+默认 `--jobs auto` 按 CPU 和内存/scratch 准入预算并发独立读取用例；编译、物化仍串行，同一用例的预热与正式重复仍顺序执行。单请求延迟回归固定 `--jobs 1`。`--threads` 只设置 Rayon，不代表 Full 单查询自动多核。`--total-memory-mib` / `--total-scratch-mib` 是调度准入上限，不改每请求 API 预算，也不构成操作系统硬隔离。
+
+比较版本时保持输入、profile/view、实际准入 jobs、threads、总准入预算、每请求预算、计时边界与机器条件一致，核对 `parallelism.effective_jobs`，保留实际活动请求峰值、读取阶段总墙钟时间和逐样本延迟。读取完成率包含成功预热以及调度、检查和失败所用时间；并发批次完成时间的缩短不能作为单查询优化倍数。失败、跳过和覆盖缺口不能当作成功加速。业务正确性需要独立预期，不能从本次性能输出生成答案。新配置只用于新进程，不原地升级正在运行的任务，不合并独立或中断运行的样本。
+
+单元测试、API/Full 契约回归与冻结消费者用例继续承担语义、兼容和生命周期验证；固定生成器的 `kernel_baseline.py` / `kernel_scaling.py` 保留规模控制、独立 oracle 与 1M/10M 历史可比性。它们不被真实目录性能运行替代，也不免除上面的构建与验证要求。详细职责见 [tests/benchmarks](tests/benchmarks/README.md)。
+
+CI 在既有 Rust suites 后运行 [business_native_smoke.py](tests/benchmarks/business_native_smoke.py)，由它一次调用统一 business 入口执行[静态合成目录](tests/fixtures/business-baseline/README.md)。smoke 仅准备调用并核对写死的独立事实数、词项、顺序和 SHACL targets，不另写引擎执行循环，不从当次输出学习答案，也不设置 CI 性能阈值；结果目录和核验记录保留供审计。
+
+### 既有 CLI/HTTP 与容量基准
+
 CLI 和 HTTP 共用 SPARQL 核心。默认一次请求总共最多查看 **200,000,000 条候选索引行**；再次检查同一行再次计数，第 200,000,001 次触发 422。二分定位的键比较和中间解数量不计入扫描数。5 秒超时为 408，主动取消为 409，槽满为 429。流已经开始时，错误在末行。改预算时同步更新测试、README 和接口文档。堆增量、累计分配、共享 mmap、进程 RSS 分开报告。
 
 ```sh

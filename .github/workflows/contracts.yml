@@ -26,3 +26,7 @@ jobs:
           cargo test --workspace --locked
           cargo test --workspace --all-features --locked
           cargo run --locked --example scenario_lab -- --compare
+      - name: Native directory baseline smoke (functional)
+        run: |
+          cargo build --locked --bin ontokiln
+          python3 -B tests/benchmarks/business_native_smoke.py --binary target/debug/ontokiln

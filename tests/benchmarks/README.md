@@ -1,13 +1,61 @@
-# Kernel baseline harness
+# Benchmark harnesses
 
-To run a business ontology repository without preparing API request JSON,
-use `--ontology-repo` and the [one-command business baseline guide](../../benchmarks/business-baseline.md).
+## Directory workloads: the shared integration entry point
+
+Integration performance regressions for real or synthetic ontology directories
+use `benchmarks/business_baseline.py` with `--ontology-repo`; follow the
+[one-command business baseline guide](../../benchmarks/business-baseline.md).
 Generated templates and the discovery inventory remain available for review;
 the explicit API request mode is also supported.
 Its file-API measurements keep protocol completion separate from business
 correctness, which remains `MANUAL_REVIEW_REQUIRED`.
 Detailed diagnostics remain in the local run directory; the ZIP uses a sharing
 summary while retaining paths, case names, hashes and environment metadata.
+
+The default `--jobs auto` admits independent read cases according to available
+CPU and memory/scratch budgets. Compilation and materialization remain serial;
+each read case still runs its warm-up and measured repetitions sequentially.
+Use `--jobs 1` for an isolated serial request baseline. `--threads` controls
+Rayon only and does not turn one Full query into a multicore query.
+
+`--total-memory-mib` and `--total-scratch-mib` bound scheduling reservations,
+not OS-enforced aggregate use; each API request keeps its own limits. Compare
+the read phase's total wall time and observed concurrency separately from
+individual request latency. Keep jobs, aggregate admission settings, per-request
+budgets and thread settings fixed when comparing engine revisions.
+
+Admission is planned after the serial build phases, using the maximum read
+request memory/scratch limits per slot and a snapshot of available resources.
+Check `parallelism.effective_jobs`; two auto runs need not admit the same count.
+Known capacity too small for one slot produces `READ_ADMISSION_FAILED` (exit 2)
+and skipped reads. Missing input artifacts produce `SKIPPED_DEPENDENCY` reads.
+The `read_execution.completed_requests_per_second` metric includes successful
+warm-ups in its numerator and the entire read phase, including checks and
+failures, in its denominator; it is not isolated query QPS.
+
+Updated scripts and concurrency options apply to newly started runs only.
+Existing runs are not upgraded in place; runs do not resume or merge samples.
+
+Rust unit tests, API/Full contract regressions and frozen consumer fixtures keep
+their correctness and compatibility responsibilities. The fixed-generator
+kernel/scaling harnesses below retain independent oracles and reproducible
+1M/10M scale studies. A business run marked COMPLETE or faster cannot replace
+those checks or serve as its own answer oracle.
+
+The Consumer contracts workflow also runs
+[business_native_smoke.py](business_native_smoke.py) after the Rust suites, using
+the built native binary and a [static directory fixture](../fixtures/business-baseline/README.md).
+The smoke launches the shared business driver exactly once with jobs 2, one
+build/materialization sample, and one warm-up plus one measured read per case.
+Its fixed independent oracle checks nine explicit facts, two inferred facts,
+closure COUNT eleven, exact ordered RDF terms, ASK true, and one Shape with
+exactly two expected targets. The CONSTRUCT probe checks execution only; it is
+not a constructed-graph answer oracle. All responses and an independent
+verification record remain in the work directory. This is functional CI with
+no performance threshold or speedup claim; the smoke has no separate engine
+execution loop.
+
+## Fixed generator harness
 
 `benchmarks/kernel_baseline.py` measures one already built binary. It never
 builds Rust or starts the historical 100 million fact suites. Keep compilation,

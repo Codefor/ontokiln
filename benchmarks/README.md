@@ -1,6 +1,12 @@
 # OntoKiln 本地性能实测
 
-**真实业务库：** [一条命令运行编译、物化及业务 SPARQL / SHACL 基线](business-baseline.md)。使用 `--ontology-repo` 指定业务本体目录，自动生成请求，无需先准备 API JSON；报告列出未测资产，保留本地记录并生成分享摘要包。业务正确性单独标记为待人工核对。
+**真实或合成本体目录：** [一条命令运行编译、物化及 SPARQL / SHACL 基线](business-baseline.md)。使用 `--ontology-repo` 指定目录，自动生成请求，无需先准备 API JSON；默认 `--jobs auto` 在 CPU、内存和磁盘预算内并发独立读取用例，`--jobs 1` 保留串行单请求基线。编译和物化仍串行。报告列出未测资产，保留本地记录并生成分享摘要包；业务正确性单独标记为待人工核对。
+
+仓库后续对真实/合成目录工作负载的**集成性能回归统一使用 `business_baseline.py`**。`--threads` 只设置 Rayon，不会让 Full 单查询自动多核；总内存/scratch 参数是并发准入上限，不替代每请求预算或操作系统隔离。日志与报告记录总进度、读取阶段墙钟时间和实际并发峰值，批次完成时间不能当作单查询加速比。
+
+单元与契约测试继续验证语义和兼容性；固定生成器的 1M/10M 等规模基准继续保留冻结方法、独立预期和历史可比性。真实性能运行不能替代这些检查。各入口职责见[基准与测试说明](../tests/benchmarks/README.md)。
+
+Consumer contracts CI 在现有 Rust 测试之后，通过[原生小图 smoke](../tests/benchmarks/business_native_smoke.py)调用同一个 business 入口，核对静态目录的独立事实计数、查询词项/顺序和 SHACL targets。该项使用真实二进制验证集成流程，不将 CI 耗时发布为性能结论。
 
 **编译与推理规模基线（2026-11-13）：** [1M / 10M 实测与 100M 条件推演](kernel-baseline/46e0fb5-scaling.md)。固定 `46e0fb5` release 内核、单线程、4 GiB RSS / 8 GiB scratch；每阶段三次独立测量，附原始数据、计算模型和计时后事实审计。编译 8.77 / 94.22 s，物化 11.05 / 128.96 s；亿级为条件估算，未声称已实测通过。
 
@@ -14,7 +20,7 @@
 
 最新的 [Full SHACL 绑定驱动索引连接实测（2026-11-13）](shacl-bind-joins-20261113.md)在保留预绑定、变量作用域和重复解的前提下，让左侧新绑定逐行约束右侧索引读取。同机固定 `b8ecf80 → ed7b90d` 重新测量：1M 非局部、两跳路径和多目标路径分别降至约 11.5、11.6、11.4 ms；增长左侧连接从前版 60 s 预算失败变为 558 ms 完成，全图聚合仍约 1.52 s。报告保留 500 条计划记录、对照回退、产物与语义核验，以及独立的 100M pack 兼容回归；后者不代表 Full 亿级容量。最终集成 `6d7f1e3` 同时保留兼容快照读取修复，另有完整门禁与 smoke，未将被测版本的性能数据改标为集成版本。
 
-Full 编译、物化、API 查询与 SHACL 的基线工具为 [kernel_baseline.py](kernel_baseline.py)，方法与独立预期见[基线说明](../tests/benchmarks/README.md)。后续新增的文件 API 与常驻实例测量分开计量，后者单列启动挂载时间和热请求时间；`46e0fb5` 报告不包含后续常驻快照或 SHACL 索引改动的收益。[A/B 比较工具](compare_kernel_baseline.py)
+固定生成器的 Full 编译、物化、API 查询与 SHACL 基线使用 [kernel_baseline.py](kernel_baseline.py)，方法与独立预期见[基线说明](../tests/benchmarks/README.md)。文件 API 与常驻实例测量分开计量，后者单列启动挂载时间和热请求时间；`46e0fb5` 报告不包含后续常驻快照或 SHACL 索引改动的收益。[A/B 比较工具](compare_kernel_baseline.py)
 
 以下保留历史 pack 与在线服务实测。其机器、版本、负载和计时边界不同，不能直接与 Full 基线计算加速比。
 

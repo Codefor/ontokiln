@@ -492,47 +492,85 @@ def summarize(samples, planned_measured=None, planned_warmup=None):
             "min_seconds": min(times) if times else None, "max_seconds": max(times) if times else None}
 
 
-def timed_command(command, directory, timeout, environment, response=None):
-    """wait4 records command CPU; logs cannot block on full stdout/stderr pipes."""
+def timed_command(command, directory, timeout, environment, response=None, cancel_event=None):
+    """Wait and reap one command; optional cancellation kills its process group.
+
+    The original callers retain their result fields. Callers supplying an Event
+    also receive command_cancelled, separate from watchdog_timeout. Only the
+    direct child is waited here; worker reaping requires the API's own receipt.
+    """
     directory.mkdir(parents=True, exist_ok=True)
     with (directory / "stdout.log").open("wb") as stdout, (directory / "stderr.log").open("wb") as stderr:
+        if cancel_event is not None and cancel_event.is_set():
+            return {"end_to_end_seconds": 0.0, "process_wall_seconds": 0.0,
+                    "process_user_seconds": 0.0, "process_system_seconds": 0.0,
+                    "process_wait4_peak_rss_bytes": 0, "process_block_read_bytes": 0,
+                    "process_block_write_bytes": 0, "returncode": None,
+                    "watchdog_timeout": False, "command_cancelled": True,
+                    "response_bytes": None}, None
         started = time.perf_counter()
-        proc = subprocess.Popen([str(arg) for arg in command], stdin=subprocess.DEVNULL,
-                                stdout=stdout, stderr=stderr, env=environment, start_new_session=True)
-        timed_out = False
+        proc, watchdog, cancellation = None, None, None
+        timed_out, command_cancelled = False, False
+        finished = threading.Event()
+        termination_lock = threading.Lock()
 
-        def expire():
-            nonlocal timed_out
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-                timed_out = True
-            except ProcessLookupError:
-                pass
+        def terminate(cancelled=False):
+            nonlocal timed_out, command_cancelled
+            with termination_lock:
+                if finished.is_set() or timed_out or command_cancelled:
+                    return
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    return
+                command_cancelled = cancelled
+                timed_out = not cancelled
 
-        watchdog = threading.Timer(max(0, timeout - (time.perf_counter() - started)), expire)
-        watchdog.daemon = True
-        watchdog.start()
+        def watch_cancellation():
+            while not finished.is_set():
+                if cancel_event.is_set():
+                    terminate(cancelled=True)
+                    return
+                finished.wait(0.02)
+
         try:
+            proc = subprocess.Popen([str(arg) for arg in command], stdin=subprocess.DEVNULL,
+                                    stdout=stdout, stderr=stderr, env=environment, start_new_session=True)
+            watchdog = threading.Timer(max(0, timeout - (time.perf_counter() - started)), terminate)
+            watchdog.daemon = True
+            watchdog.start()
+            if cancel_event is not None:
+                cancellation = threading.Thread(target=watch_cancellation, daemon=True)
+                cancellation.start()
             _, status, usage = os.wait4(proc.pid, 0)
             process_wall = time.perf_counter() - started
             proc.returncode = os.waitstatus_to_exitcode(status)
+            with termination_lock:
+                finished.set()
             watchdog.cancel()
             payload = response.read_bytes() if response is not None and response.exists() else None
             elapsed = time.perf_counter() - started
         except BaseException:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            try:
-                _, status, _ = os.wait4(proc.pid, 0)
-                proc.returncode = os.waitstatus_to_exitcode(status)
-            except ChildProcessError:
-                pass
+            finished.set()
+            if proc is not None:
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                try:
+                    _, status, _ = os.wait4(proc.pid, 0)
+                    proc.returncode = os.waitstatus_to_exitcode(status)
+                except ChildProcessError:
+                    pass
             raise
         finally:
-            watchdog.cancel()
-            watchdog.join()
+            finished.set()
+            if watchdog is not None:
+                watchdog.cancel()
+                if watchdog.ident is not None:
+                    watchdog.join()
+            if cancellation is not None and cancellation.ident is not None:
+                cancellation.join()
     metrics = {"end_to_end_seconds": elapsed, "process_wall_seconds": process_wall,
                "process_user_seconds": usage.ru_utime, "process_system_seconds": usage.ru_stime,
                "process_wait4_peak_rss_bytes": usage.ru_maxrss * (1 if sys.platform == "darwin" else 1024),
@@ -540,6 +578,8 @@ def timed_command(command, directory, timeout, environment, response=None):
                "process_block_write_bytes": usage.ru_oublock * 512,
                "returncode": proc.returncode, "watchdog_timeout": timed_out,
                "response_bytes": len(payload) if payload is not None else None}
+    if cancel_event is not None:
+        metrics["command_cancelled"] = command_cancelled
     if timed_out or proc.returncode:
         metrics["stderr_tail"] = (directory / "stderr.log").read_bytes()[-16384:].decode("utf8", "replace")
     return metrics, payload

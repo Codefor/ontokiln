@@ -7,6 +7,7 @@ neither mode supplies an implicit business-answer oracle.
 See benchmarks/business-baseline.md for the one-command workflow.
 """
 import argparse
+import concurrent.futures
 import copy
 import datetime
 import hashlib
@@ -20,6 +21,8 @@ import signal
 import statistics
 import sys
 import tempfile
+import threading
+import time
 import traceback
 import zipfile
 
@@ -28,6 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("business_baseline_core", ROOT / "benchmarks/kernel_baseline.py")
 core = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(core)
+PARALLEL_SPEC = importlib.util.spec_from_file_location("business_baseline_parallel", ROOT / "benchmarks/business_parallel.py")
+parallel = importlib.util.module_from_spec(PARALLEL_SPEC)
+PARALLEL_SPEC.loader.exec_module(parallel)
 CONTRACT = "ontokiln-api/v1"
 SCHEMA = "ontokiln-business-baseline/v1"
 DEFAULT_LIMITS = {
@@ -217,6 +223,17 @@ def remove_owned_artifact(path, artifact_root):
     shutil.rmtree(path)
 
 
+def admission_description(plan):
+    limits, per_slot = plan["resource_limits"], plan["per_slot"]
+    parts = [f"CPU <= {limits['cpu']['slot_limit']} slots"]
+    for name in ("memory", "scratch"):
+        available = limits[name]["admission_bytes"]
+        total = "unknown" if available is None else f"{available / 1024**2:.0f} MiB"
+        parts.append(f"{name} {total} / {per_slot[name + '_bytes'] / 1024**2:.0f} MiB per request")
+    parts.append("limiting=" + ",".join(plan["limiting_factors"]))
+    return "; ".join(parts)
+
+
 class Runner:
     def __init__(self, args, directory, report, compile_template, cases):
         self.args, self.directory, self.report = args, directory, report
@@ -228,17 +245,34 @@ class Runner:
         self.artifact_root = directory / "artifacts"
         self.artifact_root.mkdir()
         self.artifacts = {}
-        self.counter = 0
+        self.lock = threading.RLock()
+        self.cancel_event = threading.Event()
+        self.active = {}
+        self.started = time.perf_counter()
+        self.peak_read_requests = 0
         report["stages"] = [planned_stage("compile", "compile", compile_template, args.build_samples),
                             planned_stage("materialize", "materialize", compile_template, args.build_samples)]
         report["stages"] += [planned_stage("read/" + name, template["request"]["operation"]["kind"],
                                           template, args.read_samples, args.warmups) for name, template in cases]
-        report["process_environment_overrides"] = {"TMPDIR": "<run_directory>/scratch",
+        sequence = 0
+        for index, stage in enumerate(report["stages"]):
+            stage["concurrency"] = 1
+            stage["measurement_mode"] = "serial_latency"
+            if index >= 2:
+                stage["read_case_index"] = index - 1
+            for sample in stage["samples"]:
+                sequence += 1
+                sample["request_sequence"] = sequence
+        report["process_environment_overrides"] = {"TMPDIR": "<run_directory>/scratch/<request_sequence>",
                                                   "RAYON_NUM_THREADS": str(args.threads), "TOKIO_WORKER_THREADS": "1"}
         report["input_cwd"] = str(args.input_cwd)
         report["read_dataset"] = args.read_dataset
 
     def checkpoint(self):
+        with self.lock:
+            self._checkpoint()
+
+    def _checkpoint(self):
         self.report["updated_at_utc"] = now()
         for stage in self.report["stages"]:
             stage["summary"] = core.summarize(stage["samples"], stage["planned_measured_samples"],
@@ -252,83 +286,137 @@ class Runner:
                           and math.isfinite(s["api_metrics"][key])]
                 stage["metric_summary"][key] = {"samples": len(values), "median": statistics.median(values),
                                                  "min": min(values), "max": max(values)}
+        samples = [sample for stage in self.report["stages"] for sample in stage["samples"]]
+        complete = sum(sample["status"] == "COMPLETE" for sample in samples)
+        skipped = sum(sample["status"] == "SKIPPED" for sample in samples)
+        failed = sum(sample["status"] not in ("PENDING", "RUNNING", "COMPLETE", "SKIPPED") for sample in samples)
+        self.report["progress"] = {"planned_requests": len(samples), "completed_requests": complete,
+                                   "failed_requests": failed, "skipped_requests": skipped,
+                                   "resolved_requests": complete + skipped + failed,
+                                   "active_requests": len(self.active),
+                                   "elapsed_seconds": time.perf_counter() - self.started}
         core.publish(self.directory / "summary.json", self.report)
 
-    def invoke(self, request, sample, output=None):
-        self.counter += 1
-        case_dir = self.directory / "requests" / f"{self.counter:04d}"
+    def progress_line(self, stage, sample, event):
+        # Called while holding the state lock, so lines and checkpoints agree.
+        progress = self.report["progress"]
+        label = stage["name"]
+        if "read_case_index" in stage:
+            label = f"read[{stage['read_case_index']}/{len(self.cases)}] " + label.removeprefix("read/")
+        trial = "warmup" if sample["warmup"] else f"{sample['sample_index'] + 1}/{stage['planned_measured_samples']}"
+        duration = sample.get("end_to_end_seconds")
+        timing = "" if duration is None else f" | {duration:.3f}s"
+        print(f"[{progress['resolved_requests']}/{progress['planned_requests']} resolved; "
+              f"{progress['active_requests']} active] {label} {trial}: {event}{timing} "
+              f"| elapsed {progress['elapsed_seconds']:.1f}s", flush=True)
+
+    def invoke(self, request, sample, output=None, stage=None):
+        sequence = sample["request_sequence"]
+        case_dir = self.directory / "requests" / f"{sequence:04d}"
         case_dir.mkdir(parents=True)
+        scratch = self.directory / "scratch" / f"{sequence:04d}"
+        scratch.mkdir()
+        environment = dict(self.environment, TMPDIR=str(scratch))
         request = copy.deepcopy(request)
-        request["request_id"] = f"business-baseline-{self.counter:04d}"
+        request["request_id"] = f"business-baseline-{sequence:04d}"
         request_bytes = core.canonical(request)
         request_file, response_file = case_dir / "request.json", case_dir / "response.json"
         request_file.write_bytes(request_bytes)
-        sample.update(status="RUNNING", request_id=request["request_id"],
-                      request_sha256=hashlib.sha256(request_bytes).hexdigest(),
-                      request_file=str(request_file.relative_to(self.directory)),
-                      response_file=str(response_file.relative_to(self.directory)),
-                      protocol_verified=False, business_correctness="MANUAL_REVIEW_REQUIRED")
-        self.checkpoint()
+        with self.lock:
+            if self.cancel_event.is_set():
+                sample.update(status="SKIPPED", reason="run cancelled before dispatch")
+                self.checkpoint()
+                return None
+            sample.update(status="RUNNING", request_id=request["request_id"],
+                          request_sha256=hashlib.sha256(request_bytes).hexdigest(),
+                          request_file=str(request_file.relative_to(self.directory)),
+                          response_file=str(response_file.relative_to(self.directory)),
+                          started_at_utc=now(), started_offset_seconds=time.perf_counter() - self.started,
+                          protocol_verified=False, business_correctness="MANUAL_REVIEW_REQUIRED")
+            self.active[sequence] = {"name": stage["name"], "kind": stage["kind"], "started": time.perf_counter()}
+            self.peak_read_requests = max(self.peak_read_requests, sum(
+                active["kind"] in ("query", "validate") for active in self.active.values()))
+            self.checkpoint()
+            self.progress_line(stage, sample, "START")
+        record = {}
         try:
             measurements, payload = core.timed_command(
                 [self.args.binary, "api", "--request", request_file, "--result", response_file],
-                case_dir, request["limits"]["timeout_ms"] / 1000 + 5, self.environment, response_file)
-        except KeyboardInterrupt:
-            sample.update(status="INTERRUPTED", error={"message": "runner interrupted; process group terminated and supervisor waited; no worker-reaping receipt asserted"})
-            self.checkpoint()
-            raise
-        sample.update(measurements)
-        sample["status"] = "PROCESS_FAILED"
-        if payload is not None:
-            sample["response_sha256"] = hashlib.sha256(payload).hexdigest()
-        if sample["watchdog_timeout"]:
-            sample["status"] = "WATCHDOG_TIMEOUT"
-            return None
-        if payload is None:
-            sample["error"] = {"message": "command did not write a response file"}
-            return None
-        try:
-            reply = decode_json(payload)
-            require(isinstance(reply, dict), "API response must be an object")
-            execution = reply.get("execution")
-            require(isinstance(execution, dict) and isinstance(execution.get("metrics", {}), dict),
-                    "API execution and metrics must be objects")
-            sample.update(api_status=reply.get("status"), error=reply.get("error"),
-                          api_metrics=execution.get("metrics", {}))
-            require(reply.get("contract") == CONTRACT and reply.get("request_id") == request["request_id"]
-                    and reply.get("request_sha256") == sample["request_sha256"], "API envelope/request binding mismatch")
-            require(reply.get("kernel") == self.report["environment"]["kernel_identity"], "engine identity changed")
-            require(isinstance(reply.get("status"), str), "missing API terminal status")
-            if reply["status"] != "COMPLETE":
-                require(reply.get("result") is None and isinstance(reply.get("error"), dict), "invalid failed API result")
-                sample["status"] = "API_FAILED"
+                case_dir, request["limits"]["timeout_ms"] / 1000 + 5, environment, response_file,
+                cancel_event=self.cancel_event)
+            record.update(measurements)
+            record["status"] = "PROCESS_FAILED"
+            if record.get("command_cancelled"):
+                record.update(status="INTERRUPTED", reason="run cancelled before process creation"
+                              if record.get("returncode") is None else
+                              "run cancelled; command process group terminated and direct child waited")
                 return None
-            require(reply.get("error") is None and execution.get("worker_reaped") is True,
-                    "COMPLETE response contains error or lacks worker reaping")
-            require(sample["returncode"] == 0, "COMPLETE response with nonzero process exit")
-            result = reply.get("result")
-            kind = request["operation"]["kind"]
-            observation = result_observation(kind, result, request)
-            if output is not None:
-                artifact_kind = "compiled" if kind == "compile" else "reasoned"
-                before = self.artifacts.get("compiled")
-                profile = self.compile_template["request"]["operation"]["profile"]
-                observation.update(artifact_observation(result, output, artifact_kind, profile, before))
-                if artifact_kind in self.artifacts:
-                    require(result["stats"] == self.artifacts[artifact_kind]["stats"], "fact counts changed between repetitions")
-                shutil.copyfile(output / "manifest.json", case_dir / "manifest.json")
-            sample.update(status="COMPLETE", protocol_verified=True, observation=observation)
-            return result
-        except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
-            sample.update(status="PROTOCOL_FAILED", protocol_error=str(error))
-            return None
+            if payload is not None:
+                record["response_sha256"] = hashlib.sha256(payload).hexdigest()
+            if record["watchdog_timeout"]:
+                record["status"] = "WATCHDOG_TIMEOUT"
+                return None
+            if payload is None:
+                record["error"] = {"message": "command did not write a response file"}
+                return None
+            try:
+                reply = decode_json(payload)
+                require(isinstance(reply, dict), "API response must be an object")
+                execution = reply.get("execution")
+                require(isinstance(execution, dict) and isinstance(execution.get("metrics", {}), dict),
+                        "API execution and metrics must be objects")
+                record.update(api_status=reply.get("status"), error=reply.get("error"),
+                              api_metrics=execution.get("metrics", {}))
+                require(reply.get("contract") == CONTRACT and reply.get("request_id") == request["request_id"]
+                        and reply.get("request_sha256") == sample["request_sha256"], "API envelope/request binding mismatch")
+                require(reply.get("kernel") == self.report["environment"]["kernel_identity"], "engine identity changed")
+                require(isinstance(reply.get("status"), str), "missing API terminal status")
+                if reply["status"] != "COMPLETE":
+                    require(reply.get("result") is None and isinstance(reply.get("error"), dict), "invalid failed API result")
+                    record["status"] = "API_FAILED"
+                    return None
+                require(reply.get("error") is None and execution.get("worker_reaped") is True,
+                        "COMPLETE response contains error or lacks worker reaping")
+                require(record["returncode"] == 0, "COMPLETE response with nonzero process exit")
+                result = reply.get("result")
+                kind = request["operation"]["kind"]
+                observation = result_observation(kind, result, request)
+                if output is not None:
+                    artifact_kind = "compiled" if kind == "compile" else "reasoned"
+                    before = self.artifacts.get("compiled")
+                    profile = self.compile_template["request"]["operation"]["profile"]
+                    observation.update(artifact_observation(result, output, artifact_kind, profile, before))
+                    if artifact_kind in self.artifacts:
+                        require(result["stats"] == self.artifacts[artifact_kind]["stats"], "fact counts changed between repetitions")
+                    shutil.copyfile(output / "manifest.json", case_dir / "manifest.json")
+                record.update(status="COMPLETE", protocol_verified=True, observation=observation)
+                return result
+            except (ValueError, KeyError, TypeError, AttributeError, OSError) as error:
+                record.update(status="PROTOCOL_FAILED", protocol_error=str(error))
+                return None
+        except KeyboardInterrupt:
+            self.cancel_event.set()
+            record.update(status="INTERRUPTED", error={"message": "runner interrupted; process group terminated and supervisor waited; no worker-reaping receipt asserted"})
+            raise
+        except Exception as error:
+            record.update(status="HARNESS_FAILED", error={"message": str(error)})
+            raise
+        finally:
+            with self.lock:
+                sample.update(record, finished_at_utc=now(), finished_offset_seconds=time.perf_counter() - self.started)
+                self.active.pop(sequence, None)
+                self.checkpoint()
+                self.progress_line(stage, sample, sample["status"])
 
     def series(self, stage, template, dependency=None):
         failed = None
         for sample in stage["samples"]:
-            if failed is not None or (dependency is not None and dependency not in self.artifacts):
-                sample.update(status="SKIPPED", reason=failed or f"no successful retained {dependency} artifact")
-                self.checkpoint()
+            if self.cancel_event.is_set() or failed is not None or (dependency is not None and dependency not in self.artifacts):
+                with self.lock:
+                    sample.update(status="SKIPPED", reason="run cancelled before dispatch" if self.cancel_event.is_set()
+                                  else failed or f"no successful retained {dependency} artifact")
+                    self.checkpoint()
+                    self.progress_line(stage, sample, "SKIPPED")
                 continue
             request = copy.deepcopy(template["request"])
             kind, output = stage["kind"], None
@@ -346,7 +434,7 @@ class Runner:
                     expected_manifest_sha256=retained["artifact"]["manifest_sha256"])
             if output is not None:
                 require(not output.exists() and not output.is_symlink(), "run output already exists")
-            result = self.invoke(request, sample, output)
+            result = self.invoke(request, sample, output, stage)
             if result is None:
                 failed = f"remaining repetitions stopped after {sample['status']}"
             elif output is not None:
@@ -359,14 +447,97 @@ class Runner:
                 if not retained:
                     remove_owned_artifact(output, self.artifact_root)
             self.checkpoint()
-            print(f"{stage['name']} {'warmup' if sample['warmup'] else sample['sample_index'] + 1}: {sample['status']}", flush=True)
+
+    def read_series(self):
+        stages = self.report["stages"][2:]
+        if not stages:
+            return
+        if self.args.read_dataset not in self.artifacts:
+            self.report["read_execution"] = {"status": "SKIPPED_DEPENDENCY", "mode": "not_executed"}
+            for stage, (_, template) in zip(stages, self.cases):
+                self.series(stage, template, self.args.read_dataset)
+            return
+        plan = parallel.plan_parallelism(self.args, self.cases, self.directory)
+        self.report["parallelism"] = plan
+        jobs = plan["effective_jobs"]
+        self.report["concurrency"] = jobs
+        mode = "not_executed" if jobs == 0 else "serial_latency" if jobs == 1 else "concurrent_workload"
+        execution = {"status": "RUNNING", "mode": mode, "elapsed_seconds": 0,
+                     "peak_active_requests": 0, "planned_requests": sum(len(stage["samples"]) for stage in stages),
+                     "attempted_requests": 0, "completed_requests": 0, "successful_measured_requests": 0,
+                     "failed_requests": 0, "skipped_requests": 0}
+        self.report["read_execution"] = execution
+        for stage in stages:
+            stage.update(concurrency=jobs, measurement_mode=mode)
+        self.checkpoint()
+        if jobs == 0:
+            execution["status"] = "ADMISSION_FAILED"
+            execution["skipped_requests"] = execution["planned_requests"]
+            for stage in stages:
+                for sample in stage["samples"]:
+                    sample.update(status="SKIPPED", reason="READ_ADMISSION_FAILED: concurrent resource allowance cannot fit one request")
+            self.checkpoint()
+            print("Read admission failed: " + admission_description(plan), flush=True)
+            return
+        print(f"Reading {len(stages)} cases with {jobs} concurrent request slots "
+              f"(requested {self.args.jobs}); mode={mode}. Per-case warmups and samples remain sequential.", flush=True)
+        print("Admission: " + admission_description(plan), flush=True)
+        started = time.perf_counter()
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=jobs, thread_name_prefix="business-read")
+        futures = []
+        try:
+            for stage, (_, template) in zip(stages, self.cases):
+                if self.cancel_event.is_set():
+                    break
+                futures.append(executor.submit(self.series, stage, template, self.args.read_dataset))
+            pending = set(futures)
+            while pending:
+                done, pending = concurrent.futures.wait(pending, timeout=15, return_when=concurrent.futures.FIRST_COMPLETED)
+                for future in done:
+                    future.result()
+                if not done:
+                    with self.lock:
+                        self.checkpoint()
+                        active = ", ".join(f"{item['name']} {time.perf_counter() - item['started']:.1f}s"
+                                           for item in self.active.values())
+                        progress = self.report["progress"]
+                        print(f"[{progress['resolved_requests']}/{progress['planned_requests']} resolved; "
+                              f"{len(self.active)}/{jobs} active] RUNNING {active}", flush=True)
+        except BaseException as error:
+            self.cancel_event.set()
+            for future in futures:
+                future.cancel()
+            execution["status"] = "INTERRUPTED" if isinstance(error, KeyboardInterrupt) else "HARNESS_FAILED"
+            raise
+        finally:
+            # A signal is delivered to the main thread, not to executor workers.
+            # Their cancellable subprocess watchdogs kill every active process
+            # group; wait for them before publishing terminal evidence.
+            executor.shutdown(wait=True, cancel_futures=True)
+            samples = [sample for stage in stages for sample in stage["samples"]]
+            elapsed = time.perf_counter() - started
+            completed = sum(sample["status"] == "COMPLETE" for sample in samples)
+            execution.update(elapsed_seconds=elapsed, peak_active_requests=self.peak_read_requests,
+                             completed_requests=completed,
+                             successful_measured_requests=sum(sample["status"] == "COMPLETE" and not sample["warmup"] for sample in samples),
+                             attempted_requests=sum("request_id" in sample for sample in samples),
+                             failed_requests=sum(sample["status"] not in ("PENDING", "RUNNING", "COMPLETE", "SKIPPED") for sample in samples),
+                             skipped_requests=sum(sample["status"] in ("PENDING", "SKIPPED") for sample in samples),
+                             completed_requests_per_second=completed / elapsed if elapsed else None,
+                             throughput_scope="Entire read phase, including warmups, dispatch, checks and failures; not isolated query QPS")
+            if execution["status"] == "RUNNING":
+                execution["status"] = "COMPLETE" if all(sample["status"] == "COMPLETE" for sample in samples) else "COMPLETE_WITH_FAILURES"
+            self.checkpoint()
 
     def run(self):
         self.checkpoint()
+        samples = [sample for stage in self.report["stages"] for sample in stage["samples"]]
+        print(f"Plan: compile={self.args.build_samples}, materialize={self.args.build_samples}, "
+              f"read cases={len(self.cases)}; {len(samples)} requests total "
+              f"({sum(sample['warmup'] for sample in samples)} warmups). Requested read jobs={self.args.jobs}.", flush=True)
         self.series(self.report["stages"][0], self.compile_template)
         self.series(self.report["stages"][1], self.compile_template, "compiled")
-        for stage, (_, template) in zip(self.report["stages"][2:], self.cases):
-            self.series(stage, template, self.args.read_dataset)
+        self.read_series()
 
 
 def selected_fields(value, keys):
@@ -392,6 +563,7 @@ def sharing_summary(report):
         "read_dataset", "input_cwd", "process_environment_overrides", "budget_overrides",
         "binary_sha256_after", "interrupt_signal"))
     shared.update(selected_fields(report, ("input_mode", "discovery", "coverage")))
+    shared.update(selected_fields(report, ("parallelism", "read_execution", "progress")))
     if "engine_preparation" in report:
         shared["engine_preparation"] = selected_fields(report["engine_preparation"], (
             "method", "status", "binary", "command", "log_directory", "returncode",
@@ -408,7 +580,8 @@ def sharing_summary(report):
                        "FIXPOINT_LIMIT_EXCEEDED"}
     shared["stages"] = []
     for stage in report.get("stages", []):
-        item = selected_fields(stage, ("name", "kind", "planned_measured_samples", "planned_warmup_samples", "metric_summary"))
+        item = selected_fields(stage, ("name", "kind", "planned_measured_samples", "planned_warmup_samples", "metric_summary",
+                                       "concurrency", "measurement_mode", "read_case_index"))
         template = stage["template"]
         item["template"] = selected_fields(template, ("path", "sha256", "kind", "profile", "effective_view", "derived_query_count"))
         item["template"]["effective_limits"] = selected_fields(template["effective_limits"], DEFAULT_LIMITS)
@@ -421,7 +594,8 @@ def sharing_summary(report):
                 "request_file", "response_file", "protocol_verified", "business_correctness", "reason",
                 "end_to_end_seconds", "process_wall_seconds", "process_user_seconds", "process_system_seconds",
                 "process_wait4_peak_rss_bytes", "process_block_read_bytes", "process_block_write_bytes",
-                "returncode", "watchdog_timeout", "response_bytes"))
+                "returncode", "watchdog_timeout", "response_bytes", "command_cancelled", "request_sequence",
+                "started_at_utc", "finished_at_utc", "started_offset_seconds", "finished_offset_seconds"))
             if "api_status" in sample:
                 status = sample["api_status"]
                 kept["api_status"] = status if isinstance(status, str) and status in {"COMPLETE", "FAILED", "UNSUPPORTED", "BUDGET_EXHAUSTED", "CANCELLED"} else "UNRECOGNIZED"
@@ -456,7 +630,21 @@ def render_report(report):
         return str(value).replace("|", "\\|").replace("\n", " ")
 
     lines = ["# 真实业务编译与推理基线", "", f"执行状态：**{report['status']}**。",
-             "业务正确性：**需要人工核对（MANUAL_REVIEW_REQUIRED）**。协议检查和重复计数一致不构成业务答案证明。", "",
+             "业务正确性：**需要人工核对（MANUAL_REVIEW_REQUIRED）**。协议检查和重复计数一致不构成业务答案证明。", ""]
+    if report.get("parallelism"):
+        plan = report["parallelism"]
+        execution = report.get("read_execution", {})
+        lines += [f"读取并发：请求 `{plan['requested_jobs']}`，准入 **{plan['effective_jobs']}**；"
+                  f"实际峰值 **{execution.get('peak_active_requests', 0)}**。",
+                  f"测量模式：`{execution.get('mode', 'not_executed')}`。编译和物化样本始终串行；同一读取用例的预热及正式样本保持顺序。",
+                  "并发读取的中位数包含其他用例的资源竞争，不能直接与串行单请求中位数计算内核加速比。"]
+        if execution.get("elapsed_seconds") is not None:
+            lines.append(f"读取阶段总墙钟时间：**{execution['elapsed_seconds']:.3f} s**，包含预热、正式样本、调度、检查和失败。")
+        if execution.get("completed_requests_per_second") is not None:
+            lines.append(f"完整读取阶段平均完成率：**{execution['completed_requests_per_second']:.3f} 请求/s**（包含成功预热，不是单一查询的独立 QPS）。")
+        lines += ["资源准入：" + cell(admission_description(plan)),
+                  "内存与磁盘按观测可用容量保留余量；这是启动前准入计划，不是操作系统资源预留。完整依据保存在 summary.json。", ""]
+    lines += [
              "| 阶段 | 成功正式样本 | 中位数 s | 范围 s | RSS 最高 MiB | scratch 最高 MiB | 备注 |",
              "|---|---:|---:|---:|---:|---:|---|"]
     for stage in report.get("stages", []):
@@ -599,6 +787,10 @@ def positive_float(value):
     return result
 
 
+def jobs_value(value):
+    return "auto" if value == "auto" else positive_int(value)
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, help="engine binary; defaults to this checkout's release binary")
@@ -619,7 +811,10 @@ def parse_args(argv=None):
     parser.add_argument("--build-samples", type=positive_int, default=3)
     parser.add_argument("--read-samples", type=positive_int, default=3)
     parser.add_argument("--warmups", type=nonnegative_int, default=1)
-    parser.add_argument("--threads", type=positive_int, default=1)
+    parser.add_argument("--threads", type=positive_int, default=1, help="Rayon threads per process; does not parallelize Full queries")
+    parser.add_argument("--jobs", type=jobs_value, default="auto", help="concurrent independent read cases: auto or positive integer; 1 measures serial latency")
+    parser.add_argument("--total-memory-mib", type=positive_int, help="aggregate read-admission RSS allowance; request limits are unchanged")
+    parser.add_argument("--total-scratch-mib", type=positive_int, help="aggregate read-admission scratch allowance; request limits are unchanged")
     parser.add_argument("--keep-all-artifacts", action="store_true")
     parser.add_argument("--memory-mib", type=positive_int, help="explicitly override each template's memory budget")
     parser.add_argument("--scratch-mib", type=positive_int, help="explicitly override each template's scratch budget")
@@ -664,7 +859,8 @@ def main(argv=None):
               "concurrency": 1, "stages": [],
               "input_mode": "ontology-repository" if args.ontology_repo is not None else "explicit-api-requests",
               "method": {"driver_sha256": core.digest_file(Path(__file__)),
-                         "helper_sha256": core.digest_file(ROOT / "benchmarks/kernel_baseline.py")}}
+                         "helper_sha256": core.digest_file(ROOT / "benchmarks/kernel_baseline.py"),
+                         "parallel_helper_sha256": core.digest_file(ROOT / "benchmarks/business_parallel.py")}}
     core.publish(directory / "summary.json", report)
     print("Run directory: " + str(directory), flush=True)
     runner, code = None, 0
@@ -744,11 +940,14 @@ def main(argv=None):
             require(report["binary_sha256_after"] == environment["binary_sha256"], "binary changed during the benchmark")
             failed = any(s["status"] != "COMPLETE" for stage in report["stages"] for s in stage["samples"])
             gaps = repository_coverage(report) if args.ontology_repo is not None else False
-            report["status"] = "COMPLETE_WITH_FAILURES" if failed else "COMPLETE_WITH_GAPS" if gaps else "COMPLETE"
-            code = 1 if failed else 3 if gaps else 0
+            if report.get("read_execution", {}).get("status") == "ADMISSION_FAILED":
+                report["status"], code = "READ_ADMISSION_FAILED", 2
+            else:
+                report["status"] = "COMPLETE_WITH_FAILURES" if failed else "COMPLETE_WITH_GAPS" if gaps else "COMPLETE"
+                code = 1 if failed else 3 if gaps else 0
     except KeyboardInterrupt:
         report.update(status="INTERRUPTED", interrupt_signal=signal.Signals(interrupted_signal or signal.SIGINT).name,
-                      error="runner interrupted; active command cleanup terminates its process group and waits the direct child; worker_reaped is not asserted without an API receipt")
+                      error="runner interrupted; active command cleanup terminates all active command process groups and waits their direct children; worker_reaped is not asserted without an API receipt")
         code = 128 + (interrupted_signal or signal.SIGINT)
     except (ValueError, OSError, TypeError, KeyError) as error:
         report.update(status="SETUP_FAILED" if runner is None else "HARNESS_FAILED",
