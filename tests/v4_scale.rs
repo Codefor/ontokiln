@@ -39,7 +39,8 @@ fn one_million_explicit_facts_build_save_reload_and_count() {
     assert_eq!(engine.pack().quad_count(), 1_000_000);
 
     let query = "SELECT (COUNT(?s) AS ?n) WHERE { ?s <urn:p> ?o }";
-    let answer: Value = serde_json::from_slice(&engine.query(query, View::Closure).unwrap()).unwrap();
+    let answer: Value =
+        serde_json::from_slice(&engine.query(query, View::Closure).unwrap()).unwrap();
     assert_eq!(answer["results"]["bindings"][0]["n"]["value"], "1000000");
 
     let pack = temp.path().join("million.pack");
@@ -51,9 +52,16 @@ fn one_million_explicit_facts_build_save_reload_and_count() {
     let load_seconds = start.elapsed().as_secs_f64();
 
     assert_eq!(reloaded.pack().quad_count(), 1_000_000);
-    assert_eq!(reloaded.query(query, View::Closure).unwrap(),
-        engine.query(query, View::Closure).unwrap());
-    assert_eq!(fs::read(&pack).unwrap().len() as u64, fs::metadata(&pack).unwrap().len());
-    eprintln!("v4 million-fact acceptance: build={build_seconds:.3}s save={save_seconds:.3}s load={load_seconds:.3}s pack_bytes={}",
-        fs::metadata(&pack).unwrap().len());
+    assert_eq!(
+        reloaded.query(query, View::Closure).unwrap(),
+        engine.query(query, View::Closure).unwrap()
+    );
+    assert_eq!(
+        fs::read(&pack).unwrap().len() as u64,
+        fs::metadata(&pack).unwrap().len()
+    );
+    eprintln!(
+        "v4 million-fact acceptance: build={build_seconds:.3}s save={save_seconds:.3}s load={load_seconds:.3}s pack_bytes={}",
+        fs::metadata(&pack).unwrap().len()
+    );
 }
