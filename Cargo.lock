@@ -1120,6 +1120,7 @@ dependencies = [
  "oxigraph",
  "oxrdf",
  "rudof_rdf",
+ "serde",
  "serde_json",
  "sha2",
  "shacl_ir",
