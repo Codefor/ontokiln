@@ -219,16 +219,22 @@ fn main() -> Result<()> {
     // Fixed-focus SHACL distinguishes local neighborhood validation from
     // intentionally full-target work (which scales with all order records).
     let focus = "<urn:ontokiln:kernel-bench:order/000000000>";
-    let chosen = BTreeSet::from([
-        "<urn:ontokiln:kernel-bench:ProbeShape>".to_owned(),
-    ]);
+    let chosen = BTreeSet::from(["<urn:ontokiln:kernel-bench:ProbeShape>".to_owned()]);
     let focused_started = Instant::now();
     let focus_first = summary(loaded.validate(Some(&shapes), Some(&chosen), Some(focus), 64)?);
     let focused_cold_ms = focused_started.elapsed().as_secs_f64() * 1e3;
     let (focused, focused_timing) = sample(args.warmups, args.samples, || {
-        Ok(summary(loaded.validate(Some(&shapes), Some(&chosen), Some(focus), 64)?))
+        Ok(summary(loaded.validate(
+            Some(&shapes),
+            Some(&chosen),
+            Some(focus),
+            64,
+        )?))
     })?;
-    ensure!(focused == focus_first, "focused SHACL changed between samples");
+    ensure!(
+        focused == focus_first,
+        "focused SHACL changed between samples"
+    );
     let after_validation = memory_stats();
     let report = json!({
         "schema_version":"ontokiln-v4-resident-benchmark/v1",
