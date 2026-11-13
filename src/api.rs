@@ -320,6 +320,7 @@ pub(crate) fn run_files_on_snapshot(
                 "manifest_sha256": snapshot.manifest_sha256(),
                 "descriptor": snapshot.descriptor(),
                 "bytes": snapshot.database_bytes(),
+                "strict_terms": snapshot.strict_terms(),
             });
         }
         Ok(internal)
@@ -468,6 +469,7 @@ fn worker_dataset(path: &Path, request: &Value) -> Result<Dataset> {
 struct ReadSnapshot {
     _owned: Option<crate::full_snapshot::FullSnapshot>,
     database: PathBuf,
+    strict_terms: bool,
 }
 
 fn read_snapshot(
@@ -484,6 +486,7 @@ fn read_snapshot(
         Ok(ReadSnapshot {
             _owned: None,
             database: format!("ontokiln-fd:{descriptor}").into(),
+            strict_terms: mounted["strict_terms"].as_bool() == Some(true),
         })
     } else {
         let reservation = Path::new(
@@ -503,6 +506,7 @@ fn read_snapshot(
         )?;
         Ok(ReadSnapshot {
             database: snapshot.database_locator().into(),
+            strict_terms: snapshot.strict_terms(),
             _owned: Some(snapshot),
         })
     }
@@ -795,6 +799,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 frozen.push(s);
             }
             let mut input = json!({"operation":"validate","dataset":path,"_snapshot_database":snapshot.database,"shapes":frozen,
+                "_strict_dataset_terms":snapshot.strict_terms,
                 "shapes_from_dataset":shapes_from_dataset,"max_validation_depth":limits.max_validation_depth});
             if let Some(selected) = selected_shapes {
                 input["selected_shapes"] = json!(selected);

@@ -1367,6 +1367,7 @@ dependencies = [
  "clap",
  "futures-util",
  "hex",
+ "iri_s",
  "libc",
  "mie",
  "ontokiln-compiler",

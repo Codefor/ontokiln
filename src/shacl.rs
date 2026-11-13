@@ -1,7 +1,7 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
 //! Validation is called only inside the killable Rust worker.
 use crate::rdf_graph::{
-    Graph, IndexedGraph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, iri, value,
+    Graph, IndexedGraph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, ValidationData, iri, value,
 };
 use anyhow::{Result, ensure};
 use rudof_rdf::rdf_impl::InMemoryGraph;
@@ -13,8 +13,47 @@ use shacl_validation::shacl_engine::native::NativeEngine;
 use shacl_validation::shape_validation::Validate;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+#[cfg(test)]
+#[path = "../tests/shacl/sqlite_validation.rs"]
+mod sqlite_validation_tests;
+
 pub fn validate_with_depth(
     data: &Graph,
+    shapes: &Graph,
+    selected: &BTreeSet<String>,
+    focus: Option<&str>,
+    max_depth: usize,
+    full: bool,
+) -> Result<Value> {
+    validate_data(
+        ValidationData::Memory(data.indexed()),
+        shapes,
+        selected,
+        focus,
+        max_depth,
+        full,
+    )
+}
+
+pub(crate) fn validate_sqlite(
+    data: &crate::shacl_sqlite::SqliteGraph,
+    shapes: &Graph,
+    selected: &BTreeSet<String>,
+    focus: Option<&str>,
+    max_depth: usize,
+) -> Result<Value> {
+    validate_data(
+        ValidationData::Sqlite(data),
+        shapes,
+        selected,
+        focus,
+        max_depth,
+        true,
+    )
+}
+
+fn validate_data(
+    data: ValidationData<'_>,
     shapes: &Graph,
     selected: &BTreeSet<String>,
     focus: Option<&str>,
@@ -41,7 +80,6 @@ pub fn validate_with_depth(
             "remote Shapes imports are unsupported"
         );
     }
-    let data = data.indexed();
     let shapes = shapes.indexed();
     let queries = data.prepare_queries()?;
     let mut foci = BTreeMap::new();
@@ -64,13 +102,13 @@ pub fn validate_with_depth(
         } else {
             nodes.extend(shapes.objects(shape, &iri(&format!("{SH}targetNode"))));
             for class in shapes.objects(shape, &iri(&format!("{SH}targetClass"))) {
-                nodes.extend(data.instances_of(&class));
+                nodes.extend(data.instances_of(&class)?);
             }
             for p in shapes.objects(shape, &iri(&format!("{SH}targetSubjectsOf"))) {
-                nodes.extend(data.with_predicate(&p).map(|t| t[0].clone()));
+                nodes.extend(data.predicate_subjects(&p)?);
             }
             for p in shapes.objects(shape, &iri(&format!("{SH}targetObjectsOf"))) {
-                nodes.extend(data.with_predicate(&p).map(|t| t[2].clone()));
+                nodes.extend(data.predicate_objects(&p)?);
             }
         }
         if focus.is_none() {
@@ -193,6 +231,7 @@ pub fn validate_with_depth(
         max_depth,
         work_budget,
     )?;
+    data.check_error()?;
     result["coverage"] = json!(foci.iter().map(|(shape,nodes)|json!({"shape":value(shape),"target_count":nodes.len(),"focus_nodes":nodes})).collect::<Vec<_>>());
     result["target_count"] = json!(foci.values().map(BTreeSet::len).sum::<usize>());
     result["kernel"] = crate::identity::kernel();
@@ -366,7 +405,7 @@ fn path_expression(shapes: &IndexedGraph<'_>, path: &str, depth: usize) -> Resul
 }
 
 struct Composed<'a, 'data, 'shapes> {
-    data: &'a IndexedGraph<'data>,
+    data: &'a ValidationData<'data>,
     queries: &'a PreparedQueries<'a>,
     shapes: &'a IndexedGraph<'shapes>,
     reachable: &'a BTreeSet<String>,
@@ -424,14 +463,15 @@ impl Composed<'_, '_, '_> {
                 // evaluator when taking this indexed IRI-path fast path.
                 let mut values = BTreeSet::new();
                 let mut bytes = 0usize;
-                for value in self.data.object_terms(focus, path) {
+                self.data.visit_objects(focus, path, |value| {
                     bytes = bytes.saturating_add(focus.len().saturating_add(value.len()));
                     ensure!(
                         values.len() < 4096 && bytes <= 1024 * 1024,
                         ShaclBudgetExceeded("SHACL SELECT result budget exceeded")
                     );
                     values.insert(value.to_owned());
-                }
+                    Ok(())
+                })?;
                 values
             } else {
                 self.queries
@@ -532,10 +572,6 @@ impl Composed<'_, '_, '_> {
             || !compiled.components().is_empty()
             || !compiled.property_shapes().is_empty()
         {
-            if self.native.is_none() {
-                self.native = Some(native_graph(self.data)?);
-            }
-            let native = self.native.as_ref().expect("prepared native graph");
             if runner.is_none() {
                 // Target resolution already used our shared POS index, and
                 // every native call below supplies explicit FocusNodes.
@@ -543,16 +579,33 @@ impl Composed<'_, '_, '_> {
                 // building it here would rescan the data once per schema.
                 *runner = Some(NativeEngine::new());
             }
-            let targets = FocusNodes::single(focus.parse::<oxrdf::Term>()?);
-            let report = compiled
-                .validate(
-                    native,
-                    runner.as_mut().expect("prepared engine"),
-                    Some(&targets),
-                    Some(compiled),
-                    schema,
-                )
-                .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
+            let focus = focus.parse::<oxrdf::Term>()?;
+            let runner = runner.as_mut().expect("prepared engine");
+            let report = match self.data {
+                ValidationData::Memory(data) => {
+                    if self.native.is_none() {
+                        self.native = Some(native_graph(data)?);
+                    }
+                    let targets = FocusNodes::single(focus);
+                    compiled.validate(
+                        self.native.as_ref().expect("prepared native graph"),
+                        runner,
+                        Some(&targets),
+                        Some(compiled),
+                        schema,
+                    )
+                }
+                ValidationData::Sqlite(data) => {
+                    let targets = FocusNodes::single(focus);
+                    let report =
+                        compiled.validate(*data, runner, Some(&targets), Some(compiled), schema);
+                    // Some pinned Core validators turn store errors into empty
+                    // matches. Never publish a report after a failed read.
+                    data.check_error()?;
+                    report
+                }
+            }
+            .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
             violations.extend(report.iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})));
         }
         let message = self
@@ -769,7 +822,7 @@ fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
 }
 
 fn validate_composed(
-    data: &IndexedGraph<'_>,
+    data: &ValidationData<'_>,
     queries: &PreparedQueries<'_>,
     shapes: &IndexedGraph<'_>,
     reachable: &BTreeSet<String>,

@@ -167,6 +167,14 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(result["comparable"])
         self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
 
+    def test_kernel_and_focused_suites_are_not_treated_as_equal(self):
+        before, after = report(), report()
+        before["configuration"]["suite"] = "kernel"
+        after["configuration"]["suite"] = "focused-shacl"
+        result = compare.compare(before, after)
+        self.assertFalse(result["comparable"])
+        self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
+
     def test_different_snapshot_binding_strength_is_non_comparable(self):
         before, after = report(), report()
         before["configuration"]["snapshot_guard"] = "content"

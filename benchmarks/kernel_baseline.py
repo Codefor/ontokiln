@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproducible, serial Full/pack baseline through the public file API.
+"""Reproducible, serial Full/pack baseline through the public API transports.
 
 No build is performed. See tests/benchmarks/README.md for the workload, timing
 boundaries and a small smoke command. Only the Python standard library is used.
@@ -33,6 +33,7 @@ RDFS = "http://www.w3.org/2000/01/rdf-schema#"
 XSD = "http://www.w3.org/2001/XMLSchema#"
 SH = "http://www.w3.org/ns/shacl#"
 CHAIN = 8
+FOCUS_INDEX = 8
 METRIC_NOTES = {
     "end_to_end_seconds": "Before Popen through process exit and reading the result bytes; JSON parsing, oracle checks and artifact inspection excluded.",
     "process_wall_seconds": "Before Popen through wait4 completion. Serial command invocation, including startup and supervisor/worker lifecycle.",
@@ -158,6 +159,36 @@ b:MinCountProperty a sh:PropertyShape; sh:targetNode {order(0)};
 '''
 
 
+def focused_shapes_text():
+    # Keep the kernel suite's existing Shapes bytes unchanged. These additional
+    # constraints require a second-hop edge and an unrelated background record.
+    return f'''b:FocusedScopeShape a sh:NodeShape; sh:targetNode {order(0)};
+    sh:property b:FocusedRegionProperty; sh:sparql b:FocusedOutsideConstraint .
+b:FocusedRegionProperty sh:path (b:customer b:region); sh:hasValue {iri("region/0")} .
+b:FocusedOutsideConstraint sh:select """SELECT $this WHERE {{
+    ?other {iri("label")} "Order 0"@en .
+}}""" .
+'''
+
+
+def focused_validation_cases():
+    focus = order(FOCUS_INDEX)
+    return [
+        {"name": "focus_core_pass", "selected_shapes": [iri("OrderShape")], "focus_node": focus,
+         "expected_conforms": True, "expected_violations": [], "requires_nonlocal_graph": False},
+        {"name": "focus_core_fail", "selected_shapes": [iri("MinCountProperty")], "focus_node": focus,
+         "expected_conforms": False, "requires_nonlocal_graph": False,
+         "expected_violations": [{"focus_node": uri(focus)["value"], "path": NS + "amount",
+                                  "shape_ref": NS + "MinCountProperty"}]},
+        {"name": "focus_nonlocal_fail", "selected_shapes": [iri("FocusedScopeShape")], "focus_node": focus,
+         "expected_conforms": False, "requires_nonlocal_graph": True,
+         "expected_violations": [{"focus_node": uri(focus)["value"], "path": None,
+                                  "source_shape": NS + "FocusedScopeShape",
+                                  "source_constraint_component": SH + "SPARQLConstraintComponent",
+                                  "shape_ref": NS + "FocusedScopeShape"}]},
+    ]
+
+
 def reachable_indices(i, n):
     end = min((i // CHAIN + 1) * CHAIN, n) - 1
     return range(min(i + 1, end), end + 1)
@@ -185,7 +216,9 @@ def expected_terms(n):
     return 4 * n + len(constants)
 
 
-def generate(directory, facts):
+def generate(directory, facts, suite="kernel"):
+    if suite not in {"kernel", "focused-shacl"}:
+        raise ValueError("unknown benchmark suite")
     n = records_for(facts)
     inputs = directory / "input"
     inputs.mkdir(parents=True)
@@ -200,6 +233,8 @@ def generate(directory, facts):
     rule_path.write_bytes(canonical(rules()) + b"\n")
     with shape_path.open("w", encoding="utf8", newline="\n") as stream:
         stream.write(shapes_text())
+        if suite == "focused-shacl":
+            stream.write(focused_shapes_text())
     files = [{"file": str(path.relative_to(directory)), "bytes": path.stat().st_size,
               "sha256": digest_file(path)} for path in (data, rule_path, shape_path)]
     return {"generator": GENERATOR, "explicit_facts": facts, "records": n,
@@ -303,6 +338,38 @@ def check_validation(result, name, n):
         if any(report["violations"][0].get(key) != value for key, value in fields.items()):
             raise ValueError("incorrect named-shape violation")
     return {"checked": True, "conforms": not violation, "target_count": len(expected_foci), "violations": int(violation)}
+
+
+def check_focused_validation(result, case, kernel):
+    expected_violations = case["expected_violations"]
+    if (result.get("conforms") is not case["expected_conforms"]
+            or type(result.get("checked_shapes")) is not int or result["checked_shapes"] != 1
+            or type(result.get("violations")) is not int or result["violations"] != len(expected_violations)):
+        raise ValueError("incorrect focused SHACL status/count")
+    report = result["report"]
+    if (set(report) != {"conforms", "violations", "coverage", "target_count", "engine", "kernel"}
+            or report["kernel"] != kernel
+            or report["engine"] != {"name": "ontokiln-rust-shacl", "version": kernel["version"]}):
+        raise ValueError("incorrect focused SHACL report structure or identity")
+    violations = report["violations"]
+    if not isinstance(violations, list) or any(
+            not isinstance(row, dict) or not isinstance(row.get("message"), str) for row in violations):
+        raise ValueError("invalid focused SHACL violation records")
+    # Diagnostic prose and build identity are not semantic answers. Compare all
+    # remaining report fields, including each violation's exact field set, so a
+    # missing background constraint cannot hide behind a different violation.
+    semantic = {key: report[key] for key in ["conforms", "coverage", "target_count"]}
+    semantic["violations"] = [{key: value for key, value in row.items() if key != "message"}
+                              for row in violations]
+    expected = {"conforms": case["expected_conforms"], "target_count": 1,
+                "coverage": [{"shape": uri(case["selected_shapes"][0])["value"], "target_count": 1,
+                              "focus_nodes": [case["focus_node"]]}],
+                "violations": expected_violations}
+    if (report["conforms"] is not case["expected_conforms"]
+            or type(report["target_count"]) is not int or semantic != expected):
+        raise ValueError("focused SHACL report differs from the independently expected focus and violations")
+    return {"checked": True, "conforms": case["expected_conforms"], "target_count": 1,
+            "violations": len(expected_violations), "semantic_report_sha256": hashlib.sha256(canonical(semantic)).hexdigest()}
 
 
 def summarize(samples, planned_measured=None, planned_warmup=None):
@@ -717,7 +784,8 @@ class Baseline:
 
     def scale(self, facts):
         directory = self.directory / f"facts-{facts}"
-        manifest = generate(directory, facts)
+        kernel_suite = self.args.suite == "kernel"
+        manifest = generate(directory, facts, self.args.suite)
         n = manifest["records"]
         scale = {"facts": facts, "input": manifest, "stages": []}
         self.report["scales"].append(scale)
@@ -777,41 +845,55 @@ class Baseline:
                 shutil.rmtree(output)
             return sample
 
-        self.series(scale, "pack_compile", self.args.build_samples, pack_compile,
-                    metadata={"entrypoint": "legacy compile CLI", "memory_scratch_budget": "not enforced by this CLI; measured only", "timeout": "external process-group watchdog"})
+        if kernel_suite:
+            self.series(scale, "pack_compile", self.args.build_samples, pack_compile,
+                        metadata={"entrypoint": "legacy compile CLI", "memory_scratch_budget": "not enforced by this CLI; measured only", "timeout": "external process-group watchdog"})
         self.series(scale, "full_compile", self.args.build_samples, full_build,
                     metadata={"profile": PROFILE, "explicit_rule_count": len(rules()["rules"]), "phase_metrics": True})
-        self.series(scale, "full_materialize", self.args.build_samples, lambda i: full_build(i, True),
-                    dependency="compiled" in selected, metadata={"profile": PROFILE, "phase_metrics": True})
+        if kernel_suite:
+            self.series(scale, "full_materialize", self.args.build_samples, lambda i: full_build(i, True),
+                        dependency="compiled" in selected, metadata={"profile": PROFILE, "phase_metrics": True})
         if self.args.read_transport == "session":
             for backend in ["compiled", "reasoned"]:
                 if backend in selected:
                     self.mount(scale, backend, selected[backend], guards[backend])
-        for backend in ["pack", "compiled", "reasoned"]:
-            cases = query_cases(n, facts, materialized=backend == "reasoned")
-            for case in cases:
-                def query(index, case=case, backend=backend):
-                    return self.api({"kind": "query", "dataset": str(selected[backend]),
-                                     "query": case["query"], "view": case["view"],
-                                     **guards.get(backend, {})}, lambda r: check_query(r, case))
-                self.series(scale, backend + "/" + case["name"], self.args.query_samples, query,
-                            warmup=True, dependency=backend in selected,
-                            metadata={**case, "query_sha256": hashlib.sha256(case["query"].encode()).hexdigest(),
-                                      "core_time_available": False})
-        for name, backend in [("all_orders", "compiled"), ("class_orders", "compiled"), ("core_min_count", "compiled"),
-                              ("compiled_probe", "compiled"), ("reasoned_probe", "reasoned")]:
-            def validate(index, name=name, backend=backend):
-                shape = {"all_orders": "OrderShape", "class_orders": "ClassOrderShape",
-                         "core_min_count": "MinCountProperty"}.get(name, "ProbeShape")
-                return self.api({"kind": "validate", "dataset": str(selected[backend]),
-                                 **guards[backend],
-                                 "shapes": [{"path": str(shapes), "document_id": GENERATOR + "/shapes", "format": "turtle",
-                                             "expected_sha256": manifest["files"][2]["sha256"]}],
-                                 "selected_shapes": [iri(shape)]}, lambda r: check_validation(r, name, n))
-            self.series(scale, "shacl/" + name, self.args.validation_samples, validate, warmup=True,
-                        dependency=backend in selected, metadata={"core_time_available": False,
-                                                                 "expected_conforms": name not in ["compiled_probe", "core_min_count"],
-                                                                 "expected_constraint_component": SH + "MinCountConstraintComponent" if name == "core_min_count" else None})
+        if kernel_suite:
+            for backend in ["pack", "compiled", "reasoned"]:
+                cases = query_cases(n, facts, materialized=backend == "reasoned")
+                for case in cases:
+                    def query(index, case=case, backend=backend):
+                        return self.api({"kind": "query", "dataset": str(selected[backend]),
+                                         "query": case["query"], "view": case["view"],
+                                         **guards.get(backend, {})}, lambda r: check_query(r, case))
+                    self.series(scale, backend + "/" + case["name"], self.args.query_samples, query,
+                                warmup=True, dependency=backend in selected,
+                                metadata={**case, "query_sha256": hashlib.sha256(case["query"].encode()).hexdigest(),
+                                          "core_time_available": False})
+            for name, backend in [("all_orders", "compiled"), ("class_orders", "compiled"), ("core_min_count", "compiled"),
+                                  ("compiled_probe", "compiled"), ("reasoned_probe", "reasoned")]:
+                def validate(index, name=name, backend=backend):
+                    shape = {"all_orders": "OrderShape", "class_orders": "ClassOrderShape",
+                             "core_min_count": "MinCountProperty"}.get(name, "ProbeShape")
+                    return self.api({"kind": "validate", "dataset": str(selected[backend]),
+                                     **guards[backend],
+                                     "shapes": [{"path": str(shapes), "document_id": GENERATOR + "/shapes", "format": "turtle",
+                                                 "expected_sha256": manifest["files"][2]["sha256"]}],
+                                     "selected_shapes": [iri(shape)]}, lambda r: check_validation(r, name, n))
+                self.series(scale, "shacl/" + name, self.args.validation_samples, validate, warmup=True,
+                            dependency=backend in selected, metadata={"core_time_available": False,
+                                                                     "expected_conforms": name not in ["compiled_probe", "core_min_count"],
+                                                                     "expected_constraint_component": SH + "MinCountConstraintComponent" if name == "core_min_count" else None})
+        else:
+            for case in focused_validation_cases():
+                def validate(index, case=case):
+                    return self.api({"kind": "validate", "dataset": str(selected["compiled"]),
+                                     **guards["compiled"],
+                                     "shapes": [{"path": str(shapes), "document_id": GENERATOR + "/shapes", "format": "turtle",
+                                                 "expected_sha256": manifest["files"][2]["sha256"]}],
+                                     "selected_shapes": case["selected_shapes"], "focus_node": case["focus_node"]},
+                                    lambda r: check_focused_validation(r, case, self.report["environment"]["kernel_identity"]))
+                self.series(scale, "shacl/" + case["name"], self.args.validation_samples, validate, warmup=True,
+                            dependency="compiled" in selected, metadata={**case, "core_time_available": False})
         self.close_sessions()
         # Session exit is part of successful mounting/lifetime management.
         for stage in scale["stages"]:
@@ -825,6 +907,8 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/ontokiln")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--suite", choices=["kernel", "focused-shacl"], default="kernel",
+                        help="kernel runs the existing pack/Full workload; focused-shacl only compiles Full and validates three explicit-focus cases")
     parser.add_argument("--sizes", type=int, nargs="+", default=[10_000, 100_000, 1_000_000])
     parser.add_argument("--build-samples", type=int, default=3)
     parser.add_argument("--query-samples", type=int, default=9)
@@ -878,9 +962,12 @@ def main(argv=None):
               "work_directory": str(directory), "metric_definitions": METRIC_NOTES,
               "cache_policy": ("No OS cache flush. Generation, hashing and compilation precede queries. "
                                + ("Full reads share one mounted private snapshot per artifact; each read still has an isolated worker. One-time mounts are separate diagnostic stages. " if args.read_transport == "session" else "Each request starts fresh processes; subsequent requests are not a persistent hot engine. ")
-                               + "Each read workload has one warm-up. Pack reads always start fresh processes."),
+                               + "Each read workload has one warm-up."
+                               + (" Pack reads always start fresh processes." if args.suite == "kernel" else " Focused SHACL uses the same fixed explicit focus at every scale.")),
               "concurrency": 1, "statistics": "Raw samples, median and range of successful measured requests; warm-ups and failures excluded. No p95/p99 estimate from small sample counts.",
-              "scope": "Synthetic asserted default-graph workload, RDFS supported profile plus bounded positive recursion; not complete OWL, production data or a cold-disk/HTTP throughput benchmark.",
+              "scope": ("Synthetic asserted default-graph workload, RDFS supported profile plus bounded positive recursion; not complete OWL, production data or a cold-disk/HTTP throughput benchmark."
+                        if args.suite == "kernel" else
+                        "Synthetic explicit-focus SHACL over compiled asserted data with fixed local work and growing background; Core and nonlocal visibility controls, no materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark."),
               "environment": environment_info(args.binary, directory, args), "scales": []}
     runner = Baseline(args, directory, report)
     runner.checkpoint()

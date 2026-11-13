@@ -35,6 +35,32 @@ def validation_result(n):
                                      "focus_nodes": [bench.order(i) for i in range(n)]}]}}
 
 
+FOCUSED_KERNEL = {"version": "test-build", "kernel_sha256": "f" * 64}
+
+
+def focused_validation_result(name):
+    # Independent fixtures: do not read expected_violations from the workload.
+    focus = bench.NS + "order/000000008"
+    shape = {"focus_core_pass": "OrderShape", "focus_core_fail": "MinCountProperty",
+             "focus_nonlocal_fail": "FocusedScopeShape"}[name]
+    violations = []
+    if name == "focus_core_fail":
+        violations = [{"focus_node": focus, "path": bench.NS + "amount",
+                       "shape_ref": bench.NS + "MinCountProperty", "message": "one value is below minCount 2"}]
+    elif name == "focus_nonlocal_fail":
+        violations = [{"focus_node": focus, "path": None,
+                       "source_shape": bench.NS + "FocusedScopeShape",
+                       "source_constraint_component": bench.SH + "SPARQLConstraintComponent",
+                       "shape_ref": bench.NS + "FocusedScopeShape", "message": "background marker exists"}]
+    conforms = not violations
+    return {"conforms": conforms, "checked_shapes": 1, "violations": len(violations),
+            "report": {"conforms": conforms, "violations": violations, "target_count": 1,
+                       "coverage": [{"shape": bench.NS + shape, "target_count": 1,
+                                     "focus_nodes": ["<" + focus + ">"]}],
+                       "engine": {"name": "ontokiln-rust-shacl", "version": "test-build"},
+                       "kernel": dict(FOCUSED_KERNEL)}}
+
+
 class WorkloadTests(unittest.TestCase):
     def test_generated_fact_and_term_counts_are_independently_countable(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -166,6 +192,145 @@ class WorkloadTests(unittest.TestCase):
         for facts in [0, 90, 101]:
             with self.assertRaises(ValueError):
                 bench.records_for(facts)
+
+
+class FocusedWorkloadTests(unittest.TestCase):
+    def test_focused_shapes_do_not_change_kernel_inputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            default = bench.generate(root / "default", 100)
+            explicit = bench.generate(root / "explicit", 100, "kernel")
+            focused = bench.generate(root / "focused", 100, "focused-shacl")
+            self.assertEqual(default, explicit)
+            self.assertEqual(default["files"][:2], focused["files"][:2])
+            self.assertEqual(default["files"][2]["sha256"],
+                             "e567dae83f7aebdafed38bc5843ae47a1bc6a888c0aceafb83ffa2da3a08cb7a")
+            self.assertNotEqual(default["files"][2]["sha256"], focused["files"][2]["sha256"])
+            self.assertEqual((root / "focused/shapes.ttl").read_text(),
+                             bench.shapes_text() + bench.focused_shapes_text())
+            self.assertNotIn("FocusedScopeShape", (root / "default/shapes.ttl").read_text())
+
+    def test_fixed_focus_and_nonlocal_facts_exist_from_smoke_to_large_backgrounds(self):
+        self.assertEqual({case["focus_node"] for case in bench.focused_validation_cases()},
+                         {"<" + bench.NS + "order/000000008>"})
+        for facts in [100, 10000, 100000, 1000000]:
+            n = bench.records_for(facts)
+            local = bench.record_triples(8, n)
+            self.assertIn((bench.order(8), bench.iri("customer"), bench.customer(8)), local)
+            self.assertIn((bench.customer(8), bench.iri("region"), bench.iri("region/0")), local)
+            self.assertIn((bench.order(8), bench.iri("amount"), f'"008"^^<{bench.XSD}integer>'), local)
+            self.assertIn((bench.order(0), bench.iri("label"), '"Order 0"@en'), bench.record_triples(0, n))
+        self.assertIn('sh:path (b:customer b:region)', bench.focused_shapes_text())
+        self.assertIn('?other ' + bench.iri("label") + ' "Order 0"@en', bench.focused_shapes_text())
+
+    def test_focused_oracles_accept_complete_independent_reports(self):
+        for case in bench.focused_validation_cases():
+            with self.subTest(case=case["name"]):
+                checked = bench.check_focused_validation(focused_validation_result(case["name"]), case, FOCUSED_KERNEL)
+                self.assertTrue(checked["checked"])
+                self.assertEqual(checked["target_count"], 1)
+                self.assertEqual(checked["conforms"], case["name"] == "focus_core_pass")
+                self.assertEqual(len(checked["semantic_report_sha256"]), 64)
+
+    def test_focused_oracles_reject_zero_wrong_or_extra_focus_and_wrong_report_identity(self):
+        mutations = [lambda r: r.update(checked_shapes=0),
+                     lambda r: r["report"].update(target_count=0, coverage=[]),
+                     lambda r: r["report"]["coverage"][0].update(focus_nodes=[bench.order(0)]),
+                     lambda r: r["report"]["coverage"][0]["focus_nodes"].append(bench.order(9)),
+                     lambda r: r["report"]["coverage"][0].update(shape="urn:wrong-shape"),
+                     lambda r: r["report"]["kernel"].update(kernel_sha256="0" * 64),
+                     lambda r: r["report"].pop("engine"),
+                     lambda r: r["report"].update(unexpected_semantics=True)]
+        for case in bench.focused_validation_cases():
+            for index, mutate in enumerate(mutations):
+                with self.subTest(case=case["name"], mutation=index):
+                    result = focused_validation_result(case["name"])
+                    mutate(result)
+                    with self.assertRaises(ValueError):
+                        bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+
+    def test_focused_negative_controls_reject_missing_wrong_or_duplicate_violations(self):
+        mutations = [lambda r: r.update(conforms=True, violations=0),
+                     lambda r: r["report"].update(violations=[]),
+                     lambda r: r["report"]["violations"][0].update(focus_node=bench.NS + "order/000000000"),
+                     lambda r: r["report"]["violations"][0].update(shape_ref="urn:wrong-shape"),
+                     lambda r: r["report"]["violations"][0].update(path="urn:wrong-path"),
+                     lambda r: r["report"]["violations"].append(copy.deepcopy(r["report"]["violations"][0]))]
+        for case in bench.focused_validation_cases()[1:]:
+            for index, mutate in enumerate(mutations):
+                with self.subTest(case=case["name"], mutation=index):
+                    result = focused_validation_result(case["name"])
+                    mutate(result)
+                    with self.assertRaises(ValueError):
+                        bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+        case = bench.focused_validation_cases()[2]
+        result = focused_validation_result(case["name"])
+        # A cropped graph can lose the SPARQL failure and add a HasValue failure;
+        # one violation alone must not make this incorrect result acceptable.
+        result["report"]["violations"][0]["source_constraint_component"] = bench.SH + "HasValueConstraintComponent"
+        with self.assertRaises(ValueError):
+            bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+
+    def test_diagnostic_prose_does_not_change_the_semantic_report_digest(self):
+        for case in bench.focused_validation_cases()[1:]:
+            result = focused_validation_result(case["name"])
+            before = bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+            result["report"]["violations"][0]["message"] = "different diagnostic wording"
+            self.assertEqual(before, bench.check_focused_validation(result, case, FOCUSED_KERNEL))
+
+    def test_suite_defaults_to_kernel_and_selects_focused_explicitly(self):
+        common = ["--binary", sys.executable, "--output", "report.json"]
+        self.assertEqual(bench.parse_args(common).suite, "kernel")
+        self.assertEqual(bench.parse_args(common + ["--suite", "focused-shacl"]).suite, "focused-shacl")
+
+    def test_focused_suite_only_compiles_mounts_and_runs_its_three_focus_cases(self):
+        for transport in ["file", "session"]:
+            with self.subTest(transport=transport), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                args = bench.parse_args(["--binary", sys.executable, "--output", str(root / "report.json"),
+                                         "--suite", "focused-shacl", "--sizes", "100", "--build-samples", "1",
+                                         "--validation-samples", "1", "--read-transport", transport])
+                report = {"environment": {"kernel_identity": FOCUSED_KERNEL}, "scales": []}
+                runner = bench.Baseline(args, root, report)
+                operations, mounted = [], []
+
+                def api(operation, oracle):
+                    operations.append(operation)
+                    if operation["kind"] == "compile":
+                        output = Path(operation["output"])
+                        output.mkdir()
+                        (output / "facts.sqlite").write_bytes(b"artifact fixture")
+                        artifact = {"stats": {"indexed_facts": 100, "parsed_facts": 100,
+                                               "distinct_terms": bench.expected_terms(9) + 2}}
+                        (output / "manifest.json").write_bytes(bench.canonical(artifact))
+                        result = {"stats": {"explicit_facts": 100, "inferred_facts": 0}, "fixpoint_reached": False,
+                                  "artifact": {"content_digest": "a" * 64,
+                                               "manifest_sha256": bench.digest_file(output / "manifest.json")}}
+                    else:
+                        self.assertEqual(operation["kind"], "validate")
+                        self.assertEqual(operation["focus_node"], bench.order(8))
+                        name = {bench.iri("OrderShape"): "focus_core_pass", bench.iri("MinCountProperty"): "focus_core_fail",
+                                bench.iri("FocusedScopeShape"): "focus_nonlocal_fail"}[operation["selected_shapes"][0]]
+                        result = focused_validation_result(name)
+                    return {"status": "COMPLETE", "end_to_end_seconds": .01, "oracle": oracle(result)}
+
+                def mount(scale, backend, dataset, guard):
+                    mounted.append(backend)
+                    runner.series(scale, backend + "/session_mount", 1,
+                                  lambda _: {"status": "COMPLETE", "end_to_end_seconds": .01, "oracle": {"checked": True}},
+                                  metadata={"one_time_mount": True})
+
+                runner.api, runner.mount = api, mount
+                with patch.object(bench, "timed_command", side_effect=AssertionError("no engine in a harness test")), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    runner.scale(100)
+                names = [stage["name"] for stage in report["scales"][0]["stages"]]
+                self.assertEqual(names, ["full_compile"] + (["compiled/session_mount"] if transport == "session" else [])
+                                 + ["shacl/focus_core_pass", "shacl/focus_core_fail", "shacl/focus_nonlocal_fail"])
+                self.assertEqual(mounted, ["compiled"] if transport == "session" else [])
+                self.assertEqual([operation["kind"] for operation in operations], ["compile"] + ["validate"] * 6)
+                self.assertTrue(all(sample["status"] == "COMPLETE" for stage in report["scales"][0]["stages"]
+                                    for sample in stage["samples"]))
 
 
 class MeasurementTests(unittest.TestCase):

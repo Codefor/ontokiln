@@ -14,3 +14,4 @@ pub mod query;
 pub mod rdf_graph;
 pub mod session;
 pub mod shacl;
+mod shacl_sqlite;

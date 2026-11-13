@@ -133,6 +133,10 @@ class Sessions(unittest.TestCase):
         directory = self.root / "replaceable"
         shutil.copytree(self.dataset, directory)
         self.addCleanup(lambda: shutil.rmtree(directory, ignore_errors=True))
+        inputs = json.loads((directory / "input_manifest.json").read_text())
+        self.assertEqual([source["document_id"] for source in inputs["sources"]], ["input"])
+        self.assertEqual(inputs["parser_options"],
+                         [{"document_id": "input", "unchecked_turtle_terms": False}])
         process, _ = self.session(directory)
         (directory / "facts.sqlite").write_bytes(b"changed by source owner")
         for operation in [self.query(directory), {"kind": "capabilities", "dataset": str(directory)}]:
@@ -141,6 +145,23 @@ class Sessions(unittest.TestCase):
         reply = self.send(process, self.query(directory))
         self.complete(reply)
         self.assertEqual(reply["result"]["items"][0]["value"]["value"], "7")
+        shape = self.root / "removed-source-shape.ttl"
+        shape.write_text("""@prefix sh: <http://www.w3.org/ns/shacl#> .
+            <urn:AfterRemoval> a sh:NodeShape; sh:targetNode <urn:item:6>;
+                sh:property [ sh:path <urn:value>; sh:minCount 1; sh:maxCount 1;
+                    sh:datatype <http://www.w3.org/2001/XMLSchema#string>; sh:hasValue "7" ].""")
+        reply = self.send(process, {
+            "kind": "validate", "dataset": str(directory), "focus_node": "<urn:item:7>",
+            "shapes": [{"path": str(shape), "document_id": "removed-source-shape", "format": "turtle",
+                        "expected_sha256": hashlib.sha256(shape.read_bytes()).hexdigest()}]})
+        self.complete(reply)
+        result = reply["result"]
+        self.assertTrue(result["conforms"])
+        self.assertEqual((result["checked_shapes"], result["violations"]), (1, 0))
+        self.assertEqual(result["report"]["target_count"], 1)
+        self.assertEqual(result["report"]["coverage"], [{
+            "shape": "urn:AfterRemoval", "target_count": 1, "focus_nodes": ["<urn:item:7>"]}])
+        self.assertEqual(result["report"]["violations"], [])
 
     def test_validation_and_derived_queries_share_the_pinned_view(self):
         shape = self.root / "shape.ttl"

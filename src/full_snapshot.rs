@@ -27,6 +27,7 @@ pub struct FullSnapshot {
     source: PathBuf,
     manifest: Value,
     manifest_digest: String,
+    strict_terms: bool,
     database: File,
     bytes: u64,
 }
@@ -83,6 +84,8 @@ impl FullSnapshot {
         let digest = manifest["files"]["facts.sqlite"]["sha256"]
             .as_str()
             .context("INVALID_DATASET|missing snapshot digest")?;
+        let strict_terms = verified_parser_policy(&source, &manifest)
+            .map_err(|error| anyhow::anyhow!("INVALID_DATASET|{error}"))?;
         let temporary = tempfile::Builder::new()
             .prefix("full-snapshot-")
             .tempfile()?;
@@ -117,6 +120,7 @@ impl FullSnapshot {
             source,
             manifest,
             manifest_digest,
+            strict_terms,
             database,
             bytes,
         })
@@ -132,6 +136,10 @@ impl FullSnapshot {
 
     pub fn manifest_sha256(&self) -> &str {
         &self.manifest_digest
+    }
+
+    pub(crate) fn strict_terms(&self) -> bool {
+        self.strict_terms
     }
 
     pub fn database_bytes(&self) -> u64 {
@@ -162,6 +170,58 @@ impl FullSnapshot {
         }
         Ok(())
     }
+}
+
+/// Pin the parser policy to the same verified inventory as the database. The
+/// original path may disappear after mounting, so workers use only this result.
+fn verified_parser_policy(source: &Path, manifest: &Value) -> Result<bool> {
+    let path = source.join("input_manifest.json");
+    ensure!(
+        fs::symlink_metadata(&path)?.is_file(),
+        "expected a regular non-symlink input manifest"
+    );
+    let bytes = fs::read(path)?;
+    let inventory = &manifest["files"]["input_manifest.json"];
+    ensure!(
+        inventory["bytes"].as_u64() == Some(bytes.len() as u64)
+            && inventory["sha256"] == crate::full_artifact::digest(&bytes),
+        "input manifest changed after inventory verification"
+    );
+    let input: Value = serde_json::from_slice(&bytes)?;
+    Ok(strict_parser_policy(&input))
+}
+
+fn strict_parser_policy(input: &Value) -> bool {
+    use std::collections::BTreeSet;
+
+    let Some(sources) = input["sources"].as_array() else {
+        return false;
+    };
+    let Some(options) = input["parser_options"].as_array() else {
+        return false;
+    };
+    if sources.is_empty() || sources.len() != options.len() {
+        return false;
+    }
+    let mut documents = BTreeSet::new();
+    for source in sources {
+        let Some(document) = source["document_id"].as_str().filter(|s| !s.is_empty()) else {
+            return false;
+        };
+        if !documents.insert(document) {
+            return false;
+        }
+    }
+    for option in options {
+        let Some(document) = option["document_id"].as_str() else {
+            return false;
+        };
+        if option["unchecked_turtle_terms"].as_bool() != Some(false) || !documents.remove(document)
+        {
+            return false;
+        }
+    }
+    documents.is_empty()
 }
 
 pub fn validate_descriptor(fd: c_int, expected_bytes: u64) -> Result<()> {
@@ -564,18 +624,22 @@ mod tests {
     use serde_json::json;
 
     fn artifact() -> tempfile::TempDir {
+        artifact_with_parser_policy(json!([]), json!({}))
+    }
+
+    fn artifact_with_parser_policy(sources: Value, parser_options: Value) -> tempfile::TempDir {
         let directory = tempfile::tempdir().unwrap();
         let db = Connection::open(directory.path().join("facts.sqlite")).unwrap();
         db.execute_batch("CREATE TABLE values_test(n INTEGER PRIMARY KEY); INSERT INTO values_test VALUES(7),(11),(23);")
             .unwrap();
         drop(db);
         let frozen = json!({
-            "sources": [],
+            "sources": sources,
             "rules": [],
             "import_lock": {},
             "import_policy": "declared-ontology-v1",
             "profile_id": "no-rules-v1",
-            "parser_options": {},
+            "parser_options": parser_options,
         });
         fs::write(
             directory.path().join("input_manifest.json"),
@@ -606,8 +670,12 @@ mod tests {
 
     #[test]
     fn snapshot_survives_source_replacement_and_owner_drop() {
-        let source = artifact();
+        let source = artifact_with_parser_policy(
+            json!([{"document_id":"input"}]),
+            json!([{"document_id":"input", "unchecked_turtle_terms":false}]),
+        );
         let snapshot = FullSnapshot::mount(source.path(), 1024 * 1024).unwrap();
+        assert!(snapshot.strict_terms());
         assert_eq!(
             snapshot.manifest_sha256(),
             crate::full_artifact::file_digest(&source.path().join("manifest.json")).unwrap()
@@ -616,6 +684,7 @@ mod tests {
         // Connections own duplicate descriptors; later requests still use the
         // mounted image even when the application's source path disappears.
         source.close().unwrap();
+        assert!(snapshot.strict_terms());
         let next = open_readonly(Path::new(&snapshot.database_locator())).unwrap();
         drop(snapshot);
         for conn in [db, next] {
@@ -636,6 +705,103 @@ mod tests {
     }
 
     #[test]
+    fn strict_parser_policy_requires_complete_explicit_document_options() {
+        let strict = json!({
+            "sources":[{"document_id":"a"}, {"document_id":"b"}],
+            "parser_options":[
+                {"document_id":"b", "unchecked_turtle_terms":false},
+                {"document_id":"a", "unchecked_turtle_terms":false}
+            ]
+        });
+        assert!(strict_parser_policy(&strict));
+        for options in [
+            json!(null),
+            json!({}),
+            json!([]),
+            json!([{"document_id":"a", "unchecked_turtle_terms":false}]),
+            json!([
+                {"document_id":"a", "unchecked_turtle_terms":false},
+                {"document_id":"a", "unchecked_turtle_terms":false}
+            ]),
+            json!([
+                {"document_id":"a", "unchecked_turtle_terms":false},
+                {"document_id":"c", "unchecked_turtle_terms":false}
+            ]),
+            json!([
+                {"document_id":"a", "unchecked_turtle_terms":false},
+                {"document_id":"b", "unchecked_turtle_terms":true}
+            ]),
+            json!([
+                {"document_id":"a", "unchecked_turtle_terms":false},
+                {"document_id":"b"}
+            ]),
+            json!([
+                {"document_id":"a", "unchecked_turtle_terms":false},
+                {"document_id":"b", "unchecked_turtle_terms":"false"}
+            ]),
+        ] {
+            let mut input = strict.clone();
+            input["parser_options"] = options;
+            assert!(!strict_parser_policy(&input), "{input}");
+        }
+        for sources in [
+            json!(null),
+            json!([]),
+            json!([{"document_id":"a"}, {"document_id":"a"}]),
+            json!([{"document_id":"a"}, {"document_id":""}]),
+            json!([{"document_id":"a"}, {}]),
+        ] {
+            let mut input = strict.clone();
+            input["sources"] = sources;
+            assert!(!strict_parser_policy(&input), "{input}");
+        }
+        assert!(!strict_parser_policy(
+            &json!({"sources":[], "parser_options":[]})
+        ));
+    }
+
+    #[test]
+    fn parser_policy_is_bound_to_verified_input_manifest_bytes() {
+        let source = artifact_with_parser_policy(
+            json!([{"document_id":"input"}]),
+            json!([{"document_id":"input", "unchecked_turtle_terms":false}]),
+        );
+        let (manifest, digest) =
+            crate::full_artifact::verify_with_manifest_digest(source.path()).unwrap();
+        let path = source.path().join("input_manifest.json");
+        let mut bytes = fs::read(&path).unwrap();
+        let position = bytes
+            .windows(5)
+            .position(|value| value == b"false")
+            .unwrap();
+        bytes[position..position + 5].copy_from_slice(b"true ");
+        // A valid same-length policy replacement cannot inherit the old
+        // inventory's trust. Checking only file size would miss this change.
+        assert_eq!(
+            serde_json::from_slice::<Value>(&bytes).unwrap()["parser_options"][0]["unchecked_turtle_terms"],
+            true
+        );
+        fs::write(&path, &bytes).unwrap();
+        let error = FullSnapshot::mount_verified(
+            source.path(),
+            manifest.clone(),
+            digest.clone(),
+            1024 * 1024,
+            None,
+        )
+        .err()
+        .unwrap();
+        assert!(error.to_string().starts_with("INVALID_DATASET|"));
+        assert!(error.to_string().contains("input manifest changed"));
+        fs::remove_file(path).unwrap();
+        let error =
+            FullSnapshot::mount_verified(source.path(), manifest, digest, 1024 * 1024, None)
+                .err()
+                .unwrap();
+        assert!(error.to_string().starts_with("INVALID_DATASET|"));
+    }
+
+    #[test]
     fn verified_mount_keeps_the_checked_identity_and_rechecks_database_bytes() {
         let directory = artifact();
         let (manifest, digest) =
@@ -652,6 +818,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(snapshot.manifest_sha256(), digest);
+        assert!(!snapshot.strict_terms());
         let db = open_readonly(Path::new(&snapshot.database_locator())).unwrap();
         assert_eq!(
             db.query_row::<i64, _, _>("SELECT SUM(n) FROM values_test", [], |r| r.get(0))

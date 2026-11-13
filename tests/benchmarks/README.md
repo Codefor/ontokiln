@@ -4,6 +4,11 @@
 builds Rust or starts the historical 100 million fact suites. Keep compilation,
 tests and other heavy processes out of the timed run.
 
+The default `--suite kernel` keeps the existing pack/Full workload and input
+bytes. `--suite focused-shacl` uses the same runner for fixed explicit-focus
+validation with a growing background graph; its smaller stage plan is described
+below. Select the same suite on both sides of a comparison.
+
 Run the harness tests without the engine:
 
 ```sh
@@ -163,6 +168,73 @@ one constraint, `sh:minCount 2`. The current native report exposes focus, path,
 shape reference and diagnostic message, but no constraint-component field;
 the benchmark records the intended MinCount component in workload metadata
 and checks the available semantic fields without inventing a response field.
+
+## Focused SHACL suite
+
+`--suite focused-shacl` generates the same facts and frozen rule inputs as the
+kernel suite, independently compiles a Full artifact, optionally mounts one
+session, and runs three validation workloads. It does not schedule pack builds,
+materialization or query stages; these absent stages are not skipped successes.
+Only this suite appends its extra named Shapes to the Shapes document. The
+default kernel suite's input hashes and workloads remain unchanged.
+
+Every request explicitly sets `focus_node` to order `000000008`. Its customer,
+amount and region remain fixed across 10K / 100K / 1M facts; this focus also
+exists in the 100-fact smoke. The first two workloads reuse the existing Shapes.
+
+| Stage | Independent expected result |
+|---|---|
+| `shacl/focus_core_pass` | Select `OrderShape`; one checked Shape, exactly order 8 in coverage, conforms and no violations. Its cardinality, IRI, integer and numeric constraints all run. |
+| `shacl/focus_core_fail` | Select `MinCountProperty`; its declared target is order 0, but the explicit focus must override it. Order 8 has one amount, so `minCount 2` yields exactly one violation with the expected focus, amount path and named property shape. |
+| `shacl/focus_nonlocal_fail` | Select `FocusedScopeShape`; the two-hop `customer/region` path must reach region 0 and satisfy its `hasValue`. A SELECT constraint finds the unrelated `"Order 0"@en` label and yields exactly one SPARQL violation on order 8. |
+
+The nonlocal control requires full data visibility even with an explicit focus.
+Cropping to the focus's outgoing facts could lose the SELECT violation and add
+an incorrect two-hop-path violation; checking only a violation count would miss
+that error. The oracle instead compares the complete coverage and structured
+violation records, including component and shape. It also checks report identity
+and engine metadata, while diagnostic prose is excluded from the semantic report
+digest. A zero-target success, wrong focus, extra target, missing violation or
+different violation cannot pass. This workload may retain full-graph costs when
+the implementation's optimized path only handles Core constraints.
+
+Run a smoke first, then use the same command and harness revision for each
+separately built before/after binary:
+
+```sh
+python3 -B benchmarks/kernel_baseline.py \
+  --binary target/release/ontokiln --output data/focused-shacl-smoke.json \
+  --suite focused-shacl --sizes 100 --build-samples 1 --validation-samples 1 \
+  --read-transport session --snapshot-guard manifest \
+  --build-profile release --build-features default
+
+python3 -B benchmarks/kernel_baseline.py \
+  --binary target/release/ontokiln --output data/focused-shacl-session.json \
+  --suite focused-shacl --sizes 10000 100000 1000000 \
+  --build-samples 3 --validation-samples 3 \
+  --read-transport session --snapshot-guard manifest \
+  --memory-mib 512 --scratch-mib 4096 --timeout-seconds 60 \
+  --build-profile release --build-features default --work-dir data/bench-work
+```
+
+The primary comparison is session versus session. File requests still verify
+and copy the whole database each time, so their end-to-end scaling includes
+that separate cost. Keep file results separate. Each read has one warm-up and
+three measured samples by default; compilation uses `--build-samples`, and
+`--query-samples` has no effect in this suite. Mounts remain single diagnostic
+observations. Use per-request API RSS and latency, not session-lifetime `wait4`
+RSS, to assess the fixed-focus workload as background size grows.
+
+Keep the same memory and time limits for both binaries. At 1M facts, an older
+implementation may exhaust the 512 MiB budget while loading the graph. Retain
+that failure and the skipped repetitions; they are not fast samples and do not
+support a speedup ratio. Completion under the same budget is a separate result.
+If a larger-budget latency comparison is needed, run both binaries again under
+the same larger budget in separate reports, preserving the first run. Near-flat
+latency/RSS over this finite ladder is evidence about these workloads, not a
+proof of constant complexity or general SHACL capacity. Changing the harness
+requires remeasuring both binaries; do not compare the new suite to historical
+kernel reports with different method hashes.
 
 ## Measurement boundaries
 

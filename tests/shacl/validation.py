@@ -200,6 +200,33 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
     sh:property [sh:path <urn:p>; sh:minCount 1] .
 """, error="RESOURCE_EXHAUSTED")
 
+    def test_lenient_artifact_keeps_validation_of_unvisited_terms(self):
+        # Historic Full artifacts can contain lenient Turtle terms. A valid
+        # focus must not hide an invalid unrelated term that Core used to parse.
+        source = self.source('<urn:valid> <urn:p> true .\n'
+                             '<urn:unvalidated[1]> <urn:other> <urn:o> .')
+        dataset = self.root / "lenient"
+        request = self.root / "legacy-compile.json"
+        result = self.root / "legacy-result.json"
+        request.write_text(json.dumps({
+            "operation": "compile", "max_term_bytes": 1024**2,
+            "sources": [{**source, "unchecked_turtle_terms": True}],
+            "artifact": {"output": str(dataset), "profile_id": "no-rules-v1",
+                         "index_profile": "core-v1", "rules_files": []},
+            "memory_budget_bytes": 512 * 1024**2,
+            "disk_budget_bytes": 1024**3, "timeout_seconds": 15,
+        }))
+        subprocess.run([BINARY, "full", "--request", request, "--result", result],
+                       check=True, timeout=25)
+        compiled = json.loads(result.read_bytes())
+        self.assertNotIn("error", compiled)
+        manifest = json.loads((dataset / "input_manifest.json").read_bytes())
+        self.assertIs(manifest["parser_options"][0]["unchecked_turtle_terms"], True)
+        reply = self.validate(str(dataset), """
+<urn:Shape> a sh:NodeShape; sh:nodeKind sh:IRI .
+""", error="EXECUTION_FAILED", focus_node="<urn:valid>")
+        self.assertIn("SHACL input failed", reply["error"]["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

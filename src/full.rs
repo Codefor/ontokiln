@@ -1145,7 +1145,7 @@ pub(crate) fn validate_api(v: Value) -> Result<Value> {
 
 fn validate_with_error_mapping(
     v: Value,
-    map_validation_error: impl FnOnce(anyhow::Error) -> String,
+    map_validation_error: impl Fn(anyhow::Error) -> String,
 ) -> Result<Value> {
     let data_path = if let Some(path) = v["_snapshot_database"].as_str() {
         std::path::PathBuf::from(path)
@@ -1159,20 +1159,17 @@ fn validate_with_error_mapping(
     };
     let c =
         crate::full_snapshot::open_readonly(&data_path).map_err(|e| err("VALIDATION_FAILED", e))?;
-    let mut data = crate::rdf_graph::Graph {
-        triples: BTreeSet::new(),
+    // Only the verified API snapshot adapter can establish the strict parser
+    // policy. Legacy/unknown or explicitly lenient artifacts retain the full
+    // graph path, including its validation of otherwise unvisited RDF terms.
+    let (sqlite, data) = if v["_strict_dataset_terms"] == true {
+        (
+            Some(crate::shacl_sqlite::SqliteGraph::new(c).map_err(&map_validation_error)?),
+            None,
+        )
+    } else {
+        (None, Some(validation_graph(&c)?))
     };
-    let mut statement=sql(c.prepare("SELECT DISTINCT s.n,p.n,o.n FROM facts f JOIN terms s ON s.id=f.s JOIN terms p ON p.id=f.p JOIN terms o ON o.id=f.o"))?;
-    let rows = sql(statement.query_map([], |r| {
-        Ok([
-            r.get::<_, String>(0)?,
-            r.get::<_, String>(1)?,
-            r.get::<_, String>(2)?,
-        ])
-    }))?;
-    for row in rows {
-        data.triples.insert(sql(row)?);
-    }
     let mut shapes = crate::rdf_graph::Graph {
         triples: BTreeSet::new(),
     };
@@ -1186,7 +1183,11 @@ fn validate_with_error_mapping(
                 "choose dataset shapes or external shape documents",
             ));
         }
-        shapes = data.clone();
+        shapes = if let Some(sqlite) = &sqlite {
+            sqlite.load_graph().map_err(&map_validation_error)?
+        } else {
+            data.as_ref().expect("loaded validation data").clone()
+        };
     }
     for source in v["shapes"]
         .as_array()
@@ -1249,19 +1250,36 @@ fn validate_with_error_mapping(
             .ok_or_else(|| err("SOURCE_INVALID", "positive max_validation_depth required"))?
             as usize,
     };
-    let result = crate::shacl::validate_with_depth(
-        &data,
-        &shapes,
-        &selected,
-        focus.as_deref(),
-        max_depth,
-        true,
-    )
+    let result = if let Some(sqlite) = &sqlite {
+        crate::shacl::validate_sqlite(sqlite, &shapes, &selected, focus.as_deref(), max_depth)
+    } else {
+        crate::shacl::validate_with_depth(
+            data.as_ref().expect("loaded validation data"),
+            &shapes,
+            &selected,
+            focus.as_deref(),
+            max_depth,
+            true,
+        )
+    }
     .map_err(map_validation_error)?;
     let checked = selected.len();
     Ok(
         json!({"conforms":result["conforms"],"checked_shapes":checked,"violations":result["violations"].as_array().map_or(0,Vec::len),"report":serde_json::to_string(&result).map_err(|e|err("VALIDATION_FAILED",e))?,"metrics":{},"kernel":crate::identity::kernel()}),
     )
+}
+
+fn validation_graph(c: &Connection) -> Result<crate::rdf_graph::Graph> {
+    let mut data = crate::rdf_graph::Graph::default();
+    let mut statement = sql(c.prepare(
+        "SELECT DISTINCT s.n,p.n,o.n FROM facts f \
+         JOIN terms s ON s.id=f.s JOIN terms p ON p.id=f.p JOIN terms o ON o.id=f.o",
+    ))?;
+    let rows = sql(statement.query_map([], |row| Ok([row.get(0)?, row.get(1)?, row.get(2)?])))?;
+    for row in rows {
+        data.triples.insert(sql(row)?);
+    }
+    Ok(data)
 }
 
 fn rdf_resource(value: &Value, field: &str) -> Result<String> {

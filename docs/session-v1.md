@@ -137,14 +137,32 @@ and checks zero database-copy bytes on each successful Full read. File transport
 before/after measurements remain separate from this different timing boundary.
 
 This adapter reuses the database image. Worker processes, SQLite page caches,
-query plans, and SHACL evaluation graphs are still request-scoped. Full SHACL
-still loads the visible triple union into memory. Navigation now uses SPO ranges
-and a lazy POS reference index; explicit class targets traverse inverse subclass/type
-indexes. Simple property paths avoid a second query dataset, and unused
-per-schema Rudof target indexes are no longer rebuilt. Native Core constraints
-still use a Rudof graph; complex paths and SHACL-SPARQL can create an additional
-query dataset on first use. Selecting one focus node does not avoid the initial
-Full graph load.
+query plans, and validation caches are still request-scoped. For snapshots whose
+verified input manifest establishes strict RDF parsing, Full SHACL Core reads
+matching SQLite neighborhoods through the same Rudof constraint validators.
+Explicit class targets traverse inverse subclass/type indexes. A fixed focus
+with ordinary Core constraints no longer requires an initial full graph load.
+Term ID and decoded-term caches have entry and estimated-byte bounds. The
+adapter also retains at most the most recent complete subject/predicate
+neighborhood, with row and estimated-byte bounds, so the composed evaluator and
+Rudof can reuse one read. Oversized or incomplete neighborhoods are not cached;
+reads and validation are never truncated to fit a cache. All these caches are
+discarded when the worker exits and do not become a session result cache.
+
+The data view remains the distinct SPO union of every stored graph, including
+asserted and inferred facts. Complex paths and executed SHACL-SPARQL constraints
+or targets lazily build the complete union query dataset, which can still consume
+memory proportional to the data. This query dataset has only a default graph,
+matching the existing validation semantics. Selecting a focus does not restrict
+what those queries can see. Dataset-sourced Shapes also require loading the
+complete Shapes graph. Legacy artifacts with unknown or lenient parser policy
+retain their existing full graph and term-validation behavior.
+
+File API validation uses this same implementation after its per-request mount.
+Session validation amortizes mount verification and copying across requests;
+the first mount still depends on artifact size. Full-target validation still
+scales with its target and constraint work, even when ordinary Core navigation
+does not materialize the complete data graph.
 
 Target selection keeps the existing [Full contract](full.md#shacl). A shape's
 `rdfs:Class` annotation does not add an implicit target; consumers continue to
