@@ -62,6 +62,17 @@ impl EngineV4 {
     }
 
     pub fn execute(&self, query: &Query, view: View) -> Result<Vec<u8>> {
+        self.execute_bound(query, view, &[])
+    }
+
+    /// Evaluate a prepared query with typed initial variable bindings.
+    /// The data graph is immutable and the bindings are request-local.
+    pub fn execute_bound(
+        &self,
+        query: &Query,
+        view: View,
+        bindings: &[(oxrdf::Variable, oxrdf::Term)],
+    ) -> Result<Vec<u8>> {
         // Query admission (local SELECT/ASK, no SERVICE/FROM) remains the
         // caller's responsibility, as for the existing Reasoner::write_sparql.
         ensure!(
@@ -78,7 +89,18 @@ impl EngineV4 {
             view,
             names,
         };
-        let results = QueryEvaluator::new().prepare(query).explain(graph).0?;
+        // Input variables can appear only inside FILTER/BOUND. Avoid logical
+        // rewrites that fold them as unbound before substitutions are applied.
+        let evaluator = if bindings.is_empty() {
+            QueryEvaluator::new()
+        } else {
+            QueryEvaluator::new().without_optimizations()
+        };
+        let mut prepared = evaluator.prepare(query);
+        for (variable, term) in bindings {
+            prepared = prepared.substitute_variable(variable.clone(), term.clone());
+        }
+        let results = prepared.explain(graph).0?;
         let mut output = Vec::new();
         let serializer = QueryResultsSerializer::from_format(QueryResultsFormat::Json);
         match results {

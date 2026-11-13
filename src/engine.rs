@@ -8,7 +8,12 @@ use ontokiln_compiler::{
     v4_materialize::{Materialization, Rule, materialize},
 };
 use ontokiln_pack::v4::{PackV4, View};
-use ontokiln_reasoner::v4::EngineV4;
+use ontokiln_reasoner::{
+    parameters::{self, Parameter, ValuesTable},
+    v4::EngineV4,
+};
+use oxrdf::{Term, Variable};
+use std::collections::BTreeMap;
 use oxigraph::io::{RdfFormat, RdfParser};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -57,6 +62,52 @@ impl OntologyEngine {
         crate::query::local_query(query)?;
         self.reasoner.select_or_ask(query, view)
     }
+    /// Apply typed query parameters, VALUES tables and RDF initial bindings.
+    /// Uses the same parser/algebra binding machinery as API v1 Full.
+    /// Binding-only variables are never added to public SELECT columns.
+    pub fn query_bound(
+        &self,
+        query: &str,
+        view: View,
+        parameters: &BTreeMap<String, Parameter>,
+        rdf_bindings: &BTreeMap<String, String>,
+        values: &[ValuesTable],
+    ) -> Result<Vec<u8>> {
+        crate::query::local_query(query)?;
+        let mut parsed = parameters::bind_tables(
+            spargebra::SparqlParser::new().parse_query(query)?,
+            parameters,
+            values,
+        )?;
+        // ASK does not expose output columns; its algebra consumes initial
+        // bindings directly. SELECT needs hidden bindings projected internally.
+        let public_columns = if !rdf_bindings.is_empty()
+            && matches!(parsed, spargebra::Query::Select { .. })
+        {
+            crate::query::expose_bindings(&mut parsed, rdf_bindings.keys().cloned())?
+        } else {
+            None
+        };
+        let bound_terms = rdf_bindings.iter().map(|(name, value)| {
+            Ok((Variable::new(name)?, value.parse::<Term>()?))
+        }).collect::<Result<Vec<_>>>()?;
+        let bytes = self.reasoner.execute_bound(&parsed, view, &bound_terms)?;
+        if let Some(columns) = public_columns {
+            let mut reply: Value = serde_json::from_slice(&bytes)?;
+            let keep: std::collections::BTreeSet<_> = columns.iter().cloned().collect();
+            let rows = reply["results"]["bindings"].as_array_mut()
+                .ok_or_else(|| anyhow::anyhow!("SELECT result is missing bindings"))?;
+            for row in rows {
+                let row = row.as_object_mut()
+                    .ok_or_else(|| anyhow::anyhow!("invalid SELECT result row"))?;
+                row.retain(|name, _| keep.contains(name));
+            }
+            reply["head"]["vars"] = json!(columns);
+            return Ok(serde_json::to_vec(&reply)?);
+        }
+        Ok(bytes)
+    }
+
     /// Execute a local CONSTRUCT or SELECT s/p/o derived-query asset.
     /// Results are request-scoped; this never changes the immutable Pack.
     pub fn derived_query(&self, query: &str, view: View) -> Result<Vec<u8>> {
