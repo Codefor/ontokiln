@@ -12,6 +12,7 @@ use shacl_validation::focus_nodes::FocusNodes;
 use shacl_validation::shacl_engine::native::NativeEngine;
 use shacl_validation::shape_validation::Validate;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::OnceLock;
 
 pub fn validate_with_depth(
     data: &Graph,
@@ -20,13 +21,19 @@ pub fn validate_with_depth(
     focus: Option<&str>,
     max_depth: usize,
 ) -> Result<Value> {
-    validate_data(
-        ValidationData::Memory(data.indexed()),
-        shapes,
-        selected,
-        focus,
-        max_depth,
-    )
+    validate_data(ValidationData::Memory(data.indexed()), shapes, selected, focus, max_depth, None)
+}
+
+/// Reuse the immutable native SHACL graph across validations on one Engine.
+pub(crate) fn validate_with_native_cache(
+    data: &Graph,
+    shapes: &Graph,
+    selected: &BTreeSet<String>,
+    focus: Option<&str>,
+    max_depth: usize,
+    native_cache: &OnceLock<std::result::Result<InMemoryGraph, String>>,
+) -> Result<Value> {
+    validate_data(ValidationData::Memory(data.indexed()), shapes, selected, focus, max_depth, Some(native_cache))
 }
 
 fn validate_data(
@@ -35,6 +42,7 @@ fn validate_data(
     selected: &BTreeSet<String>,
     focus: Option<&str>,
     max_depth: usize,
+    native_cache: Option<&OnceLock<std::result::Result<InMemoryGraph, String>>>,
 ) -> Result<Value> {
     let work_budget = usize::MAX;
     ensure!(max_depth > 0, "invalid SHACL validation depth");
@@ -202,6 +210,7 @@ fn validate_data(
         &foci,
         max_depth,
         work_budget,
+        native_cache,
     )?;
     data.check_error()?;
     result["coverage"] = json!(foci.iter().map(|(shape,nodes)|json!({"shape":value(shape),"target_count":nodes.len(),"focus_nodes":nodes})).collect::<Vec<_>>());
@@ -382,6 +391,7 @@ struct Composed<'a, 'data, 'shapes> {
     shapes: &'a IndexedGraph<'shapes>,
     reachable: &'a BTreeSet<String>,
     native: Option<InMemoryGraph>,
+    native_cache: Option<&'a OnceLock<std::result::Result<InMemoryGraph, String>>>,
     schemas: BTreeMap<String, (SchemaIR, Option<NativeEngine>)>,
     cache: BTreeMap<(String, String), Vec<Value>>,
     active: BTreeSet<(String, String)>,
@@ -554,13 +564,20 @@ impl Composed<'_, '_, '_> {
             let focus = focus.parse::<oxrdf::Term>()?;
             let runner = runner.as_mut().expect("prepared engine");
             let ValidationData::Memory(data) = self.data;
-            if self.native.is_none() {
-                self.native = Some(native_graph(data)?);
-            }
+            let native = if let Some(cache) = self.native_cache {
+                cache.get_or_init(|| native_graph(data).map_err(|e| e.to_string()))
+                    .as_ref()
+                    .map_err(|message| anyhow::anyhow!("SHACL input failed: {message}"))?
+            } else {
+                if self.native.is_none() {
+                    self.native = Some(native_graph(data)?);
+                }
+                self.native.as_ref().expect("prepared native graph")
+            };
             let targets = FocusNodes::single(focus);
             let report = compiled
                 .validate(
-                    self.native.as_ref().expect("prepared native graph"),
+                    native,
                     runner,
                     Some(&targets),
                     Some(compiled),
@@ -790,6 +807,7 @@ fn validate_composed(
     foci: &BTreeMap<String, BTreeSet<String>>,
     max_depth: usize,
     work_budget: usize,
+    native_cache: Option<&OnceLock<std::result::Result<InMemoryGraph, String>>>,
 ) -> Result<Value> {
     let mut context = Composed {
         data,
@@ -797,6 +815,7 @@ fn validate_composed(
         shapes,
         reachable,
         native: None,
+        native_cache,
         schemas: BTreeMap::new(),
         cache: BTreeMap::new(),
         active: BTreeSet::new(),

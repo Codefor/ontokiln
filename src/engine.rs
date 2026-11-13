@@ -21,6 +21,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
+use rudof_rdf::rdf_impl::InMemoryGraph;
 
 /// Request-scoped derived data, with the API v1 intermediate and closure bounds.
 #[derive(Clone, Copy)]
@@ -33,6 +34,7 @@ pub struct DerivedOptions<'a> {
 pub struct OntologyEngine {
     reasoner: EngineV4,
     validation_graph: OnceLock<Graph>,
+    native_graph: OnceLock<std::result::Result<InMemoryGraph, String>>,
 }
 impl OntologyEngine {
     /// Build and fully materialize a new ontology. Failure never publishes Pack.
@@ -56,6 +58,7 @@ impl OntologyEngine {
         Ok(Self {
             reasoner: EngineV4::new(pack),
             validation_graph: OnceLock::new(),
+            native_graph: OnceLock::new(),
         })
     }
     /// Saving does not evict or rebuild the live Reasoner.
@@ -328,8 +331,9 @@ impl OntologyEngine {
                 .map(|t| t[0].clone())
                 .collect()
         });
-        let report =
-            crate::shacl::validate_with_depth(data, shapes, &selected, focus_node, max_depth)?;
+        let report = crate::shacl::validate_with_native_cache(
+            data, shapes, &selected, focus_node, max_depth, &self.native_graph,
+        )?;
         Ok(json!({
             "conforms":report["conforms"],
             "checked_shapes":selected.len(),
@@ -548,10 +552,14 @@ mod tests {
         assert_eq!(result["conforms"], false);
         assert!(result["violations"].as_u64().unwrap() > 0);
         assert!(engine.validation_graph.get().is_some());
+        assert!(engine.native_graph.get().is_some());
+        let native_ptr = engine.native_graph.get().unwrap() as *const _;
         assert_eq!(
             result,
             engine.validate(Some(&shapes), None, None, 64).unwrap()
         );
+        assert_eq!(native_ptr, engine.native_graph.get().unwrap() as *const _,
+            "SHACL rebuilt the resident native graph");
     }
     #[test]
     fn external_shapes_are_loaded_and_digest_checked() {
