@@ -473,7 +473,7 @@ fn property_chain_rules(pack: &PackV4) -> Result<Vec<Rule>> {
             cursor=successor;
         }
         ensure!(!chain.is_empty(), "RULE_INVALID: empty property chain");
-        let body=chain.iter().enumerate().map(|(i,(property,reversed))| {
+        let body: Vec<Vec<String>>=chain.iter().enumerate().map(|(i,(property,reversed))| {
             let (s,o)=if *reversed {(i+1,i)} else {(i,i+1)};
             vec![format!("?v{s}"),property.clone(),format!("?v{o}")]
         }).collect();
@@ -483,13 +483,12 @@ fn property_chain_rules(pack: &PackV4) -> Result<Vec<Rule>> {
             Sha256::digest(serde_json::to_vec(&(predicate.to_owned(),chain))?));
         generated.insert(rule_id.clone(),Rule {
             rule_id,head:vec!["?v0".into(),predicate.to_owned(),
-                format!("?v{}",body_length(&body))],
+                format!("?v{}",body.len())],
             body,filters
         });
     }
     Ok(generated.into_values().collect())
 }
-fn body_length(body: &[Vec<String>]) -> usize { body.len() }
 
 /// Compute a complete, immutable closure without an SQLite file or external
 /// process. A failed rule or incomplete fixpoint publishes no Pack.
