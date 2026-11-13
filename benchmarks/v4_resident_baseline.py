@@ -29,15 +29,27 @@ def require(condition, message):
         raise AssertionError(message)
 
 
+def suite_digest(corpus, rules, selected, shapes_bytes):
+    return hashlib.sha256(canonical({
+        "generator": corpus["generator"], "source": corpus["files"],
+        "profile": "rdfs-supported-v1", "rules": rules,
+        "queries": selected,
+        "shapes_sha256": hashlib.sha256(shapes_bytes).hexdigest(),
+    })).hexdigest()
+
+
 def compare_reports(before, after):
-    for key in ("generator", "facts", "profile", "rule_count", "source_digest",
-                "machine", "build_mode", "rayon_threads", "measurement"):
+    for key in ("schema_version", "generator", "facts", "profile", "rule_count",
+                "source_digest", "machine", "build_mode", "rayon_threads",
+                "measurement"):
         require(key in before and key in after and before[key] == after[key],
                 f"not comparable: missing or differing {key}")
-    for key in ("rustc", "target"):
-        require(before["benchmark"]["build_identity"][key] ==
-                after["benchmark"]["build_identity"][key],
-                f"not comparable: differing {key}")
+    before_build = before.get("benchmark", {}).get("build_identity", {})
+    after_build = after.get("benchmark", {}).get("build_identity", {})
+    for key in ("rustc", "target", "profile", "opt_level"):
+        require(key in before_build and key in after_build
+                and before_build[key] == after_build[key],
+                f"not comparable: missing or differing build_identity.{key}")
     before_metrics = flatten_metrics(before)
     after_metrics = flatten_metrics(after)
     require(set(before_metrics) == set(after_metrics),
@@ -51,6 +63,22 @@ def compare_reports(before, after):
             "ratio": round(current / previous, 4) if previous > 0 else None,
         }
     return comparison
+
+
+def annotate_comparison(output, before, max_regression_ratio):
+    if max_regression_ratio is not None:
+        require(max_regression_ratio >= 1.0,
+                "max regression ratio must be >= 1.0")
+    comparison = compare_reports(before, output)
+    output["comparison"] = comparison
+    failed = sorted(name for name, value in comparison.items()
+                    if max_regression_ratio is not None
+                    and value["ratio"] is not None
+                    and value["ratio"] > max_regression_ratio)
+    if failed:
+        output["status"] = "FAIL"
+        output["regression_failures"] = failed
+    return failed
 
 
 def flatten_metrics(report):
@@ -172,11 +200,8 @@ def execute(args):
         require(len(data["shacl_focused"]["samples_ms"]) == args.samples,
                 "missing focused SHACL samples")
         require(data["pack_bytes"] > 0, "empty pack")
-        digest = hashlib.sha256(canonical({
-            "generator": corpus["generator"], "source": corpus["files"],
-            "profile": "rdfs-supported-v1", "rules": rules,
-            "query_names": [case["name"] for case in cases],
-        })).hexdigest()
+        digest = suite_digest(corpus, rules, selected,
+                              (root / "shapes.ttl").read_bytes())
         output = {
             "schema_version": "ontokiln-v4-resident-regression/v1",
             "status": "PASS",
@@ -203,14 +228,16 @@ def execute(args):
             },
             "benchmark": data,
         }
+        failed = []
         if args.compare:
-            output["comparison"] = compare_reports(
-                json.loads(args.compare.read_text(encoding="utf8")), output)
+            failed = annotate_comparison(
+                output, json.loads(args.compare.read_text(encoding="utf8")),
+                args.max_regression_ratio)
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(output, ensure_ascii=False,
                                           sort_keys=True, indent=2)+"\n", encoding="utf8")
         summary = {
-            "status": "PASS",
+            "status": output["status"],
             "facts": args.facts,
             "asserted": args.facts,
             "inferred": count,
@@ -225,14 +252,10 @@ def execute(args):
         }
         print(json.dumps(summary, ensure_ascii=False, sort_keys=True, indent=2))
         if args.compare:
-            comparison = output["comparison"]
-            print(json.dumps({"comparison": comparison},indent=2,sort_keys=True))
-            if args.max_regression_ratio is not None:
-                failed = [name for name, value in comparison.items()
-                          if value["ratio"] is not None
-                          and value["ratio"] > args.max_regression_ratio]
-                require(not failed,
-                        f"timing regression beyond specified ratio: {', '.join(failed)}")
+            print(json.dumps({"comparison": output["comparison"]},
+                             indent=2, sort_keys=True))
+        require(not failed,
+                f"timing regression beyond specified ratio: {', '.join(failed)}")
 
 
 def main():
@@ -252,7 +275,12 @@ def main():
     args = parser.parse_args()
     require(args.facts >= 100 and args.facts % 10 == 0,
             "facts must be >=100 and divisible by 10")
-    require(args.samples > 0 and args.warmups >= 0,"invalid sample counts")
+    require(args.samples > 0 and args.warmups >= 0, "invalid sample counts")
+    require(args.max_regression_ratio is None or args.compare is not None,
+            "--max-regression-ratio requires --compare")
+    if args.compare:
+        require(args.compare.resolve() != args.output.resolve(),
+                "comparison input and output must be different files")
     execute(args)
 
 

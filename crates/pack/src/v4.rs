@@ -438,6 +438,27 @@ impl PackV4 {
             n_terms < u32::MAX as usize && n_quads < u32::MAX as usize,
             "Pack v4 ID space exhausted"
         );
+        // Check the exact wire layout *before* reserving any vector capacity.
+        // A correctly checksummed but structurally invalid header must not
+        // trigger arbitrarily large allocations during Pack loading.
+        let expected_size = [
+            Some(5_usize * 8),
+            n_terms.checked_add(1).and_then(|v| v.checked_mul(8)),
+            Some(string_bytes),
+            n_quads.checked_mul(16),
+            Some(n_quads.div_ceil(8)),
+            n_quads.checked_mul(12),
+            n_quads.checked_add(1).and_then(|v| v.checked_mul(8)),
+            n_sources.checked_mul(4),
+            Some(metadata_bytes),
+        ]
+        .into_iter()
+        .try_fold(0_usize, |total, part| total.checked_add(part?))
+        .context("Pack v4 section size overflow")?;
+        ensure!(
+            expected_size == body.len(),
+            "Pack v4 section lengths do not match the checksummed body"
+        );
         let mut term_offsets =
             Vec::with_capacity(n_terms.checked_add(1).context("term count overflow")?);
         for _ in 0..=n_terms {
@@ -777,6 +798,21 @@ mod tests {
         pack.save(&path).unwrap();
         let mut bytes = fs::read(&path).unwrap();
         *bytes.last_mut().unwrap() ^= 1;
+        fs::write(&path, bytes).unwrap();
+        assert!(PackV4::load(&path).is_err());
+    }
+
+    #[test]
+    fn v4_rejects_checksums_with_impossible_section_lengths() {
+        let pack = fixture();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("adversarial.pack");
+        pack.save(&path).unwrap();
+        let mut bytes = fs::read(&path).unwrap();
+        // A new valid checksum is not enough to trust attacker-chosen counts.
+        bytes[HEADER_BYTES..HEADER_BYTES + 8].copy_from_slice(&u64::MAX.to_le_bytes());
+        let digest = Sha256::digest(&bytes[HEADER_BYTES..]);
+        bytes[20..HEADER_BYTES].copy_from_slice(digest.as_slice());
         fs::write(&path, bytes).unwrap();
         assert!(PackV4::load(&path).is_err());
     }

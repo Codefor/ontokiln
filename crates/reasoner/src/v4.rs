@@ -2,8 +2,8 @@
 //!
 //! This is an in-memory dataset adapter, not another query evaluator. It uses
 //! the existing Spareval engine and reads the same SPO/POS/OSP indices consumed
-//! by the public Pack API. The Full query contract is not claimed until all
-//! binding, derived-query and SHACL differential tests pass.
+//! by the public Pack API. Query semantics are protected by frozen SPARQL
+//! golden cases, explicit dataset-view tests, and independent SHACL oracles.
 use anyhow::{Result, ensure};
 use ontokiln_pack::v4::{DEFAULT_GRAPH, PackV4, View};
 use oxrdf::Term;
@@ -85,8 +85,8 @@ impl EngineV4 {
         bindings: &[(oxrdf::Variable, oxrdf::Term)],
         added: &[[Term; 3]],
     ) -> Result<Vec<u8>> {
-        // Query admission (local SELECT/ASK, no SERVICE/FROM) remains the
-        // caller's responsibility, as for the existing Reasoner::write_sparql.
+        // Query admission (local SELECT/ASK, no SERVICE/FROM) is the caller's
+        // responsibility; the engine API enforces it before dispatch.
         ensure!(
             self.pack.metadata().fixpoint_reached || view == View::Asserted,
             "inferred/closure view requires completed materialization"

@@ -112,4 +112,12 @@ fn main() {
         "cargo:rustc-env=ONTOKILN_TARGET={}",
         std::env::var("TARGET").expect("Cargo target")
     );
+    println!(
+        "cargo:rustc-env=ONTOKILN_BUILD_PROFILE={}",
+        std::env::var("PROFILE").expect("Cargo profile")
+    );
+    println!(
+        "cargo:rustc-env=ONTOKILN_OPT_LEVEL={}",
+        std::env::var("OPT_LEVEL").expect("Cargo optimization level")
+    );
 }

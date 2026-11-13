@@ -4,6 +4,9 @@ on:
     paths:
       - examples/v4_resident_bench.rs
       - benchmarks/v4_resident_baseline.py
+      - benchmarks/kernel_baseline.py
+      - build.rs
+      - tests/benchmarks/test_v4_resident_baseline.py
       - crates/pack/src/v4.rs
       - crates/compiler/src/v4.rs
       - crates/compiler/src/v4_materialize.rs
