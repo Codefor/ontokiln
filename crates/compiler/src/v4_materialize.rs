@@ -506,6 +506,7 @@ pub fn materialize(
                 Term::NamedNode(_) => b'I',
                 Term::BlankNode(_) => b'B',
                 Term::Literal(_) => b'L',
+                Term::Triple(_) => b'T',
             }
         })
         .collect();
