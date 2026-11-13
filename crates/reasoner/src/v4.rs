@@ -6,7 +6,7 @@
 //! binding, derived-query and SHACL differential tests pass.
 use anyhow::{Result, ensure};
 use ontokiln_pack::v4::{DEFAULT_GRAPH, PackV4, View};
-use oxrdf::{Term, Variable};
+use oxrdf::Term;
 use sparesults::{QueryResultsFormat, QueryResultsSerializer};
 use spareval::{InternalQuad, QueryEvaluator, QueryResults, QueryableDataset};
 use spargebra::{Query, SparqlParser};
