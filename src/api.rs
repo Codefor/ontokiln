@@ -408,7 +408,8 @@ fn dataset(path: &Path) -> Result<Dataset> {
             let metadata = json!({
                 "semantics":"rdf-dataset-union/v1",
                 "capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1",
-                    "shacl/v1","rdf-bindings/v1","values-bindings/v1"],
+                    "shacl/v1","rdf-bindings/v1","values-bindings/v1",
+                    "derived-query-data/v1"],
                 "default_graph":"union",
                 "views":["asserted","inferred","closure"],
                 "profile":pack.metadata().profile_id,
@@ -712,10 +713,6 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     revision.is_none(),
                     "UNSUPPORTED_CAPABILITY|revision selection is unavailable for Pack v4"
                 );
-                ensure!(
-                    derived_queries.is_empty(),
-                    "UNSUPPORTED_CAPABILITY|derived-query-data/v1 is not yet supported by Pack v4"
-                );
                 let engine = crate::engine::OntologyEngine::from_pack(pack)
                     .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
                 let view = match view {
@@ -724,8 +721,17 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     View::Closure => ontokiln_pack::v4::View::Closure,
                 };
                 let result = engine
-                    .query_bound(query, view, parameters, rdf_bindings, values)
-                    .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+                    .query_with_derived(
+                        query, view, parameters, rdf_bindings, values, derived_queries,
+                        limits.max_derived_facts, limits.max_intermediate_rows,
+                    )
+                    .map_err(|e| {
+                        if e.to_string().contains("BUDGET_EXHAUSTED") {
+                            anyhow::anyhow!("BUDGET_EXHAUSTED|{e}")
+                        } else {
+                            anyhow::anyhow!("INVALID_QUERY|{e}")
+                        }
+                    })?;
                 let reply: Value = serde_json::from_slice(&result)?;
                 json!({
                     "query_type":if reply.get("boolean").is_some(){"ASK"}else{"SELECT"},

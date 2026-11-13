@@ -39,6 +39,14 @@ jobs:
           echo BEGIN_FORMATTED_V4_ENGINE
           cat src/engine.rs
           echo END_FORMATTED_V4_ENGINE
+      - name: Export formatted derived API
+        run: |
+          echo BEGIN_FORMATTED_V4_API
+          cat src/api.rs
+          echo END_FORMATTED_V4_API
+          echo BEGIN_FORMATTED_V4_API_TEST
+          cat tests/v4_api.rs
+          echo END_FORMATTED_V4_API_TEST
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked

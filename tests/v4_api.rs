@@ -76,7 +76,7 @@ fn v4_pack_read_api_preserves_query_and_shacl_contract() {
         .unwrap();
     assert!(caps.contains(&json!("shacl/v1")));
     assert!(caps.contains(&json!("rdf-bindings/v1")));
-    assert!(!caps.contains(&json!("derived-query-data/v1")));
+    assert!(caps.contains(&json!("derived-query-data/v1")));
 
     let q = query(
         root.path(),
@@ -105,17 +105,29 @@ fn v4_pack_read_api_preserves_query_and_shacl_contract() {
     assert_eq!(report["result"]["checked_shapes"], 1);
     assert!(report["result"]["violations"].as_u64().unwrap() > 0);
 
-    let unsupported = query(
+    let derived = query(
         root.path(),
         json!({
             "kind":"query","dataset":pack,
-            "query":"ASK { <urn:a> <urn:p> <urn:o> }",
+            "query":"ASK { <urn:x> <urn:p> <urn:o> }",
             "derived_queries":[
                 "CONSTRUCT { <urn:x> <urn:p> <urn:o> } WHERE { <urn:a> <urn:p> <urn:o> }"
-            ]
+            ],
+            "require":["derived-query-data/v1"]
         }),
-        "derived-unsupported",
+        "derived",
     );
-    assert_eq!(unsupported["status"], "UNSUPPORTED");
-    assert_eq!(unsupported["error"]["code"], "UNSUPPORTED_CAPABILITY");
+    assert_eq!(derived["status"],"COMPLETE");
+    assert_eq!(derived["result"]["boolean"],true);
+
+    let unchanged = query(
+        root.path(),
+        json!({
+            "kind":"query","dataset":pack,
+            "query":"ASK { <urn:x> <urn:p> <urn:o> }"
+        }),
+        "immutable",
+    );
+    assert_eq!(unchanged["status"],"COMPLETE");
+    assert_eq!(unchanged["result"]["boolean"],false);
 }
