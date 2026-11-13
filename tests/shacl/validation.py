@@ -171,7 +171,7 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
         self.assertEqual(len(report["violations"]), 2)
         self.assertEqual({v["focus_node"] for v in report["violations"]}, {"urn:a", '"literal"'})
 
-    def test_lazy_complex_path_and_sparql_read_complete_graph(self):
+    def test_complex_path_and_sparql_read_complete_graph(self):
         dataset = self.compile("""
 <urn:a> <urn:edge> <urn:b> .
 <urn:b> <urn:name> "Bob"; <urn:blocked> true .
@@ -185,19 +185,77 @@ ex:Explicit a sh:NodeShape; sh:targetClass ex:Person;
         self.assertEqual(len(report["violations"]), 1)
         self.assertTrue(report["violations"][0]["source_constraint_component"].endswith("SPARQLConstraintComponent"))
 
-    def test_simple_path_keeps_select_row_budget(self):
+    def test_parameterized_target_and_validators_keep_value_and_term_equality(self):
+        dataset = self.compile('''@prefix ex: <https://parameter.example/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+ex:first a ex:Item; ex:value "01"^^xsd:integer .
+ex:second a ex:Item; ex:value "1"^^xsd:integer .''')
+        report = self.validate(dataset, '''@prefix ex: <https://parameter.example/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+ex:Bounds a sh:ConstraintComponent; sh:parameter [sh:path ex:minimum];
+    sh:parameter [sh:path ex:maximum; sh:optional true];
+    sh:validator [a sh:SPARQLAskValidator;
+        sh:ask "ASK { FILTER ($value >= $minimum && (!BOUND($maximum) || $value <= $maximum)) }"] .
+ex:Lexical a sh:ConstraintComponent; sh:parameter [sh:path ex:exact];
+    sh:validator [a sh:SPARQLSelectValidator;
+        sh:select "SELECT $this WHERE { FILTER (!sameTerm($value, $exact)) }"] .
+ex:OfKind a sh:SPARQLTargetType; sh:parameter [sh:path ex:kind];
+    sh:select "SELECT ?this WHERE { ?this a $kind }" .
+ex:Shape a sh:NodeShape; sh:target [a ex:OfKind; ex:kind ex:Item];
+    sh:property ex:Value .
+ex:Value sh:path ex:value; ex:minimum 0; ex:exact "01"^^xsd:integer .
+''', selected_shapes=["<https://parameter.example/Shape>"])
+        self.assertFalse(report["conforms"])
+        self.assertEqual(report["target_count"], 2)
+        self.assertEqual(len(report["violations"]), 1)
+        violation = report["violations"][0]
+        self.assertEqual(violation["focus_node"], "https://parameter.example/second")
+        self.assertEqual(violation["source_shape"], "https://parameter.example/Value")
+        self.assertEqual(violation["source_constraint_component"], "https://parameter.example/Lexical")
+
+    def test_sparql_validation_aggregates_all_stored_facts_without_named_graphs(self):
+        data = self.source(PREFIXES + '''
+<urn:Leaf> rdfs:subClassOf <urn:Root> .
+<urn:a> a <urn:Leaf> .
+<urn:g1> { <urn:a> a <urn:Leaf>; <urn:edge> <urn:b> . }
+<urn:g2> { <urn:a> <urn:edge> <urn:b> . }
+''', "trig")
+        compiled, reasoned = self.root / "union-compiled", self.root / "union-reasoned"
+        self.call({"kind": "compile", "profile": "rdfs-supported-v1",
+                   "sources": [data], "output": str(compiled)})
+        self.call({"kind": "materialize", "dataset": str(compiled), "output": str(reasoned)})
+        for dataset, count in [(compiled, 3), (reasoned, 4)]:
+            with self.subTest(dataset=dataset.name):
+                report = self.validate(str(dataset), f'''
+<urn:UnionShape> a sh:NodeShape; sh:targetNode <urn:a>;
+    sh:sparql [sh:select """SELECT $this WHERE {{
+        {{ SELECT (COUNT(*) AS ?n) WHERE {{ ?s ?p ?o }} }}
+        FILTER (?n = {count})
+        FILTER NOT EXISTS {{ GRAPH ?g {{ ?s ?p ?o }} }}
+    }}"""] .
+''')
+                self.assertFalse(report["conforms"])
+                self.assertEqual(report["target_count"], 1)
+                self.assertEqual(len(report["violations"]), 1)
+                self.assertEqual(report["violations"][0]["focus_node"], "urn:a")
+
+    def test_simple_and_complex_paths_keep_select_row_budget(self):
         dataset = self.compile("\n".join(f"<urn:a> <urn:p> <urn:v:{i}> ." for i in range(4097)))
-        self.validate(dataset, """
+        for path in ["<urn:p>", "[sh:alternativePath (<urn:p> <urn:absent>)]"]:
+            with self.subTest(path=path):
+                self.validate(dataset, f"""
 <urn:Shape> a sh:NodeShape; sh:targetNode <urn:a>;
-    sh:property [sh:path <urn:p>; sh:minCount 1] .
+    sh:property [sh:path {path}; sh:minCount 1] .
 """, error="RESOURCE_EXHAUSTED")
 
-    def test_simple_path_keeps_select_byte_budget(self):
+    def test_simple_and_complex_paths_keep_select_byte_budget(self):
         literal = "x" * (512 * 1024)
         dataset = self.compile(f'<urn:a> <urn:p> "{literal}0", "{literal}1" .')
-        self.validate(dataset, """
+        for path in ["<urn:p>", "[sh:alternativePath (<urn:p> <urn:absent>)]"]:
+            with self.subTest(path=path):
+                self.validate(dataset, f"""
 <urn:Shape> a sh:NodeShape; sh:targetNode <urn:a>;
-    sh:property [sh:path <urn:p>; sh:minCount 1] .
+    sh:property [sh:path {path}; sh:minCount 1] .
 """, error="RESOURCE_EXHAUSTED")
 
     def test_lenient_artifact_keeps_validation_of_unvisited_terms(self):

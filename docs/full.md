@@ -81,7 +81,7 @@ flowchart TB
 
 隐式 target 和完整 SPARQL 结果报告是现有语义覆盖缺口。补齐这些能力需单独评审语义与兼容策略、增加独立预期回归并说明发布变化；性能基线只能衡量已声明范围，索引或并行优化不能悄悄改变目标集合、conforms 或报告含义。
 
-编译、物化和 Full 查询使用 SQLite。API v1 的 Full SHACL 在已核验的输入 manifest 确认严格 RDF 解析时，通过 SQLite 邻域读取执行原有 Rudof Core 约束；普通 Core 的指定 focus 校验无需先装载全图。读取视图仍是所有图、显式和推导事实的去重 SPO union，不把 focus 当成数据范围。复杂路径、实际执行的 SHACL-SPARQL 约束或 target 仍按需建立完整 union 查询图，`shapes_from_dataset` 仍需读取完整 Shapes 图；历史宽松解析或策略不明的产物保留原有全图词项校验路线。词项缓存只属于单次 worker，并设置条目和估算字节上限；会话不保留上一次校验的结果。它不是无限规模 SHACL，首次挂载、全量目标和全局查询仍有相应成本。超时、取消、内存或磁盘超限必须回收 worker，不发布部分结果。
+编译、物化和 Full 查询使用 SQLite。API v1 的 Full SHACL 在已核验的输入 manifest 确认严格 RDF 解析时，通过 SQLite 邻域读取执行原有 Rudof Core 约束；复杂路径、SHACL-SPARQL 约束、自定义 target 和 validator 也直接查询该只读快照，无需先建立完整内存查询图。读取视图仍是所有图、显式和推导事实的去重 SPO union，只表现为默认图，不暴露原始具名图，不把 focus 当成数据范围。SQLite 按索引分页读取，词项缓存有条目和估算字节上限；这些缓存只属于单次 worker，会话不保留上一次校验的结果。`shapes_from_dataset` 仍需读取完整 Shapes 图；历史宽松解析或策略不明的产物保留原有全图词项校验路线。首次挂载、全量目标和全局查询仍有相应成本，排序、聚合、连接及路径求值的中间状态仍可能随工作量增长。超时、取消、内存或磁盘超限必须回收 worker，不发布部分结果；底层读取或解码失败不会作为空结果或 conforms=true 返回。
 
 ## 身份与发行
 

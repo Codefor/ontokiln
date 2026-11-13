@@ -11,7 +11,7 @@ ontokiln api --request request.json --result result.json
 API v1 请求、返回相同结果语义。业务层继续使用统一的 query/validate 接口，只在
 调用适配层持有引擎实例。单次命令也使用同一新版 FullSnapshot 内核，只是实例随请求结束而释放；
 逐次启动进程不会自动获得跨请求复用，不需要维护两套引擎实现。
-当前复用数据库快照与可用的操作系统页缓存，查询计划、SQLite 连接及 SHACL 图仍按请求创建。
+当前复用数据库快照与可用的操作系统页缓存，查询计划、SQLite 连接及 SHACL 求值状态仍按请求创建；满足严格解析条件的 Full 校验直接读取 SQLite，不预先复制完整数据图到内存。
 
 同一接口主版本、同一语义快照、同一规则和请求条件下，内核优化不要求消费者修改调用代码，完整成功结果保持语义等价。构建 SHA、执行时间、内存与内部执行计划不属于结果等价比较；显式选择的读取格式由独立版本契约约束；运行资源变化可能使同一预算下的完成情况不同。超限、取消或能力缺失必须明确失败，不返回部分成功。
 
@@ -191,7 +191,7 @@ Full `compile` / `materialize` 仍要求有限的内存与临时磁盘预算：�
 
 操作专用限制不代替通用执行预算，也不表示其他操作会计量同名指标。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的非 null 值及 `max_validation_depth`、`max_term_bytes` 必须为正；其他计数或输出上限可以为零，但实际工作一旦超过上限即失败。pack 的 `max_rows` / `max_bytes` 不能高于其已支持的上限。
 
-`max_bytes` 检查规范化查询 payload `{query_type, variables, items, boolean}` 的紧凑 UTF-8 JSON 字节数，不包含 envelope，也不是请求文件大小限制。内部扫描、序列化和内存保护仍可提前拒绝请求；不会为了保持完成率突破预算。RSS 为采样及进程高水位验收，不承诺任何瞬时值绝不越界。SHACL 仍使用内存图，受独立进程预算限制；超出公开 `max_validation_depth` 返回 `RESOURCE_EXHAUSTED` / `BUDGET_EXHAUSTED`，不作为普通校验执行失败或 `conforms=false`。
+`max_bytes` 检查规范化查询 payload `{query_type, variables, items, boolean}` 的紧凑 UTF-8 JSON 字节数，不包含 envelope，也不是请求文件大小限制。内部扫描、序列化和内存保护仍可提前拒绝请求；不会为了保持完成率突破预算。RSS 为采样及进程高水位验收，不承诺任何瞬时值绝不越界。SHACL 的 SQLite 读取、缓存和求值中间状态仍受独立进程预算限制；Shapes 图及历史解析策略的处理见 [Full 合同](full.md#shacl)。超出公开 `max_validation_depth` 返回 `RESOURCE_EXHAUSTED` / `BUDGET_EXHAUSTED`，不作为普通校验执行失败或 `conforms=false`。
 
 ## 契约回归与升级规则
 

@@ -159,19 +159,49 @@ b:MinCountProperty a sh:PropertyShape; sh:targetNode {order(0)};
 '''
 
 
-def focused_shapes_text():
+def full_scan_expected(facts):
+    """Independent COUNT/SUM oracle for the generator's distinct SPO union."""
+    n = records_for(facts)
+    # Each record has six order-subject facts and four customer-subject facts.
+    # Indexes are padded to nine digits, including when a larger input would
+    # eventually require more digits. No engine statistics or produced DB is read.
+    index_chars = 9 * n
+    boundary = 10**9
+    while boundary < n:
+        index_chars += n - boundary
+        boundary *= 10
+    schema_chars = sum(len(NS + subject) for subject in [
+        "Order", "CommerceRecord", "region", "locatedIn", "customer", "customer",
+        "benchmark", "benchmark", "benchmark", "benchmark"])
+    subject_chars = schema_chars + n * (6 * len(NS + "order/") + 4 * len(NS + "customer/")) + 10 * index_chars
+    return {"fact_count": 10 * n + 10, "subject_characters": subject_chars}
+
+
+def focused_shapes_text(facts):
     # Keep the kernel suite's existing Shapes bytes unchanged. These additional
-    # constraints require a second-hop edge and an unrelated background record.
+    # constraints separate selective paths/visibility from full-union scanning.
+    aggregate = full_scan_expected(facts)
     return f'''b:FocusedScopeShape a sh:NodeShape; sh:targetNode {order(0)};
     sh:property b:FocusedRegionProperty; sh:sparql b:FocusedOutsideConstraint .
 b:FocusedRegionProperty sh:path (b:customer b:region); sh:hasValue {iri("region/0")} .
 b:FocusedOutsideConstraint sh:select """SELECT $this WHERE {{
     ?other {iri("label")} "Order 0"@en .
 }}""" .
+b:FocusedPathShape a sh:NodeShape; sh:targetNode {order(0)};
+    sh:property b:FocusedPathPresent, b:FocusedPathMissing .
+b:FocusedPathPresent sh:path (b:customer b:region); sh:hasValue {iri("region/0")} .
+b:FocusedPathMissing sh:path (b:customer b:region); sh:hasValue {iri("region/1")} .
+b:FocusedScanShape a sh:NodeShape; sh:targetNode {order(0)};
+    sh:sparql b:FocusedScanConstraint .
+b:FocusedScanConstraint sh:select """SELECT $this WHERE {{
+    {{ SELECT (COUNT(*) AS ?factCount) (SUM(STRLEN(STR(?s))) AS ?subjectChars)
+       WHERE {{ ?s ?p ?o }} }}
+    FILTER (?factCount = {aggregate["fact_count"]} && ?subjectChars = {aggregate["subject_characters"]})
+}}""" .
 '''
 
 
-def focused_validation_cases():
+def focused_validation_cases(facts):
     focus = order(FOCUS_INDEX)
     return [
         {"name": "focus_core_pass", "selected_shapes": [iri("OrderShape")], "focus_node": focus,
@@ -186,6 +216,20 @@ def focused_validation_cases():
                                   "source_shape": NS + "FocusedScopeShape",
                                   "source_constraint_component": SH + "SPARQLConstraintComponent",
                                   "shape_ref": NS + "FocusedScopeShape"}]},
+        {"name": "focus_path_fail", "selected_shapes": [iri("FocusedPathShape")], "focus_node": focus,
+         "expected_conforms": False, "requires_nonlocal_graph": True, "requires_full_scan": False,
+         "expected_violations": [{"focus_node": uri(focus)["value"],
+                                  "path": f"({iri('customer')}/{iri('region')})",
+                                  "source_shape": NS + "FocusedPathMissing",
+                                  "source_constraint_component": SH + "HasValueConstraintComponent",
+                                  "shape_ref": NS + "FocusedPathMissing"}]},
+        {"name": "focus_full_scan_fail", "selected_shapes": [iri("FocusedScanShape")], "focus_node": focus,
+         "expected_conforms": False, "requires_nonlocal_graph": True, "requires_full_scan": True,
+         "expected_aggregate": full_scan_expected(facts),
+         "expected_violations": [{"focus_node": uri(focus)["value"], "path": None,
+                                  "source_shape": NS + "FocusedScanShape",
+                                  "source_constraint_component": SH + "SPARQLConstraintComponent",
+                                  "shape_ref": NS + "FocusedScanShape"}]},
     ]
 
 
@@ -234,7 +278,7 @@ def generate(directory, facts, suite="kernel"):
     with shape_path.open("w", encoding="utf8", newline="\n") as stream:
         stream.write(shapes_text())
         if suite == "focused-shacl":
-            stream.write(focused_shapes_text())
+            stream.write(focused_shapes_text(facts))
     files = [{"file": str(path.relative_to(directory)), "bytes": path.stat().st_size,
               "sha256": digest_file(path)} for path in (data, rule_path, shape_path)]
     return {"generator": GENERATOR, "explicit_facts": facts, "records": n,
@@ -884,7 +928,7 @@ class Baseline:
                                                                      "expected_conforms": name not in ["compiled_probe", "core_min_count"],
                                                                      "expected_constraint_component": SH + "MinCountConstraintComponent" if name == "core_min_count" else None})
         else:
-            for case in focused_validation_cases():
+            for case in focused_validation_cases(facts):
                 def validate(index, case=case):
                     return self.api({"kind": "validate", "dataset": str(selected["compiled"]),
                                      **guards["compiled"],
@@ -908,7 +952,7 @@ def parse_args(argv=None):
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/ontokiln")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--suite", choices=["kernel", "focused-shacl"], default="kernel",
-                        help="kernel runs the existing pack/Full workload; focused-shacl only compiles Full and validates three explicit-focus cases")
+                        help="kernel runs the existing pack/Full workload; focused-shacl only compiles Full and validates five explicit-focus cases")
     parser.add_argument("--sizes", type=int, nargs="+", default=[10_000, 100_000, 1_000_000])
     parser.add_argument("--build-samples", type=int, default=3)
     parser.add_argument("--query-samples", type=int, default=9)
@@ -967,7 +1011,7 @@ def main(argv=None):
               "concurrency": 1, "statistics": "Raw samples, median and range of successful measured requests; warm-ups and failures excluded. No p95/p99 estimate from small sample counts.",
               "scope": ("Synthetic asserted default-graph workload, RDFS supported profile plus bounded positive recursion; not complete OWL, production data or a cold-disk/HTTP throughput benchmark."
                         if args.suite == "kernel" else
-                        "Synthetic explicit-focus SHACL over compiled asserted data with fixed local work and growing background; Core and nonlocal visibility controls, no materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark."),
+                        "Synthetic explicit-focus SHACL over compiled asserted data with fixed local work and growing background; Core, selective path/nonlocal visibility and full-union aggregate controls, no materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark."),
               "environment": environment_info(args.binary, directory, args), "scales": []}
     runner = Baseline(args, directory, report)
     runner.checkpoint()

@@ -1,8 +1,8 @@
 //! Request-scoped SHACL navigation over a verified, read-only Full snapshot.
 //!
 //! The graph is the same distinct union of all stored facts used by Full
-//! validation. Rudof receives its existing RDF term types and Core validators;
-//! only neighborhood reads move from an in-memory graph to SQLite.
+//! validation. Rudof retains its existing RDF term types and Core validators;
+//! Core neighborhoods and local SPARQL now read SQLite without a full RDF copy.
 use crate::rdf_graph::{Graph, ShaclBudgetExceeded};
 use anyhow::{Result, anyhow, bail, ensure};
 use iri_s::IriS;
@@ -17,16 +17,61 @@ use rudof_rdf::rdf_core::{
 };
 use rudof_rdf::rdf_impl::InMemoryGraph;
 use rusqlite::{Connection, OptionalExtension, params_from_iter};
+use spareval::{InternalQuad, QueryableDataset};
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::fmt;
+use std::{fmt, io};
 
 const FROM_FACTS: &str = " FROM facts AS f JOIN terms AS s ON s.id=f.s \
     JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o";
+const QUERY_INDEXES: [&str; 3] = ["facts_spo", "facts_pos", "facts_osp"];
 const CACHE_ENTRIES: usize = 4096;
 const CACHE_BYTES: usize = 4 * 1024 * 1024;
 const NEIGHBORHOOD_OBJECTS: usize = 4096;
 const NEIGHBORHOOD_BYTES: usize = 1024 * 1024;
+const QUERY_PAGE_ROWS: usize = 256;
+
+/// Full's strict compiler writes one canonical N-Triples serialization per RDF
+/// term into the UNIQUE terms.n dictionary. Consequently a stored term and the
+/// same query constant always resolve to the same ID; expression-created terms
+/// absent from that dictionary retain their RDF identity as External values.
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+pub(crate) enum QueryTerm {
+    Stored(i64),
+    External(Term),
+}
+
+struct QueryTermCache {
+    entries: HashMap<i64, Term>,
+    bytes: usize,
+}
+
+impl QueryTermCache {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::new(),
+            bytes: 0,
+        }
+    }
+
+    fn get(&self, id: i64) -> Option<Term> {
+        self.entries.get(&id).cloned()
+    }
+
+    fn insert(&mut self, id: i64, term: Term, serialized_bytes: usize) {
+        let bytes = serialized_bytes.saturating_mul(2).saturating_add(128);
+        if bytes > CACHE_BYTES {
+            return;
+        }
+        if self.entries.len() >= CACHE_ENTRIES || self.bytes.saturating_add(bytes) > CACHE_BYTES {
+            self.entries.clear();
+            self.bytes = 0;
+        }
+        if self.entries.insert(id, term).is_none() {
+            self.bytes += bytes;
+        }
+    }
+}
 
 /// Composed validation reads a property's values immediately before Rudof asks
 /// for the same neighborhood. Retain only that most recent complete read.
@@ -131,9 +176,11 @@ pub(crate) struct SqliteGraph {
     display: InMemoryGraph,
     ids: RefCell<TermCache<Option<i64>>>,
     terms: RefCell<TermCache<Term>>,
+    query_terms: RefCell<QueryTermCache>,
+    query_indexes: [bool; 3],
     neighborhood: RefCell<Option<Neighborhood>>,
-    /// Pinned Rudof validators swallow some store errors. Never let such a
-    /// failure become an empty neighborhood or a successful public report.
+    /// Pinned Rudof validators and SPARQL expressions swallow some store errors.
+    /// Never let those failures become empty matches or successful reports.
     failure: RefCell<Option<ReadFailure>>,
 }
 
@@ -143,6 +190,10 @@ impl fmt::Debug for SqliteGraph {
             .debug_struct("SqliteGraph")
             .field("cached_ids", &self.ids.borrow().entries.len())
             .field("cached_terms", &self.terms.borrow().entries.len())
+            .field(
+                "cached_query_terms",
+                &self.query_terms.borrow().entries.len(),
+            )
             .field("cached_neighborhood", &self.neighborhood.borrow().is_some())
             .field("read_failed", &self.failure.borrow().is_some())
             .finish()
@@ -163,17 +214,58 @@ impl SqliteGraph {
             db.prepare_cached(&format!("SELECT DISTINCT s.n,p.n,o.n{FROM_FACTS} LIMIT 0"))
                 .map_err(sqlite_error)?,
         );
+        // Older compatible artifacts can lack SPO. Only require an index by
+        // name when the snapshot has that full, correctly ordered facts index.
+        let query_indexes = {
+            let mut statement = db
+                .prepare("SELECT name FROM pragma_index_list('facts') WHERE partial=0")
+                .map_err(sqlite_error)?;
+            let mut rows = statement.query([]).map_err(sqlite_error)?;
+            let mut indexes = [false; 3];
+            while let Some(row) = rows.next().map_err(sqlite_error)? {
+                let name: String = row.get(0).map_err(sqlite_error)?;
+                if let Some(index) = QUERY_INDEXES
+                    .iter()
+                    .position(|candidate| *candidate == name)
+                {
+                    let mut definition = db
+                        .prepare(
+                            "SELECT name,desc,coll FROM pragma_index_xinfo(?) \
+                             WHERE key=1 ORDER BY seqno LIMIT 3",
+                        )
+                        .map_err(sqlite_error)?;
+                    let mut columns = definition.query([name]).map_err(sqlite_error)?;
+                    let mut matches = true;
+                    for column in [index, (index + 1) % 3, (index + 2) % 3] {
+                        let Some(row) = columns.next().map_err(sqlite_error)? else {
+                            matches = false;
+                            break;
+                        };
+                        let name: Option<String> = row.get(0).map_err(sqlite_error)?;
+                        let descending: bool = row.get(1).map_err(sqlite_error)?;
+                        let collation: Option<String> = row.get(2).map_err(sqlite_error)?;
+                        matches &= name.as_deref() == Some(["s", "p", "o"][column])
+                            && !descending
+                            && collation.is_some_and(|name| name.eq_ignore_ascii_case("BINARY"));
+                    }
+                    indexes[index] = matches;
+                }
+            }
+            indexes
+        };
         Ok(Self {
             db,
             display: InMemoryGraph::new(),
             ids: RefCell::new(TermCache::new()),
             terms: RefCell::new(TermCache::new()),
+            query_terms: RefCell::new(QueryTermCache::new()),
+            query_indexes,
             neighborhood: RefCell::new(None),
             failure: RefCell::new(None),
         })
     }
 
-    /// Check after every native validation and again before publishing a report.
+    /// Check after native validation or query consumption and before publishing.
     /// The first failure remains present for the entire lifetime of this store.
     pub(crate) fn check_error(&self) -> Result<()> {
         match self.failure.borrow().as_ref() {
@@ -408,6 +500,224 @@ impl SqliteGraph {
             Ok(())
         })?;
         Ok(triples)
+    }
+
+    fn query_term(&self, id: i64) -> Result<Term> {
+        self.check_error()?;
+        if let Some(term) = self.query_terms.borrow().get(id) {
+            return Ok(term);
+        }
+        let mut statement = self.sql(self.db.prepare_cached("SELECT n FROM terms WHERE id=?"))?;
+        let text: String = self.sql(statement.query_row([id], |row| row.get(0)))?;
+        // Match Graph::query_dataset's strict N-Triples parser rather than the
+        // standalone Term parser used by Native Core. The former also keeps
+        // complete blank labels and rejects trailing tokens or lax syntax.
+        let parsed = (|| -> Result<Term> {
+            let input = format!("<urn:ontokiln:query-term> <urn:ontokiln:query-value> {text} .\n");
+            let mut quads = oxigraph::io::RdfParser::from_format(oxigraph::io::RdfFormat::NTriples)
+                .for_reader(input.as_bytes());
+            let quad = quads
+                .next()
+                .transpose()
+                .map_err(|error| anyhow!("SHACL query input failed: {error}"))?
+                .ok_or_else(|| anyhow!("SHACL query input failed: missing RDF term"))?;
+            ensure!(
+                quads.next().is_none(),
+                "SHACL query input failed: trailing RDF term content"
+            );
+            Ok(quad.object)
+        })();
+        let term = self.remember(parsed)?;
+        self.query_terms
+            .borrow_mut()
+            .insert(id, term.clone(), text.len());
+        Ok(term)
+    }
+
+    fn query_order(fixed: &[Option<i64>; 3]) -> [usize; 3] {
+        let mut best = [0, 1, 2];
+        let mut best_prefix = 0;
+        for order in [[0, 1, 2], [1, 2, 0], [2, 0, 1]] {
+            let prefix = order
+                .iter()
+                .take_while(|&&column| fixed[column].is_some())
+                .count();
+            if prefix > best_prefix {
+                best = order;
+                best_prefix = prefix;
+            }
+        }
+        best
+    }
+
+    fn query_page(
+        &self,
+        fixed: [Option<i64>; 3],
+        order: [usize; 3],
+        after: Option<[i64; 3]>,
+    ) -> Result<Vec<[i64; 3]>> {
+        self.check_error()?;
+        let columns = ["f.s", "f.p", "f.o"];
+        let mut filters = Vec::new();
+        let mut bindings = Vec::new();
+        for (column, value) in columns.into_iter().zip(fixed) {
+            if let Some(value) = value {
+                filters.push(format!("{column}=?"));
+                bindings.push(value);
+            }
+        }
+        let ordered = order.map(|column| columns[column]).join(",");
+        if let Some(after) = after {
+            // The equality prefix is already constrained above. Including it
+            // again in the row comparison prevents SQLite from seeking to the
+            // remaining suffix (e.g. p=? AND o=? AND s>?) on later pages.
+            let mut suffix = order
+                .into_iter()
+                .filter(|&column| fixed[column].is_none())
+                .collect::<Vec<_>>();
+            if suffix.is_empty() {
+                suffix.extend(order);
+            }
+            let cursor_columns = suffix
+                .iter()
+                .map(|&column| columns[column])
+                .collect::<Vec<_>>()
+                .join(",");
+            let placeholders = vec!["?"; suffix.len()].join(",");
+            filters.push(format!("({cursor_columns})>({placeholders})"));
+            bindings.extend(suffix.into_iter().map(|column| after[column]));
+        }
+        // Fixed dictionary references are single-row lookups. Keep them before
+        // facts so SQLite does not build a dictionary-wide Bloom filter for a
+        // constant join. Remaining references follow the bounded facts range;
+        // all three joins still discard dangling IDs before DISTINCT/LIMIT.
+        let aliases = ["s", "p", "o"];
+        let mut tables = aliases
+            .iter()
+            .enumerate()
+            .filter(|(column, _)| fixed[*column].is_some())
+            .map(|(_, alias)| format!("terms AS {alias}"))
+            .collect::<Vec<_>>();
+        let facts = if self.query_indexes[order[0]] {
+            format!("facts AS f INDEXED BY {}", QUERY_INDEXES[order[0]])
+        } else {
+            "facts AS f".to_owned()
+        };
+        tables.push(facts);
+        tables.extend(
+            aliases
+                .iter()
+                .enumerate()
+                .filter(|(column, _)| fixed[*column].is_none())
+                .map(|(_, alias)| format!("terms AS {alias}")),
+        );
+        filters.extend(aliases.map(|alias| format!("{alias}.id=f.{alias}")));
+        let query = format!(
+            "SELECT DISTINCT f.s,f.p,f.o FROM {} WHERE {} ORDER BY {ordered} LIMIT {QUERY_PAGE_ROWS}",
+            tables.join(" CROSS JOIN "),
+            filters.join(" AND "),
+        );
+        let mut statement = self.sql(self.db.prepare_cached(&query))?;
+        let mut rows = self.sql(statement.query(params_from_iter(bindings)))?;
+        let mut result = Vec::new();
+        while let Some(row) = self.sql(rows.next())? {
+            result.push([
+                self.sql(row.get(0))?,
+                self.sql(row.get(1))?,
+                self.sql(row.get(2))?,
+            ]);
+        }
+        Ok(result)
+    }
+}
+
+impl<'a> QueryableDataset<'a> for &'a SqliteGraph {
+    type InternalTerm = QueryTerm;
+    type Error = io::Error;
+
+    fn internal_quads_for_pattern(
+        &self,
+        subject: Option<&QueryTerm>,
+        predicate: Option<&QueryTerm>,
+        object: Option<&QueryTerm>,
+        graph_name: Option<Option<&QueryTerm>>,
+    ) -> impl Iterator<Item = io::Result<InternalQuad<QueryTerm>>> + use<'a> {
+        let graph = *self;
+        let mut fixed = [None; 3];
+        // None means all named graphs in QueryableDataset, not the default
+        // graph. SHACL exposes only the distinct physical-graph union below.
+        let mut last_page = graph_name != Some(None);
+        for (index, term) in [subject, predicate, object].into_iter().enumerate() {
+            match term {
+                Some(QueryTerm::Stored(id)) => fixed[index] = Some(*id),
+                Some(QueryTerm::External(_)) => last_page = true,
+                None => {}
+            }
+        }
+        let order = SqliteGraph::query_order(&fixed);
+        let mut after = None;
+        let mut page = Vec::<[i64; 3]>::new().into_iter();
+        let mut finished = false;
+        std::iter::from_fn(move || {
+            loop {
+                if finished {
+                    return None;
+                }
+                if let Err(error) = graph.check_error() {
+                    finished = true;
+                    return Some(Err(io::Error::other(error)));
+                }
+                if let Some([subject, predicate, object]) = page.next() {
+                    return Some(Ok(InternalQuad {
+                        subject: QueryTerm::Stored(subject),
+                        predicate: QueryTerm::Stored(predicate),
+                        object: QueryTerm::Stored(object),
+                        graph_name: None,
+                    }));
+                }
+                if last_page {
+                    finished = true;
+                    return None;
+                }
+                match graph.query_page(fixed, order, after) {
+                    Ok(rows) => {
+                        last_page = rows.len() < QUERY_PAGE_ROWS;
+                        after = rows.last().copied();
+                        page = rows.into_iter();
+                    }
+                    Err(error) => {
+                        finished = true;
+                        return Some(Err(io::Error::other(error)));
+                    }
+                }
+            }
+        })
+    }
+
+    fn internal_named_graphs(&self) -> impl Iterator<Item = io::Result<QueryTerm>> + use<'a> {
+        self.check_error()
+            .err()
+            .map(|error| Err(io::Error::other(error)))
+            .into_iter()
+    }
+
+    fn contains_internal_graph_name(&self, _: &QueryTerm) -> io::Result<bool> {
+        self.check_error().map_err(io::Error::other)?;
+        Ok(false)
+    }
+
+    fn internalize_term(&self, term: Term) -> io::Result<QueryTerm> {
+        self.term_id(&term.to_string())
+            .map(|id| id.map_or_else(|| QueryTerm::External(term), QueryTerm::Stored))
+            .map_err(io::Error::other)
+    }
+
+    fn externalize_term(&self, term: QueryTerm) -> io::Result<Term> {
+        self.check_error().map_err(io::Error::other)?;
+        match term {
+            QueryTerm::Stored(id) => self.query_term(id).map_err(io::Error::other),
+            QueryTerm::External(term) => Ok(term),
+        }
     }
 }
 
