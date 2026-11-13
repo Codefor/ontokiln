@@ -102,7 +102,7 @@ fn rdfs_semantics_and_dataset_sourced_shacl_match_full() {
          _:property <{sh}minCount> 1 .\n"
     );
     let src = source(root.path(), "turtle", &ttl);
-    let (engine, stats) = OntologyEngine::build(&[src.clone()], "rdfs-supported-v1", &[]).unwrap();
+    let (engine, stats) = OntologyEngine::build(std::slice::from_ref(&src), "rdfs-supported-v1", &[]).unwrap();
     let (paths, legacy) = build_full(root.path(), &src, "rdfs-supported-v1");
     assert_eq!(legacy["stats"]["explicit_facts"], stats.explicit_facts);
     assert_eq!(legacy["stats"]["inferred_facts"], stats.inferred_facts);
@@ -144,7 +144,7 @@ fn owl_property_chain_default_graph_and_named_graph_match_full() {
     );
     let src = source(root.path(), "trig", &trig);
     let (engine, stats) =
-        OntologyEngine::build(&[src.clone()], "rdfs-property-chain-v1", &[]).unwrap();
+        OntologyEngine::build(std::slice::from_ref(&src), "rdfs-property-chain-v1", &[]).unwrap();
     let (paths, legacy) = build_full(root.path(), &src, "rdfs-property-chain-v1");
     assert_eq!(legacy["stats"]["inferred_facts"], stats.inferred_facts);
     compare_ask(

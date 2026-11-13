@@ -304,7 +304,7 @@ mod tests {
         );
         let spec = source(dir.path(), "shape.ttl", &shapes);
         let result = engine
-            .validate_shape_sources(&[spec.clone()], None, None, 64)
+            .validate_shape_sources(std::slice::from_ref(&spec), None, None, 64)
             .unwrap();
         assert_eq!(result["conforms"], false);
         assert_eq!(result["checked_shapes"], 1);
