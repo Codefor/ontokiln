@@ -1,0 +1,1227 @@
+{
+  "cache_policy": "No OS cache flush. Generation, hashing and compilation precede queries. Full reads share one mounted private snapshot per artifact; each read still has an isolated worker. One-time mounts are separate diagnostic stages. Each read workload has one warm-up. Focused SHACL includes fixed-focus, multiple explicit targets and growing-join controls.",
+  "command": [
+    "benchmarks/kernel_baseline.py",
+    "--binary",
+    "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+    "--output",
+    "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+    "--suite",
+    "focused-shacl",
+    "--read-transport",
+    "session",
+    "--sizes",
+    "100",
+    "--build-samples",
+    "1",
+    "--query-samples",
+    "1",
+    "--validation-samples",
+    "1",
+    "--memory-mib",
+    "512",
+    "--scratch-mib",
+    "4096",
+    "--timeout-seconds",
+    "60",
+    "--threads",
+    "1",
+    "--build-profile",
+    "release",
+    "--build-features",
+    "default",
+    "--snapshot-guard",
+    "manifest"
+  ],
+  "concurrency": 1,
+  "configuration": {
+    "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+    "build_features": "default",
+    "build_profile": "release",
+    "build_samples": 1,
+    "keep_work_dir": false,
+    "max_derived_facts": 1000000,
+    "max_intermediate_rows": 10000000,
+    "max_iterations": 100,
+    "memory_mib": 512,
+    "output": "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+    "pack_max_mib": 256,
+    "query_samples": 1,
+    "read_transport": "session",
+    "scratch_mib": 4096,
+    "sizes": [
+      100
+    ],
+    "snapshot_guard": "manifest",
+    "suite": "focused-shacl",
+    "threads": 1,
+    "timeout_seconds": 60.0,
+    "validation_samples": 1,
+    "work_dir": null
+  },
+  "environment": {
+    "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+    "binary_sha256": "3b70b345b8c9f34247c89e727126d872b00881654dbd423875be965ad9eb8c04",
+    "build_features_caller_declaration": "default",
+    "build_profile_caller_declaration": "release",
+    "cgroup_limits_raw": {
+      "cpu.max": null,
+      "cpu/cpu.cfs_period_us": null,
+      "cpu/cpu.cfs_quota_us": null,
+      "cpuset.cpus.effective": null,
+      "memory.max": null,
+      "memory.swap.max": null,
+      "memory/memory.limit_in_bytes": null
+    },
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+    "disk_free_bytes": 5224284160,
+    "filesystem": {
+      "filesystem": "tmpfs",
+      "mountpoint": "/tmp"
+    },
+    "full_runtime_info": {
+      "artifact_contract": "kernel-manifest-v1",
+      "distribution_version": "0.1.0",
+      "engine_semantic_version": "positive-rdf-v5",
+      "execution_contract": "full-execution/v1",
+      "format_version": "ontology-kernel-sqlite/v1",
+      "import_policy": "declared-ontology-v1",
+      "kernel": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+        "pack_version": 3,
+        "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+        "version": "0.1.0"
+      },
+      "native_contract": "full-source-doc/v2",
+      "parser": "oxttl/0.2.5",
+      "sqlite": "3.54.1",
+      "term_model": "oxrdf/0.3.5"
+    },
+    "git_status_porcelain": "",
+    "kernel_identity": {
+      "capabilities": [
+        "ontokiln-api/v1",
+        "rdf-pack/v3",
+        "sparql/v1",
+        "positive-rules/v1",
+        "proofs/v1",
+        "full-source-doc/v2",
+        "full-execution/v1",
+        "shacl-core-and-local-select/v1",
+        "values-bindings/v1",
+        "derived-query-data/v1"
+      ],
+      "contract_version": "ontokiln-core/v3",
+      "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+      "pack_version": 3,
+      "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+      "version": "0.1.0"
+    },
+    "load_average": [
+      2.32763671875,
+      1.5068359375,
+      1.03173828125
+    ],
+    "logical_cpus": 9,
+    "machine": "x86_64",
+    "meminfo": "MemTotal:       10206472 kB\nMemFree:         1783236 kB\nMemAvailable:    8522360 kB\nBuffers:           12508 kB\nCached:          7363488 kB\nSwapCached:            0 kB\nActive:          4104816 kB\nInactive:        3333116 kB\nActive(anon):     631120 kB\nInactive(anon):    92164 kB\nActive(file):    3473696 kB\nInactive(file):  3240952 kB\nUnevictable:       29944 kB\nMlocked:               0 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nDirty:            411624 kB\nWriteback:             0 kB\nAnonPages:         92320 kB\nMapped:            77740 kB\nShmem:            631004 kB\nKReclaimable:     338176 kB\nSlab:             411880 kB\nSReclaimable:     338176 kB\nSUnreclaim:        73704 kB\nKernelStack:        3832 kB\nPageTables:         4372 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     5103236 kB\nCommitted_AS:    1216772 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:        5128 kB\nVmallocChunk:          0 kB\nPercpu:             3600 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:   1185792 kB\nFilePmdMapped:         0 kB\nBalloon:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      294912 kB\nDirectMap2M:     6875136 kB\nDirectMap1G:    19922944 kB",
+    "physical_memory_bytes": 10451427328,
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "provenance_files": {
+      "Cargo.lock": "842f3a8fe680f1e9e93398c0c8f8c48ae84010397dc0641d02fc26034c3f213b",
+      "benchmarks/kernel_baseline.py": "3b6efa9fce11e9b5a32e2a28802654b305fc708fa42f07ed6997a58e2b452bb2",
+      "rust-toolchain.toml": "7d21c66a15f41bad66b82ed06a289f5dc8a6e3751951d2696bbf20ce296f2b0f"
+    },
+    "python": "3.12.14",
+    "relevant_environment": {
+      "TMPDIR": "/tmp"
+    },
+    "repository_dirty": false,
+    "repository_head": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+    "rustc_on_path": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2"
+  },
+  "finished_at_utc": "2026-11-13T06:50:25.977867+00:00",
+  "limits": {
+    "max_bytes": 4194304,
+    "max_derived_facts": 1000000,
+    "max_intermediate_rows": 10000000,
+    "max_iterations": 100,
+    "max_rows": 100000,
+    "max_term_bytes": 1048576,
+    "max_validation_depth": 64,
+    "memory_bytes": 536870912,
+    "scratch_bytes": 4294967296,
+    "timeout_ms": 60000.0
+  },
+  "load_average_after": [
+    2.32763671875,
+    1.5068359375,
+    1.03173828125
+  ],
+  "metric_definitions": {
+    "cpu_system_seconds": "API worker self rusage, excluding supervisor CPU.",
+    "cpu_user_seconds": "API worker self rusage, excluding supervisor CPU.",
+    "end_to_end_seconds": "Before Popen through process exit and reading the result bytes; JSON parsing, oracle checks and artifact inspection excluded.",
+    "engine_seconds": "Full compile worker phase before artifact publication; overlaps parse_dictionary_seconds and index_seconds.",
+    "execution_seconds": "API supervisor boundary, including setup, verified snapshots and publication; excludes outer API parsing/final response writing. Not pure kernel time.",
+    "index_seconds": "Full post-parse phase, including deduplication, indexes, ANALYZE/VACUUM and plan/import metadata; not index CPU alone.",
+    "io_read_bytes": "Worker block-I/O accounting (ru_inblock * 512), affected by page cache; not logical input bytes.",
+    "io_write_bytes": "Worker block-I/O accounting (ru_oublock * 512), not logical artifact size.",
+    "parse_dictionary_seconds": "Full compile phase, including SQLite setup, RDF parse/dictionary insertion and rule constants.",
+    "peak_rss_bytes": "API budget measurement combining worker RSS/HWM and supervisor RSS; not PSS and not directly comparable to pack compile process RSS.",
+    "peak_scratch_bytes": "API sampled private scratch logical bytes (including detected deleted open files on Linux); not total bytes written.",
+    "process_cpu": "wait4 command rusage user/system time; reaped-descendant accounting is OS dependent. Do not add worker CPU to these fields.",
+    "process_wait4_peak_rss_bytes": "OS wait4 high-water RSS, not aggregate physical memory; Linux can include pre-exec inherited high-water state.",
+    "process_wall_seconds": "Before Popen through wait4 completion. Serial command invocation, including startup and supervisor/worker lifecycle.",
+    "query_validate_core_seconds": "Unavailable in the public API. Query/SHACL are measured end to end; no inferred core time is reported.",
+    "reasoning_seconds": "Full materialization phase including SQLite setup, semi-naive joins, fixpoint and cleanup/ANALYZE/VACUUM.",
+    "session_lifecycle_rusage": "wait4 counters after closing a session; lifetime measurements, not individual query/validation CPU or RSS. Do not add to worker measurements.",
+    "session_mount_seconds": "Before starting api-session through receipt of READY; includes process startup, artifact verification and its private snapshot copy. Recorded separately, never amortized into request times.",
+    "session_request_seconds": "Before writing a complete JSONL request through receipt of its response line; excludes one-time session startup/mount, JSON parsing and oracle checks. This replaces process-per-request end_to_end_seconds only when read_transport=session.",
+    "supervisor_peak_rss_bytes": "Supervisor process high-water RSS, recorded separately; not additive to peak_rss_bytes."
+  },
+  "process_environment_overrides": {
+    "ONTOKILN_MAX_PACK_MIB": "256",
+    "RAYON_NUM_THREADS": "1",
+    "TMPDIR": "<work_directory>/scratch",
+    "TOKIO_WORKER_THREADS": "1"
+  },
+  "scales": [
+    {
+      "completed": true,
+      "facts": 100,
+      "input": {
+        "chain_max_nodes": 8,
+        "distinct_asserted_terms": 87,
+        "expected_full_compiled_terms": 89,
+        "expected_inferred_by_predicate": {
+          "http://www.w3.org/1999/02/22-rdf-syntax-ns#type": 18,
+          "http://www.w3.org/2000/01/rdf-schema#subClassOf": 1,
+          "http://www.w3.org/2000/01/rdf-schema#subPropertyOf": 1,
+          "urn:ontokiln:kernel-bench:inRegion": 9,
+          "urn:ontokiln:kernel-bench:locatedIn": 9,
+          "urn:ontokiln:kernel-bench:reach": 30,
+          "urn:ontokiln:kernel-bench:relatedTo": 9
+        },
+        "expected_inferred_facts": 77,
+        "explicit_facts": 100,
+        "files": [
+          {
+            "bytes": 11979,
+            "file": "input/data.nt",
+            "sha256": "d06a604fb47f69a29659e14fac4decd0aaa9a25325ebb2bec730171ed5dccba2"
+          },
+          {
+            "bytes": 615,
+            "file": "rules.json",
+            "sha256": "37ea2a904289edfb8bcc5f47cce7cc2de63062f3ad072cd2d98da5ee70e98e95"
+          },
+          {
+            "bytes": 2894,
+            "file": "shapes.ttl",
+            "sha256": "7be5a632e42eb879897e7f0c4ae3652205f0383a5032392ba87d1bee25bc54fc"
+          }
+        ],
+        "generator": "kernel-baseline-orders/v1",
+        "input_bytes": 11979,
+        "records": 9,
+        "source_document_id": "kernel-baseline-orders/v1/data"
+      },
+      "stages": [
+        {
+          "metadata": {
+            "explicit_rule_count": 3,
+            "phase_metrics": true,
+            "profile": "rdfs-supported-v1"
+          },
+          "name": "full_compile",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.004463,
+                "cpu_user_seconds": 0.0,
+                "engine_seconds": 0.002635722,
+                "execution_seconds": 0.011071345,
+                "index_seconds": 0.001743109,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "parse_dictionary_seconds": 0.000892462,
+                "peak_rss_bytes": 17879040,
+                "peak_scratch_bytes": 96339,
+                "supervisor_peak_rss_bytes": 7626752
+              },
+              "end_to_end_seconds": 0.013448574998619733,
+              "oracle": {
+                "artifact": {
+                  "content_digest": "89dc649a0d03fe3645bac31fad226939b8451bd8cc8b5dd1e4282484165f6805",
+                  "manifest_sha256": "6b4e4b036084a3ae9d9ff251afa58f47c03090d2ea28cf4f14b111ce1d2d3661",
+                  "path": "/tmp/ontokiln-kernel-baseline-xm1kh80s/facts-100/compile-0",
+                  "profile_id": "rdfs-supported-v1",
+                  "semantic_fingerprint": "07e1f37a063910f14a2f9d6cdb00aeb3e79233d6d4d4ce48dfc3e1b4aef2db78",
+                  "source_tree_digest": "cd38e16bf3459425b8d259077a4bb859fc7826ecd08b1db9ffdc80d167f8b908"
+                },
+                "checked": true,
+                "expected_stats": {
+                  "explicit_facts": 100,
+                  "inferred_facts": 0
+                },
+                "files": {
+                  "allocated_bytes": 102400,
+                  "files": [
+                    {
+                      "allocated_bytes": 73728,
+                      "bytes": 73728,
+                      "file": "facts.sqlite"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 518,
+                      "file": "input_manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 615,
+                      "file": "inputs/rules-000000.json"
+                    },
+                    {
+                      "allocated_bytes": 12288,
+                      "bytes": 11979,
+                      "file": "inputs/source-000000.rdf"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 1211,
+                      "file": "manifest.json"
+                    },
+                    {
+                      "allocated_bytes": 4096,
+                      "bytes": 2319,
+                      "file": "plan.json"
+                    }
+                  ],
+                  "logical_bytes": 90370
+                },
+                "manifest_stats": {
+                  "distinct_terms": 89,
+                  "explicit_facts": 100,
+                  "indexed_facts": 100,
+                  "parsed_facts": 100
+                }
+              },
+              "process_block_read_bytes": 0,
+              "process_block_write_bytes": 0,
+              "process_system_seconds": 0.007612,
+              "process_user_seconds": 0.0,
+              "process_wait4_peak_rss_bytes": 19525632,
+              "process_wall_seconds": 0.013271406998683233,
+              "request_sha256": "20ff9cfba3d2248890b0595a1e1a02d8e7bcdfa64792460885e79c5c74b0ae5d",
+              "response_bytes": 1737,
+              "response_sha256": "780a5e30d9d077d299d5daa81d2ee7f3a8ffc8a44725ccc6189a4b6bdf9422f8",
+              "returncode": 0,
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "file",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 0.013448574998619733,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.013448574998619733,
+            "min_seconds": 0.013448574998619733,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {}
+          }
+        },
+        {
+          "metadata": {
+            "one_time_mount": true,
+            "statistics": "single diagnostic observation; not a latency distribution",
+            "transport": "session"
+          },
+          "name": "compiled/session_mount",
+          "samples": [
+            {
+              "end_to_end_seconds": 0.0015708189966971986,
+              "mount_metrics": {
+                "copied_bytes": 73728,
+                "elapsed_seconds": 0.000279092,
+                "snapshot_bytes": 73728
+              },
+              "oracle": {
+                "checked": true
+              },
+              "ready": {
+                "content_digest": "89dc649a0d03fe3645bac31fad226939b8451bd8cc8b5dd1e4282484165f6805",
+                "contract": "ontokiln-session/v1",
+                "dataset": "/tmp/ontokiln-kernel-baseline-xm1kh80s/facts-100/compile-0",
+                "kernel": {
+                  "capabilities": [
+                    "ontokiln-api/v1",
+                    "rdf-pack/v3",
+                    "sparql/v1",
+                    "positive-rules/v1",
+                    "proofs/v1",
+                    "full-source-doc/v2",
+                    "full-execution/v1",
+                    "shacl-core-and-local-select/v1",
+                    "values-bindings/v1",
+                    "derived-query-data/v1"
+                  ],
+                  "contract_version": "ontokiln-core/v3",
+                  "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+                  "pack_version": 3,
+                  "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+                  "version": "0.1.0"
+                },
+                "manifest_sha256": "6b4e4b036084a3ae9d9ff251afa58f47c03090d2ea28cf4f14b111ce1d2d3661",
+                "mount": {
+                  "copied_bytes": 73728,
+                  "elapsed_seconds": 0.000279092,
+                  "snapshot_bytes": 73728
+                },
+                "operations": [
+                  "capabilities",
+                  "prepare_query",
+                  "query",
+                  "validate"
+                ],
+                "status": "READY"
+              },
+              "response_bytes": 880,
+              "sample_index": 0,
+              "session_lifecycle_rusage": {
+                "process_block_read_bytes": 0,
+                "process_block_write_bytes": 0,
+                "process_system_seconds": 0.013011,
+                "process_user_seconds": 0.043199,
+                "process_wait4_peak_rss_bytes": 19525632,
+                "returncode": 0,
+                "shutdown_watchdog_timeout": false
+              },
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 0,
+            "first_failure": null,
+            "max_seconds": 0.0015708189966971986,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.0015708189966971986,
+            "min_seconds": 0.0015708189966971986,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 0,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {}
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_conforms": true,
+            "expected_violations": [],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_core_pass",
+            "requires_nonlocal_graph": false,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:OrderShape>"
+            ]
+          },
+          "name": "shacl/focus_core_pass",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002964,
+                "execution_seconds": 0.010751721,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 18952192,
+                "peak_scratch_bytes": 3539,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7409664
+              },
+              "end_to_end_seconds": 0.011129723003250547,
+              "oracle": {
+                "checked": true,
+                "conforms": true,
+                "semantic_report_sha256": "62d414d399ca519d4509e3681102b2f4398c93d5c16e4c0da5778052b2f70dbe",
+                "target_count": 1,
+                "violations": 0
+              },
+              "request_sha256": "a35d84641199c2753507078570e24265c3110650ca1476fc794d976e667ee383",
+              "response_bytes": 1767,
+              "response_sha256": "4cf78377d280f0251f669403f4e7161fad393bf7b7027529499efb897a96ee15",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002968,
+                "execution_seconds": 0.010636306,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 18874368,
+                "peak_scratch_bytes": 3539,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7421952
+              },
+              "end_to_end_seconds": 0.011168533001182368,
+              "oracle": {
+                "checked": true,
+                "conforms": true,
+                "semantic_report_sha256": "62d414d399ca519d4509e3681102b2f4398c93d5c16e4c0da5778052b2f70dbe",
+                "target_count": 1,
+                "violations": 0
+              },
+              "request_sha256": "6c9e020da28748aead721e58ec6b4b87efd2bed6b8b1dedc610eadf3a97db919",
+              "response_bytes": 1767,
+              "response_sha256": "6e437fe960982e4be1c9f52bc68d5f863b8bb7c0f25fb053faf8a28b3a407b7f",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011168533001182368,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011168533001182368,
+            "min_seconds": 0.011168533001182368,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_conforms": false,
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": "urn:ontokiln:kernel-bench:amount",
+                "shape_ref": "urn:ontokiln:kernel-bench:MinCountProperty"
+              }
+            ],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_core_fail",
+            "requires_nonlocal_graph": false,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:MinCountProperty>"
+            ]
+          },
+          "name": "shacl/focus_core_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002476,
+                "execution_seconds": 0.010864222,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 18698240,
+                "peak_scratch_bytes": 3748,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7438336
+              },
+              "end_to_end_seconds": 0.011287903998891125,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "799268d59063b7332f3bc58a7f7e0a8154d645223eac4ebff574d4540694aa3d",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "38eecaffb60d3ae3194afc3515a4c731915d33464455b51395d887886c2e1377",
+              "response_bytes": 1970,
+              "response_sha256": "383968ce8e8b382059dcbf180acfc75f5e5ac823750759af1a0122f5f58ce0c2",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002563,
+                "execution_seconds": 0.010655786,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 18718720,
+                "peak_scratch_bytes": 3748,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7446528
+              },
+              "end_to_end_seconds": 0.01107542200043099,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "799268d59063b7332f3bc58a7f7e0a8154d645223eac4ebff574d4540694aa3d",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "fb9a6e22ac91456f67f3c284eb25e22ad04e62d8c9655e0e0789bee61c2a59ad",
+              "response_bytes": 1970,
+              "response_sha256": "a5eca97126c6fade50869a631174db368b8d9d2212a63ee08e43c252011b7df3",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.01107542200043099,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.01107542200043099,
+            "min_seconds": 0.01107542200043099,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_conforms": false,
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": null,
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedScopeShape",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#SPARQLConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedScopeShape"
+              }
+            ],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_nonlocal_fail",
+            "requires_nonlocal_graph": true,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:FocusedScopeShape>"
+            ]
+          },
+          "name": "shacl/focus_nonlocal_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002988,
+                "execution_seconds": 0.010742657,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21057536,
+                "peak_scratch_bytes": 3875,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7450624
+              },
+              "end_to_end_seconds": 0.011396827998396475,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "1216fd39bf15d3aeffd9f57ecd39e0a75f4d5d968141da1bfaa199ef57cd245b",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "2bb6e8bf64e4051380683aa5b8943c51d9ac75ec2a6a4a4115b96f642bd76105",
+              "response_bytes": 2096,
+              "response_sha256": "a84d54d50a198ac89d4166ce5948b71d65fe63a02f9dd671efdb94611985c28a",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.003056,
+                "execution_seconds": 0.010733133,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 20680704,
+                "peak_scratch_bytes": 3875,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7454720
+              },
+              "end_to_end_seconds": 0.011188263000804,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "1216fd39bf15d3aeffd9f57ecd39e0a75f4d5d968141da1bfaa199ef57cd245b",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "0debf4e3f0759b997c4f595f0b1221a981b6690f040625f759cd0d4da8db9202",
+              "response_bytes": 2096,
+              "response_sha256": "ea7b1a9c01a21425a0a8af0e2c8cf68279955f4340d466da4527e83ca3c6e596",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011188263000804,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011188263000804,
+            "min_seconds": 0.011188263000804,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_conforms": false,
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": "(<urn:ontokiln:kernel-bench:customer>/<urn:ontokiln:kernel-bench:region>)",
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedPathMissing",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#HasValueConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedPathMissing"
+              }
+            ],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_path_fail",
+            "requires_full_scan": false,
+            "requires_nonlocal_graph": true,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:FocusedPathShape>"
+            ]
+          },
+          "name": "shacl/focus_path_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.003151,
+                "execution_seconds": 0.010698211,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21127168,
+                "peak_scratch_bytes": 3948,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7458816
+              },
+              "end_to_end_seconds": 0.011263987002166687,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "cc62b2be8dd2097f93979918a3b571bae6a1d00e6077445c5b08fe6a746d85d1",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "b2dcdb798213a8cd5aa242bec9b0889693acd93b17933e5d5ad45d2c87d259f1",
+              "response_bytes": 2170,
+              "response_sha256": "a7c6dadeb14b806b2c3b07611c0ad4c0bb4c4cb5af732aebd6bcf0971e027655",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.003102,
+                "execution_seconds": 0.01067787,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 20721664,
+                "peak_scratch_bytes": 3948,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7462912
+              },
+              "end_to_end_seconds": 0.011104856999736512,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "cc62b2be8dd2097f93979918a3b571bae6a1d00e6077445c5b08fe6a746d85d1",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "0ea3e5f56827ab8ed7e7f05e5ab652b4c0798f85e434d134116e80fc6b6ac472",
+              "response_bytes": 2169,
+              "response_sha256": "af91dce0e7108cb07b7c3a3f12ee0ffe35181f3426ddd598eabf5987d2ef1d2d",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011104856999736512,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011104856999736512,
+            "min_seconds": 0.011104856999736512,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_aggregate": {
+              "fact_count": 100,
+              "subject_characters": 4144
+            },
+            "expected_conforms": false,
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": null,
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedScanShape",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#SPARQLConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedScanShape"
+              }
+            ],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_full_scan_fail",
+            "requires_full_scan": true,
+            "requires_nonlocal_graph": true,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:FocusedScanShape>"
+            ]
+          },
+          "name": "shacl/focus_full_scan_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002758,
+                "execution_seconds": 0.010623377,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21475328,
+                "peak_scratch_bytes": 3872,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7462912
+              },
+              "end_to_end_seconds": 0.011048000000300817,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "9116c77036e76ba1e898ca8eaf494a93abf25edbd159fa13f1e5113ddd26233a",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "4da52857ea81a2967173c3267cd1747d1cf5b5ef2d0630111bbad959de9f7359",
+              "response_bytes": 2094,
+              "response_sha256": "e36380aa5a875ec5817b0625491eff2c46d150e1bc229e92105198c5ba4af4df",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002883,
+                "execution_seconds": 0.010681135,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21192704,
+                "peak_scratch_bytes": 3872,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7471104
+              },
+              "end_to_end_seconds": 0.011079227999289287,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "9116c77036e76ba1e898ca8eaf494a93abf25edbd159fa13f1e5113ddd26233a",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "59329a26b80515ad1f0f6fb6d991b6cf0ddc6abd7ee2c0b40647ad706bbaf978",
+              "response_bytes": 2094,
+              "response_sha256": "ca1d09517cabb0f14c7732cbcee0241286169535346c2aaaf46e1ca1c716cf31",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011079227999289287,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011079227999289287,
+            "min_seconds": 0.011079227999289287,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_conforms": false,
+            "expected_focus_nodes": [
+              "<urn:ontokiln:kernel-bench:order/000000007>",
+              "<urn:ontokiln:kernel-bench:order/000000008>"
+            ],
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000007",
+                "path": "(<urn:ontokiln:kernel-bench:customer>/<urn:ontokiln:kernel-bench:region>)",
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedPathPresent",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#HasValueConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedPathPresent"
+              },
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000007",
+                "path": "(<urn:ontokiln:kernel-bench:customer>/<urn:ontokiln:kernel-bench:region>)",
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedPathMissing",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#HasValueConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedPathMissing"
+              },
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": "(<urn:ontokiln:kernel-bench:customer>/<urn:ontokiln:kernel-bench:region>)",
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedPathMissing",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#HasValueConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedPathMissing"
+              }
+            ],
+            "name": "multi_target_path_fail",
+            "requires_full_scan": false,
+            "requires_nonlocal_graph": true,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:MultiTargetPathShape>"
+            ]
+          },
+          "name": "shacl/multi_target_path_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.003604,
+                "cpu_user_seconds": 0.0,
+                "execution_seconds": 0.010738602,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 20013056,
+                "peak_scratch_bytes": 4754,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7471104
+              },
+              "end_to_end_seconds": 0.011150726000778377,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "398367852d9f5de0c1a68fba2d088411138b79554a5f55768daf5044c60b8a5a",
+                "target_count": 2,
+                "violations": 3
+              },
+              "request_sha256": "b8b06c457d62c20d4af83f25340ef463d0460b3688b180a03730fd231cf8143f",
+              "response_bytes": 3013,
+              "response_sha256": "e3d1ddee399bc402188a6e211d8a363292b0e54edcbc9210f6a537d019590dcc",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.003396,
+                "execution_seconds": 0.010976031,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21196800,
+                "peak_scratch_bytes": 4754,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7475200
+              },
+              "end_to_end_seconds": 0.011437680001108674,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "398367852d9f5de0c1a68fba2d088411138b79554a5f55768daf5044c60b8a5a",
+                "target_count": 2,
+                "violations": 3
+              },
+              "request_sha256": "5db58c2917a2868a68299d221a8f8ed772131a3b5e5b245cef01fb3872df050b",
+              "response_bytes": 3013,
+              "response_sha256": "91520d22fb4713720e185cb734677e7a029cb69f73fa974f16c38634d19f780f",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011437680001108674,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011437680001108674,
+            "min_seconds": 0.011437680001108674,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        },
+        {
+          "metadata": {
+            "core_time_available": false,
+            "expected_aggregate": {
+              "amount_sum": 16,
+              "distinct_customers": 2,
+              "row_count": 4
+            },
+            "expected_conforms": false,
+            "expected_violations": [
+              {
+                "focus_node": "urn:ontokiln:kernel-bench:order/000000008",
+                "path": null,
+                "shape_ref": "urn:ontokiln:kernel-bench:FocusedFanoutJoinShape",
+                "source_constraint_component": "http://www.w3.org/ns/shacl#SPARQLConstraintComponent",
+                "source_shape": "urn:ontokiln:kernel-bench:FocusedFanoutJoinShape"
+              }
+            ],
+            "focus_node": "<urn:ontokiln:kernel-bench:order/000000008>",
+            "name": "focus_fanout_join_fail",
+            "requires_full_scan": false,
+            "requires_nonlocal_graph": true,
+            "selected_shapes": [
+              "<urn:ontokiln:kernel-bench:FocusedFanoutJoinShape>"
+            ]
+          },
+          "name": "shacl/focus_fanout_join_fail",
+          "samples": [
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.00284,
+                "execution_seconds": 0.010667403,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 21532672,
+                "peak_scratch_bytes": 3895,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7479296
+              },
+              "end_to_end_seconds": 0.011147379998874385,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "4bf58fd685ab06f45abf7f3bf4ab8db8226b38b6c9a8c27a0af5f422537a791e",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "8629f8402a9d16a3ddb12c391dc691874a4c95ce99055d414b56a60603a4dae2",
+              "response_bytes": 2111,
+              "response_sha256": "f10b52ce2a85bd9c8f1c2e002994dbb76c18f7e2485c41136a4ff5736c94fbd3",
+              "sample_index": 0,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": true,
+              "watchdog_timeout": false
+            },
+            {
+              "api_metrics": {
+                "cpu_system_seconds": 0.0,
+                "cpu_user_seconds": 0.002929,
+                "execution_seconds": 0.010706974,
+                "io_read_bytes": 0,
+                "io_write_bytes": 0,
+                "peak_rss_bytes": 20901888,
+                "peak_scratch_bytes": 3896,
+                "snapshot_bytes": 73728,
+                "snapshot_bytes_copied": 0,
+                "snapshot_reused": true,
+                "supervisor_peak_rss_bytes": 7479296
+              },
+              "end_to_end_seconds": 0.011145548000058625,
+              "oracle": {
+                "checked": true,
+                "conforms": false,
+                "semantic_report_sha256": "4bf58fd685ab06f45abf7f3bf4ab8db8226b38b6c9a8c27a0af5f422537a791e",
+                "target_count": 1,
+                "violations": 1
+              },
+              "request_sha256": "bfaf4d34ce3ec578fb75f8e02de057e02d72d065b58ceadb2719d5747591532d",
+              "response_bytes": 2112,
+              "response_sha256": "1a829a912220d674574062aff6e739e136c698327851124f4e6cd5164608e4a3",
+              "sample_index": 1,
+              "status": "COMPLETE",
+              "transport": "session",
+              "warmup": false,
+              "watchdog_timeout": false
+            }
+          ],
+          "summary": {
+            "attempted_measured_samples": 1,
+            "attempted_warmup_samples": 1,
+            "first_failure": null,
+            "max_seconds": 0.011145548000058625,
+            "measured_status_counts": {
+              "COMPLETE": 1
+            },
+            "median_seconds": 0.011145548000058625,
+            "min_seconds": 0.011145548000058625,
+            "planned_measured_samples": 1,
+            "planned_warmup_samples": 1,
+            "skip_reason": null,
+            "skipped_measured_samples": 0,
+            "successful_samples": 1,
+            "warmup_status_counts": {
+              "COMPLETE": 1
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "schema_version": "ontokiln-kernel-baseline/v1",
+  "scope": "Synthetic SHACL over compiled asserted data: fixed-focus Core/path/nonlocal work, multiple explicit targets, a growing fanout join with duplicate VALUES, and full-union aggregation. No materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark.",
+  "scratch_policy": "All child TMPDIR paths are inside the isolated work_directory/scratch, on the selected work filesystem.",
+  "started_at_utc": "2026-11-13T06:50:25.740738+00:00",
+  "statistics": "Raw samples, median and range of successful measured requests; warm-ups and failures excluded. No p95/p99 estimate from small sample counts.",
+  "status": "COMPLETE",
+  "updated_at_utc": "2026-11-13T06:50:25.978346+00:00",
+  "work_directory": "/tmp/ontokiln-kernel-baseline-xm1kh80s",
+  "work_directory_retained": false
+}

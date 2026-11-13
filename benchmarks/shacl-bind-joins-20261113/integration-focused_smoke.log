@@ -1,0 +1,17 @@
+100 full_compile 0: COMPLETE
+100 compiled/session_mount 0: COMPLETE
+100 shacl/focus_core_pass warmup: COMPLETE
+100 shacl/focus_core_pass 1: COMPLETE
+100 shacl/focus_core_fail warmup: COMPLETE
+100 shacl/focus_core_fail 1: COMPLETE
+100 shacl/focus_nonlocal_fail warmup: COMPLETE
+100 shacl/focus_nonlocal_fail 1: COMPLETE
+100 shacl/focus_path_fail warmup: COMPLETE
+100 shacl/focus_path_fail 1: COMPLETE
+100 shacl/focus_full_scan_fail warmup: COMPLETE
+100 shacl/focus_full_scan_fail 1: COMPLETE
+100 shacl/multi_target_path_fail warmup: COMPLETE
+100 shacl/multi_target_path_fail 1: COMPLETE
+100 shacl/focus_fanout_join_fail warmup: COMPLETE
+100 shacl/focus_fanout_join_fail 1: COMPLETE
+COMPLETE: /workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json

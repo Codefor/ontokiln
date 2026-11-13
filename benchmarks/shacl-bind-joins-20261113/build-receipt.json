@@ -1,0 +1,1792 @@
+{
+  "schema_version": "ontokiln-shacl-bind-joins-build-receipt/v1",
+  "created_at_utc": "2026-11-13T06:51:04.436323+00:00",
+  "builds": [
+    {
+      "role": "before",
+      "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+      "source_tree": "3347b0b9f9e0fb75286df19592b5254bdf6a1b11",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "83680cfeca52cdd201ba02f9c40fa5bca19ad18a1a9443942054df83999d78c1",
+      "binary_bytes": 22995720,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "8dc8d07d9009009d3b10645c3cab9c3ef4418075654023506499d8023452d2af",
+      "build_log_tail": [
+        "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+        "    Finished `release` profile [optimized] target(s) in 26.77s"
+      ],
+      "reused_from_receipt": "../shacl-query-sqlite-20261113/build-receipt.json",
+      "actual_binary_rechecked": true
+    },
+    {
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--offline",
+        "--locked",
+        "--bin",
+        "ontokiln"
+      ],
+      "returncode": 0,
+      "seconds": 34.88603558500108,
+      "log": "/workspace/scratch/1ad35372e414/round4-release-build.log",
+      "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+      "source_tree": "acf9698ea116f9e65be3a60de627f47e5d968b67",
+      "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-after-bin",
+      "binary_bytes": 23050400,
+      "binary_sha256": "c55432609a454dfb916b9d6e49183be93421ecc05098ee7b77c5e2716143195b",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+        "pack_version": 3,
+        "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+        "version": "0.1.0"
+      },
+      "role": "measured_after",
+      "build_profile": "release",
+      "features": "default",
+      "build_log": {
+        "file": "release-build.log",
+        "bytes": 350,
+        "sha256": "b291055b887269a9ada2e99f4c5ecc422e9725fa0f519c5559f7e3e31dfc8fb5",
+        "tail": [
+          "   Compiling spareval v0.2.9 (/workspace/scratch/1ad35372e414/ontokiln/vendor/spareval)",
+          "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+          "   Compiling oxigraph v0.5.13",
+          "   Compiling ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner)",
+          "    Finished `release` profile [optimized] target(s) in 34.82s"
+        ]
+      }
+    },
+    {
+      "name": "release",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--offline",
+        "--locked",
+        "--bin",
+        "ontokiln"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-release.log",
+      "started_at": "2026-11-13T06:49:57.761823+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 27.89154937800049,
+      "finished_at": "2026-11-13T06:50:25.653541+00:00",
+      "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+      "binary_bytes": 23057824,
+      "binary_sha256": "3b70b345b8c9f34247c89e727126d872b00881654dbd423875be965ad9eb8c04",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+        "pack_version": 3,
+        "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+        "version": "0.1.0"
+      },
+      "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+      "source_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+      "build_profile": "release",
+      "features": "default",
+      "role": "integration_validation_only",
+      "scope": "Exact merged source; gates and 100-fact smoke only. No formal b8/ed7 timings are relabelled as this binary.",
+      "build_log": {
+        "file": "integration-release.log",
+        "bytes": 135,
+        "sha256": "9769870ed31c3435f9aa9c57f653ebb8864c4b94e688225b8da457de3753dc2c",
+        "tail": [
+          "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+          "    Finished `release` profile [optimized] target(s) in 27.85s"
+        ]
+      }
+    }
+  ],
+  "source_provenance": {
+    "tested_staged_tree": "6f0a61337de3c1d55de108e38e1c70ad5a3c7593",
+    "tested_local_commit": "47bd8bb2d352228f52dc2d2e6d6609dd0281ce25",
+    "rebased_local_commit": "c18a3cb473ab510fc2e508c12eb75da05e1b7d9f",
+    "measured_commit": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+    "measured_tree": "acf9698ea116f9e65be3a60de627f47e5d968b67",
+    "preserved_business_work_commit": "1610e8a7898b476109c7ddb2b5b64f543065f0dd",
+    "business_integration_changed_files": [
+      "benchmarks/README.md",
+      "benchmarks/business-baseline.md",
+      "benchmarks/business_baseline.py",
+      "benchmarks/business_repository.py",
+      "tests/benchmarks/README.md",
+      "tests/benchmarks/test_business_repository.py"
+    ],
+    "engine_fingerprint_input_count": 46,
+    "engine_fingerprint_inputs_changed_on_business_integration": [],
+    "final_integration_commit": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+    "final_integration_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+    "final_integration_parents": [
+      "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+      "796ac314ae7f6b8d6fb8f8e3cb0b4e06d90051c2"
+    ],
+    "final_integration_changed_files_relative_to_measured_after": [
+      "docs/session-v1.md",
+      "src/api.rs",
+      "src/full_artifact.rs",
+      "src/full_snapshot.rs",
+      "tests/api.py",
+      "tests/runtime/session.py"
+    ],
+    "final_integration_unchanged_query_inputs": [
+      "vendor/spareval/src/eval.rs",
+      "src/rdf_graph.rs",
+      "src/shacl_sqlite.rs",
+      "benchmarks/kernel_baseline.py"
+    ],
+    "boundary": "6d7 merges the already measured ed7 implementation with 796a compatible snapshot read admission. Its kernel identity differs; 500 formal records and 88 pack records remain attributed to b8/ed7."
+  },
+  "measured_source_validation": {
+    "tested_staged_tree": "6f0a61337de3c1d55de108e38e1c70ad5a3c7593",
+    "build_cache_context": "Affected path dependencies and consumers were cleaned after the isolated old-source regression used the same target directory. All final gates below use only the current checkout.",
+    "checks": [
+      {
+        "name": "fmt",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "returncode": 0,
+        "seconds": 0.37549008399946615,
+        "log": "/workspace/scratch/1ad35372e414/round4-fmt.log",
+        "log_evidence": {
+          "file": "fmt.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tail": []
+        }
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--offline",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "returncode": 0,
+        "seconds": 6.652411798997491,
+        "log": "/workspace/scratch/1ad35372e414/round4-clippy.log",
+        "log_evidence": {
+          "file": "clippy.log",
+          "bytes": 456,
+          "sha256": "7594de3d61f4d2023ca7c9daad32bd7c3579d2a5058d9548558982cc8a5ee82d",
+          "tail": [
+            "    Checking spareval v0.2.9 (/workspace/scratch/1ad35372e414/ontokiln/vendor/spareval)",
+            "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+            "    Checking ontokiln-compiler v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/compiler)",
+            "    Checking ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner)",
+            "    Checking oxigraph v0.5.13",
+            "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.51s"
+          ]
+        }
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--offline",
+          "--locked"
+        ],
+        "returncode": 0,
+        "seconds": 60.41813167900182,
+        "log": "/workspace/scratch/1ad35372e414/round4-workspace.log",
+        "log_evidence": {
+          "file": "workspace.log",
+          "bytes": 10771,
+          "sha256": "18b174b467061185549abb59cd6344d18cf79f5faad2fba862a8e69d51c37faf",
+          "tail": [
+            "   Doc-tests ontokiln_pack",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "",
+            "   Doc-tests ontokiln_reasoner",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "all_features",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--all-features",
+          "--offline",
+          "--locked"
+        ],
+        "returncode": 0,
+        "seconds": 60.94381650899959,
+        "log": "/workspace/scratch/1ad35372e414/round4-all_features.log",
+        "log_evidence": {
+          "file": "all_features.log",
+          "bytes": 10704,
+          "sha256": "d4b9a2a91e1081483aebd54c3272499f0bb114d35359fc8aef23a69d261446bd",
+          "tail": [
+            "   Doc-tests ontokiln_pack",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "",
+            "   Doc-tests ontokiln_reasoner",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "scenarios",
+        "command": [
+          "cargo",
+          "run",
+          "--offline",
+          "--locked",
+          "--example",
+          "scenario_lab",
+          "--",
+          "--compare"
+        ],
+        "returncode": 0,
+        "seconds": 0.3967723450004996,
+        "log": "/workspace/scratch/1ad35372e414/round4-scenarios.log",
+        "log_evidence": {
+          "file": "scenarios.log",
+          "bytes": 1180,
+          "sha256": "2db3ff01a0bac979cee6930afb1e0d06787c1d1f871c8a20b403916a63dc4c75",
+          "tail": [
+            "PASS V1 certain={\"Order.city\", \"Order.detail\"} possible_only={}",
+            "PASS V2 certain={\"Order.alias\"} possible_only={}",
+            "PASS V3 certain={\"Order.postcode\"} possible_only={}",
+            "PASS V4 certain={\"Campaign.badge\", \"Order.alias\"} possible_only={}",
+            "PASS V5 certain={\"Campaign.badge\"} possible_only={\"Order.alias\", \"Order.city\", \"Order.detail\", \"Order.postcode\"}",
+            "PASS V6 certain={} possible_only={\"Order.alias\", \"Order.postcode\"}",
+            "PASS V7 certain={\"Summary.address\"} possible_only={}",
+            "PASS V8 certain={\"Summary.address\"} possible_only={\"DeliveryPanel.text\"}",
+            "PASS V9 certain={} possible_only={}",
+            "PASS V10 certain={\"DeliveryPanel.text\"} possible_only={}",
+            "comparison (4 cases), all candidates: Counts { correct: 6, extra: 14, missing: 0 }, selected: Counts { correct: 6, extra: 0, missing: 0 }",
+            "14/14 cases passed"
+          ]
+        }
+      },
+      {
+        "name": "benchmark_tools",
+        "command": [
+          "python3",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests/benchmarks",
+          "-v"
+        ],
+        "returncode": 0,
+        "seconds": 12.887200930999825,
+        "log": "/workspace/scratch/1ad35372e414/round4-benchmark_tools.log",
+        "log_evidence": {
+          "file": "benchmark_tools.log",
+          "bytes": 15193,
+          "sha256": "7076740728b899bba76001504025e1cfe900f4c127380c198c0c472829239eb4",
+          "tail": [
+            "test_same_row_count_with_wrong_term_is_rejected (test_kernel_baseline.WorkloadTests.test_same_row_count_with_wrong_term_is_rejected) ... ok",
+            "test_shacl_cannot_succeed_by_checking_no_targets (test_kernel_baseline.WorkloadTests.test_shacl_cannot_succeed_by_checking_no_targets) ... ok",
+            "test_sizes_are_explicit_fact_counts (test_kernel_baseline.WorkloadTests.test_sizes_are_explicit_fact_counts) ... ok",
+            "test_target_class_and_target_subjects_require_the_same_foci (test_kernel_baseline.WorkloadTests.test_target_class_and_target_subjects_require_the_same_foci) ... ok",
+            "test_binary_and_kernel_must_both_match_receipt (test_kernel_scaling.ScalingTests.test_binary_and_kernel_must_both_match_receipt) ... ok",
+            "test_different_harness_is_rejected_before_import (test_kernel_scaling.ScalingTests.test_different_harness_is_rejected_before_import) ... ok",
+            "test_only_build_stages_are_dispatched_and_keep_dependency_options (test_kernel_scaling.ScalingTests.test_only_build_stages_are_dispatched_and_keep_dependency_options) ... ok",
+            "",
+            "----------------------------------------------------------------------",
+            "Ran 86 tests in 12.709s",
+            "",
+            "OK"
+          ]
+        }
+      }
+    ]
+  },
+  "business_integration_python_tests": {
+    "count": 100,
+    "status": "PASS",
+    "log": {
+      "file": "merged-benchmark-tests.log",
+      "bytes": 17958,
+      "sha256": "d46e5549288e9e10e71c54346f99c10815c27bfa050c5735b3aec9b166d917df",
+      "tail": [
+        "test_same_row_count_with_wrong_term_is_rejected (test_kernel_baseline.WorkloadTests.test_same_row_count_with_wrong_term_is_rejected) ... ok",
+        "test_shacl_cannot_succeed_by_checking_no_targets (test_kernel_baseline.WorkloadTests.test_shacl_cannot_succeed_by_checking_no_targets) ... ok",
+        "test_sizes_are_explicit_fact_counts (test_kernel_baseline.WorkloadTests.test_sizes_are_explicit_fact_counts) ... ok",
+        "test_target_class_and_target_subjects_require_the_same_foci (test_kernel_baseline.WorkloadTests.test_target_class_and_target_subjects_require_the_same_foci) ... ok",
+        "test_binary_and_kernel_must_both_match_receipt (test_kernel_scaling.ScalingTests.test_binary_and_kernel_must_both_match_receipt) ... ok",
+        "test_different_harness_is_rejected_before_import (test_kernel_scaling.ScalingTests.test_different_harness_is_rejected_before_import) ... ok",
+        "test_only_build_stages_are_dispatched_and_keep_dependency_options (test_kernel_scaling.ScalingTests.test_only_build_stages_are_dispatched_and_keep_dependency_options) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 100 tests in 14.054s",
+        "",
+        "OK"
+      ]
+    }
+  },
+  "final_integration_validation": {
+    "schema_version": "ontokiln-round4-integration-validation/v1",
+    "status": "PASS",
+    "started_at": "2026-11-13T06:46:45.922125+00:00",
+    "checks": [
+      {
+        "name": "corpus",
+        "command": [
+          "python3",
+          "-B",
+          "tests/fixtures/contract-v1/generate.py",
+          "--check"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-corpus.log",
+        "started_at": "2026-11-13T06:47:59.039203+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 0.03349098300168407,
+        "finished_at": "2026-11-13T06:47:59.072893+00:00",
+        "log_evidence": {
+          "file": "integration-corpus.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tail": []
+        }
+      },
+      {
+        "name": "fmt",
+        "command": [
+          "cargo",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-fmt.log",
+        "started_at": "2026-11-13T06:47:59.073185+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 0.32299269899885985,
+        "finished_at": "2026-11-13T06:47:59.396314+00:00",
+        "log_evidence": {
+          "file": "integration-fmt.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "tail": []
+        }
+      },
+      {
+        "name": "clippy",
+        "command": [
+          "cargo",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--offline",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-clippy.log",
+        "started_at": "2026-11-13T06:47:59.396918+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 3.1284434349981893,
+        "finished_at": "2026-11-13T06:48:02.525485+00:00",
+        "log_evidence": {
+          "file": "integration-clippy.log",
+          "bytes": 359,
+          "sha256": "46f729a024edec13052111e7be3c87fc71fbcd142a369c5154917a82f2b06589",
+          "tail": [
+            "    Checking spareval v0.2.9 (/workspace/scratch/1ad35372e414/ontokiln/vendor/spareval)",
+            "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+            "    Checking ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner)",
+            "    Checking oxigraph v0.5.13",
+            "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.06s"
+          ]
+        }
+      },
+      {
+        "name": "workspace",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--offline",
+          "--locked"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-workspace.log",
+        "started_at": "2026-11-13T06:48:02.526025+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 50.1484517630015,
+        "finished_at": "2026-11-13T06:48:52.674593+00:00",
+        "log_evidence": {
+          "file": "integration-workspace.log",
+          "bytes": 10792,
+          "sha256": "22251f6151b99a0f0ac37aa3071aa3df65a99aabed76b43c40e6346277a72e92",
+          "tail": [
+            "   Doc-tests ontokiln_pack",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "",
+            "   Doc-tests ontokiln_reasoner",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "all_features",
+        "command": [
+          "cargo",
+          "test",
+          "--workspace",
+          "--all-features",
+          "--offline",
+          "--locked"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-all_features.log",
+        "started_at": "2026-11-13T06:48:52.675021+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 50.006221673000255,
+        "finished_at": "2026-11-13T06:49:42.681447+00:00",
+        "log_evidence": {
+          "file": "integration-all_features.log",
+          "bytes": 10577,
+          "sha256": "6d180db2058af41c1be787f48f5f96dd98e0f2e9162ac24496dc50033c0902af",
+          "tail": [
+            "   Doc-tests ontokiln_pack",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            "",
+            "   Doc-tests ontokiln_reasoner",
+            "",
+            "running 0 tests",
+            "",
+            "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+            ""
+          ]
+        }
+      },
+      {
+        "name": "scenarios",
+        "command": [
+          "cargo",
+          "run",
+          "--offline",
+          "--locked",
+          "--example",
+          "scenario_lab",
+          "--",
+          "--compare"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-scenarios.log",
+        "started_at": "2026-11-13T06:49:42.682197+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 0.23006728099790053,
+        "finished_at": "2026-11-13T06:49:42.912415+00:00",
+        "log_evidence": {
+          "file": "integration-scenarios.log",
+          "bytes": 1180,
+          "sha256": "9f9eaf0445315db6bbd0455c7e24d3c7194b56c95b7ebba23d0760ecaa21255a",
+          "tail": [
+            "PASS V1 certain={\"Order.city\", \"Order.detail\"} possible_only={}",
+            "PASS V2 certain={\"Order.alias\"} possible_only={}",
+            "PASS V3 certain={\"Order.postcode\"} possible_only={}",
+            "PASS V4 certain={\"Campaign.badge\", \"Order.alias\"} possible_only={}",
+            "PASS V5 certain={\"Campaign.badge\"} possible_only={\"Order.alias\", \"Order.city\", \"Order.detail\", \"Order.postcode\"}",
+            "PASS V6 certain={} possible_only={\"Order.alias\", \"Order.postcode\"}",
+            "PASS V7 certain={\"Summary.address\"} possible_only={}",
+            "PASS V8 certain={\"Summary.address\"} possible_only={\"DeliveryPanel.text\"}",
+            "PASS V9 certain={} possible_only={}",
+            "PASS V10 certain={\"DeliveryPanel.text\"} possible_only={}",
+            "comparison (4 cases), all candidates: Counts { correct: 6, extra: 14, missing: 0 }, selected: Counts { correct: 6, extra: 0, missing: 0 }",
+            "14/14 cases passed"
+          ]
+        }
+      },
+      {
+        "name": "benchmark_tools",
+        "command": [
+          "python3",
+          "-B",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests/benchmarks",
+          "-v"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-benchmark_tools.log",
+        "started_at": "2026-11-13T06:49:42.913147+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 14.846966892997443,
+        "finished_at": "2026-11-13T06:49:57.760854+00:00",
+        "log_evidence": {
+          "file": "integration-benchmark_tools.log",
+          "bytes": 17958,
+          "sha256": "c0c1c1f8c65c6f9e11bdb3f4604f67552142317d5cd168d4ba2a3978f034d5ee",
+          "tail": [
+            "test_same_row_count_with_wrong_term_is_rejected (test_kernel_baseline.WorkloadTests.test_same_row_count_with_wrong_term_is_rejected) ... ok",
+            "test_shacl_cannot_succeed_by_checking_no_targets (test_kernel_baseline.WorkloadTests.test_shacl_cannot_succeed_by_checking_no_targets) ... ok",
+            "test_sizes_are_explicit_fact_counts (test_kernel_baseline.WorkloadTests.test_sizes_are_explicit_fact_counts) ... ok",
+            "test_target_class_and_target_subjects_require_the_same_foci (test_kernel_baseline.WorkloadTests.test_target_class_and_target_subjects_require_the_same_foci) ... ok",
+            "test_binary_and_kernel_must_both_match_receipt (test_kernel_scaling.ScalingTests.test_binary_and_kernel_must_both_match_receipt) ... ok",
+            "test_different_harness_is_rejected_before_import (test_kernel_scaling.ScalingTests.test_different_harness_is_rejected_before_import) ... ok",
+            "test_only_build_stages_are_dispatched_and_keep_dependency_options (test_kernel_scaling.ScalingTests.test_only_build_stages_are_dispatched_and_keep_dependency_options) ... ok",
+            "",
+            "----------------------------------------------------------------------",
+            "Ran 100 tests in 14.695s",
+            "",
+            "OK"
+          ]
+        }
+      },
+      {
+        "name": "release",
+        "command": [
+          "cargo",
+          "build",
+          "--release",
+          "--offline",
+          "--locked",
+          "--bin",
+          "ontokiln"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-release.log",
+        "started_at": "2026-11-13T06:49:57.761823+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 27.89154937800049,
+        "finished_at": "2026-11-13T06:50:25.653541+00:00",
+        "log_evidence": {
+          "file": "integration-release.log",
+          "bytes": 135,
+          "sha256": "9769870ed31c3435f9aa9c57f653ebb8864c4b94e688225b8da457de3753dc2c",
+          "tail": [
+            "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+            "    Finished `release` profile [optimized] target(s) in 27.85s"
+          ]
+        }
+      },
+      {
+        "name": "focused_smoke",
+        "command": [
+          "python3",
+          "-B",
+          "benchmarks/kernel_baseline.py",
+          "--binary",
+          "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+          "--output",
+          "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+          "--suite",
+          "focused-shacl",
+          "--read-transport",
+          "session",
+          "--sizes",
+          "100",
+          "--build-samples",
+          "1",
+          "--query-samples",
+          "1",
+          "--validation-samples",
+          "1",
+          "--memory-mib",
+          "512",
+          "--scratch-mib",
+          "4096",
+          "--timeout-seconds",
+          "60",
+          "--threads",
+          "1",
+          "--build-profile",
+          "release",
+          "--build-features",
+          "default",
+          "--snapshot-guard",
+          "manifest"
+        ],
+        "log": "/workspace/scratch/1ad35372e414/round4-integration-focused_smoke.log",
+        "started_at": "2026-11-13T06:50:25.694284+00:00",
+        "status": "PASS",
+        "returncode": 0,
+        "seconds": 0.292488871000387,
+        "finished_at": "2026-11-13T06:50:25.987015+00:00",
+        "log_evidence": {
+          "file": "integration-focused_smoke.log",
+          "bytes": 761,
+          "sha256": "071055e2af303ddb815911f36bc4761dca35037049af5280ad9253c4edbff5d9",
+          "tail": [
+            "100 shacl/focus_core_fail 1: COMPLETE",
+            "100 shacl/focus_nonlocal_fail warmup: COMPLETE",
+            "100 shacl/focus_nonlocal_fail 1: COMPLETE",
+            "100 shacl/focus_path_fail warmup: COMPLETE",
+            "100 shacl/focus_path_fail 1: COMPLETE",
+            "100 shacl/focus_full_scan_fail warmup: COMPLETE",
+            "100 shacl/focus_full_scan_fail 1: COMPLETE",
+            "100 shacl/multi_target_path_fail warmup: COMPLETE",
+            "100 shacl/multi_target_path_fail 1: COMPLETE",
+            "100 shacl/focus_fanout_join_fail warmup: COMPLETE",
+            "100 shacl/focus_fanout_join_fail 1: COMPLETE",
+            "COMPLETE: /workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json"
+          ]
+        }
+      }
+    ],
+    "preceding_pack_status": "COMPLETE",
+    "preceding_pack_finished_at": "2026-11-13T06:47:59Z",
+    "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+    "source_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+    "git_status_porcelain": "",
+    "release_build": {
+      "name": "release",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--offline",
+        "--locked",
+        "--bin",
+        "ontokiln"
+      ],
+      "log": "/workspace/scratch/1ad35372e414/round4-integration-release.log",
+      "started_at": "2026-11-13T06:49:57.761823+00:00",
+      "status": "PASS",
+      "returncode": 0,
+      "seconds": 27.89154937800049,
+      "finished_at": "2026-11-13T06:50:25.653541+00:00",
+      "binary": "/workspace/scratch/1ad35372e414/ontokiln-round4-integration-bin",
+      "binary_bytes": 23057824,
+      "binary_sha256": "3b70b345b8c9f34247c89e727126d872b00881654dbd423875be965ad9eb8c04",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+        "pack_version": 3,
+        "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+        "version": "0.1.0"
+      },
+      "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+      "source_tree": "14f9a51fb914ab3486e5799d674cef119efa3549",
+      "build_profile": "release",
+      "features": "default"
+    },
+    "smoke": {
+      "file": "/workspace/scratch/1ad35372e414/round4-integration-focused-smoke.json",
+      "records": 16,
+      "all_oracles_checked": true,
+      "role": "integration semantics smoke only; not a new performance comparison"
+    },
+    "finished_at": "2026-11-13T06:50:25.987810+00:00"
+  },
+  "shared_target_failed_attempt": {
+    "file": "shared-target-attempt/validation.json",
+    "workspace_returncode": 101,
+    "observation": "After the isolated old-source build reused the same Cargo target directory, the main workspace test observed the old 900/302600 work counts. The old build log shows compilation from the baseline worktree. A scoped clean followed by rebuilding the unchanged current source resolved the observed failure.",
+    "diagnostic_limit": "dep-info-roots.json records empty source_roots arrays. It does not independently prove a stale rlib path. Cache mixing is the troubleshooting inference, not a separately verified production defect.",
+    "clean_command": [
+      "cargo",
+      "clean",
+      "--offline",
+      "-p",
+      "spareval",
+      "-p",
+      "oxigraph",
+      "-p",
+      "ontokiln-reasoner",
+      "-p",
+      "ontokiln-compiler",
+      "-p",
+      "ontokiln"
+    ],
+    "clean_log": {
+      "file": "cache-clean.log",
+      "bytes": 39,
+      "sha256": "a63aae8b2d506779e7bae03aebaa3932cb354938e148b94ef462e0002fdb5d83",
+      "tail": [
+        "     Removed 13680 files, 8.4GiB total"
+      ]
+    },
+    "revalidation": "43 SHACL native tests, then all six original gates passed; final integration gates were rerun at 6d7 after the parallel source fix."
+  },
+  "formal_measurements": {
+    "commands_and_exit_statuses": [
+      {
+        "role": "before",
+        "suite": "focused-shacl",
+        "command": [
+          "python3",
+          "-B",
+          "benchmarks/kernel_baseline.py",
+          "--binary",
+          "/workspace/scratch/1ad35372e414/ontokiln-round3-after-bin",
+          "--output",
+          "/workspace/scratch/1ad35372e414/round4-before-focused.json",
+          "--suite",
+          "focused-shacl",
+          "--read-transport",
+          "session",
+          "--sizes",
+          "10000",
+          "100000",
+          "1000000",
+          "--build-samples",
+          "3",
+          "--query-samples",
+          "9",
+          "--validation-samples",
+          "3",
+          "--memory-mib",
+          "512",
+          "--scratch-mib",
+          "4096",
+          "--timeout-seconds",
+          "60",
+          "--threads",
+          "1",
+          "--build-profile",
+          "release",
+          "--build-features",
+          "default",
+          "--snapshot-guard",
+          "manifest"
+        ],
+        "returncode": 1,
+        "seconds": 109.44189700100105,
+        "output": "/workspace/scratch/1ad35372e414/round4-before-focused.json",
+        "log": "/workspace/scratch/1ad35372e414/round4-before-focused.log",
+        "status": "COMPLETE_WITH_FAILURES",
+        "records": 96,
+        "record_statuses": {
+          "COMPLETE": 92,
+          "BUDGET_EXHAUSTED": 1,
+          "SKIPPED": 3
+        },
+        "all_successful_oracles_checked": true
+      },
+      {
+        "role": "before",
+        "suite": "kernel",
+        "command": [
+          "python3",
+          "-B",
+          "benchmarks/kernel_baseline.py",
+          "--binary",
+          "/workspace/scratch/1ad35372e414/ontokiln-round3-after-bin",
+          "--output",
+          "/workspace/scratch/1ad35372e414/round4-before-kernel.json",
+          "--suite",
+          "kernel",
+          "--read-transport",
+          "file",
+          "--sizes",
+          "10000",
+          "100000",
+          "--build-samples",
+          "3",
+          "--query-samples",
+          "3",
+          "--validation-samples",
+          "3",
+          "--memory-mib",
+          "512",
+          "--scratch-mib",
+          "4096",
+          "--timeout-seconds",
+          "60",
+          "--threads",
+          "1",
+          "--build-profile",
+          "release",
+          "--build-features",
+          "default",
+          "--snapshot-guard",
+          "manifest"
+        ],
+        "returncode": 0,
+        "seconds": 23.95603900399874,
+        "output": "/workspace/scratch/1ad35372e414/round4-before-kernel.json",
+        "log": "/workspace/scratch/1ad35372e414/round4-before-kernel.log",
+        "status": "COMPLETE",
+        "records": 154,
+        "record_statuses": {
+          "COMPLETE": 154
+        },
+        "all_successful_oracles_checked": true
+      },
+      {
+        "role": "after",
+        "suite": "focused-shacl",
+        "command": [
+          "python3",
+          "-B",
+          "benchmarks/kernel_baseline.py",
+          "--binary",
+          "/workspace/scratch/1ad35372e414/ontokiln-round4-after-bin",
+          "--output",
+          "/workspace/scratch/1ad35372e414/round4-after-focused.json",
+          "--suite",
+          "focused-shacl",
+          "--read-transport",
+          "session",
+          "--sizes",
+          "10000",
+          "100000",
+          "1000000",
+          "--build-samples",
+          "3",
+          "--query-samples",
+          "9",
+          "--validation-samples",
+          "3",
+          "--memory-mib",
+          "512",
+          "--scratch-mib",
+          "4096",
+          "--timeout-seconds",
+          "60",
+          "--threads",
+          "1",
+          "--build-profile",
+          "release",
+          "--build-features",
+          "default",
+          "--snapshot-guard",
+          "manifest"
+        ],
+        "returncode": 0,
+        "seconds": 42.45304447200033,
+        "output": "/workspace/scratch/1ad35372e414/round4-after-focused.json",
+        "log": "/workspace/scratch/1ad35372e414/round4-after-focused.log",
+        "status": "COMPLETE",
+        "records": 96,
+        "record_statuses": {
+          "COMPLETE": 96
+        },
+        "all_successful_oracles_checked": true
+      },
+      {
+        "role": "after",
+        "suite": "kernel",
+        "command": [
+          "python3",
+          "-B",
+          "benchmarks/kernel_baseline.py",
+          "--binary",
+          "/workspace/scratch/1ad35372e414/ontokiln-round4-after-bin",
+          "--output",
+          "/workspace/scratch/1ad35372e414/round4-after-kernel.json",
+          "--suite",
+          "kernel",
+          "--read-transport",
+          "file",
+          "--sizes",
+          "10000",
+          "100000",
+          "--build-samples",
+          "3",
+          "--query-samples",
+          "3",
+          "--validation-samples",
+          "3",
+          "--memory-mib",
+          "512",
+          "--scratch-mib",
+          "4096",
+          "--timeout-seconds",
+          "60",
+          "--threads",
+          "1",
+          "--build-profile",
+          "release",
+          "--build-features",
+          "default",
+          "--snapshot-guard",
+          "manifest"
+        ],
+        "returncode": 0,
+        "seconds": 24.427056822998566,
+        "output": "/workspace/scratch/1ad35372e414/round4-after-kernel.json",
+        "log": "/workspace/scratch/1ad35372e414/round4-after-kernel.log",
+        "status": "COMPLETE",
+        "records": 154,
+        "record_statuses": {
+          "COMPLETE": 154
+        },
+        "all_successful_oracles_checked": true
+      }
+    ],
+    "audit_file": "formal-audit.json",
+    "audit_status": "PASS",
+    "record_summary": {
+      "after_records": 250,
+      "after_status_counts": {
+        "COMPLETE": 250
+      },
+      "all_after_records_complete": true,
+      "counts_include_builds_mounts_and_warmups": true,
+      "planned_records": 500,
+      "status_counts": {
+        "BUDGET_EXHAUSTED": 1,
+        "COMPLETE": 496,
+        "SKIPPED": 3
+      },
+      "successful_oracles_checked": 496
+    },
+    "harness_sha256": "3b6efa9fce11e9b5a32e2a28802654b305fc708fa42f07ed6997a58e2b452bb2",
+    "comparisons": [
+      {
+        "file": "focused-comparison.json",
+        "comparable": true,
+        "issues": []
+      },
+      {
+        "file": "kernel-comparison.json",
+        "comparable": true,
+        "issues": []
+      }
+    ],
+    "interpretation_boundaries": [
+      "This audit checks the evidence recorded by the frozen harness, not a new execution or an independent re-evaluation of RDF/SHACL answers.",
+      "The same frozen harness and settings are used on both binaries. Binary and output paths and kernel identities are intentionally different.",
+      "Successful semantic comparisons include warmups. Failed and skipped records provide no successful semantic digest or before/after speedup.",
+      "The before 1M fanout stage has no successful sample; its after digest can be checked against its oracle but cannot be paired with a successful before sample at that scale.",
+      "Session reuse counts cover successful validation requests including warmups; mounts and failed/skipped requests are excluded from those counts.",
+      "Each session mount is one diagnostic observation. Session request timing excludes that one-time mount; file transport includes per-call preparation.",
+      "OS caches were not flushed; raw reports carry the cache and scratch policies. These samples do not establish cold-disk latency, P95/P99, production concurrency or Full 100M capacity.",
+      "Small repeated samples support descriptive results, not statistical significance or a general claim that every join has constant memory or latency.",
+      "Temporary artifact paths are excluded from content equality; pack kernel identity is excluded because the measured engine intentionally changes. All recorded content/source/profile digests and logical/allocated bytes are still compared."
+    ]
+  },
+  "full_smokes": [
+    {
+      "role": "before",
+      "file": "before-focused-smoke.json",
+      "records": 16,
+      "all_oracles_checked": true,
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "ccb28441555497f8cd541412cce5a02eca371d4853b551c5674de2208d9c8b78",
+        "pack_version": 3,
+        "source_revision": "b8ecf8046a286345926077318a78dde7541fb98b",
+        "version": "0.1.0"
+      },
+      "scope": "100 facts, 1 build, 1 mount, 7 SHACL cases with warmup and one measured sample; semantics smoke, not formal latency statistics"
+    },
+    {
+      "role": "measured_after",
+      "file": "after-focused-smoke.json",
+      "records": 16,
+      "all_oracles_checked": true,
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "209f68f0aa4a7f7669d4b0ccaab27557ee8ee49cfb9bcaf2a41a3b00e7586f3c",
+        "pack_version": 3,
+        "source_revision": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+        "version": "0.1.0"
+      },
+      "scope": "100 facts, 1 build, 1 mount, 7 SHACL cases with warmup and one measured sample; semantics smoke, not formal latency statistics"
+    },
+    {
+      "role": "integration",
+      "file": "integration-focused-smoke.json",
+      "records": 16,
+      "all_oracles_checked": true,
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "51b8f01f78ab4406b3fa4fbbeee69d60737515aaffbbbc92f38e5376e37b3bb7",
+        "pack_version": 3,
+        "source_revision": "6d7f1e3aa9b8654b91d7907a6eb343b714aa7add",
+        "version": "0.1.0"
+      },
+      "scope": "100 facts, 1 build, 1 mount, 7 SHACL cases with warmup and one measured sample; semantics smoke, not formal latency statistics"
+    }
+  ],
+  "pack_smoke": {
+    "file": "indexed-smoke.json",
+    "records": 44,
+    "status": "COMPLETE",
+    "triples": 1540,
+    "expected_count": 5,
+    "expected_candidate_rows": 30,
+    "all_oracles_checked": true
+  },
+  "pack_compatibility_regression": {
+    "file": "indexed-regression.json",
+    "status": "COMPLETE",
+    "scope": "Existing pack query compatibility; not Full SHACL 100M capacity.",
+    "method": {
+      "panel_sizes": [
+        250000,
+        22471664
+      ],
+      "templates": [
+        "intersection",
+        "exists"
+      ],
+      "warmups": 1,
+      "measurements": 9,
+      "counter_requests": 1,
+      "deadline_ms": 5000,
+      "max_visits": 200000000,
+      "max_visits_source": "explicit options.max_visits; same as engine MAX_VISITS",
+      "compile_rss_limit_bytes": 8053063680,
+      "rss_poll_seconds": 0.02,
+      "compile_limit_scope": "compiler process RSS, threads included; sampled then kill and wait4",
+      "threads": 1,
+      "tmpdir": "/workspace/scratch/1ad35372e414/round4-indexed-tmp",
+      "fixture_root": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures",
+      "compile_binary": "before",
+      "pack_shared_between_binaries": true,
+      "query_order": "before then after; intersection then exists",
+      "os_cache_flushed": false,
+      "build_features_caller_declaration": "default",
+      "build_profile_caller_declaration": "release"
+    },
+    "environment": {
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "python": "3.12.14",
+      "logical_cpus": 9,
+      "physical_memory_bytes": 10451427328,
+      "rustc": "rustc 1.95.0 (59807616e 2026-04-14)\nbinary: rustc\ncommit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860\ncommit-date: 2026-04-14\nhost: x86_64-unknown-linux-gnu\nrelease: 1.95.0\nLLVM version: 22.1.2",
+      "repository_head": "ed7b90d8feb2c00b87a4dc4981a2c36d67325355",
+      "repository_status": ""
+    },
+    "datasets": [
+      {
+        "panels": 250000,
+        "triples": 1113595,
+        "expected_count": 12500,
+        "expected_candidate_rows": 75000,
+        "pack": {
+          "path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/250000/panels.pack",
+          "bytes": 35759200,
+          "sha256": "3985547f00b73af5e8c9e18d7540e46c83c61da9c1f928525f1d34eddcc97019"
+        },
+        "generation": {
+          "status": "COMPLETE",
+          "started_at": "2026-11-13T06:39:38Z",
+          "seconds": 0.22949085100117372
+        },
+        "compile": {
+          "status": "COMPLETE",
+          "started_at": "2026-11-13T06:39:38Z",
+          "budget_exceeded": false,
+          "stderr_path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/250000/compile.stderr",
+          "pid": 16,
+          "process_reaped": true,
+          "last_rss_bytes": 0,
+          "sampled_peak_rss_bytes": 74440704,
+          "returncode": 0,
+          "wait4_peak_rss_bytes": 74440704,
+          "seconds": 2.6351033999999345,
+          "peak_rss_bytes": 74440704,
+          "stderr_sha256": "5d773a5f0c9ed17129c8d4db0c305f1efa9829bb96bbde542244d8dbd1508477",
+          "stderr_bytes": 63,
+          "stderr_tail": "compiled 5 RDF files, 1113595 parsed triples, 1113595 distinct\n"
+        },
+        "engines": [
+          {
+            "role": "before",
+            "startup": {
+              "pid": 19,
+              "process_reaped": true,
+              "metrics": {
+                "ready_seconds": 0.18561138500081142,
+                "ready_rss_bytes": 42921984,
+                "terms": 254237,
+                "pid": 19,
+                "peak_rss_bytes": 42803200
+              },
+              "status": "READY",
+              "last_rss_bytes": 0,
+              "sampled_peak_rss_bytes": 0,
+              "returncode": -15,
+              "wait4_peak_rss_bytes": 42803200
+            },
+            "templates": [
+              {
+                "template": "intersection",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 41.676228,
+                "minimum_ms": 39.216578,
+                "maximum_ms": 48.506106,
+                "actual_count": 12500,
+                "counter_profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                }
+              },
+              {
+                "template": "exists",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 42.333427,
+                "minimum_ms": 41.325561,
+                "maximum_ms": 54.830403,
+                "actual_count": 12500,
+                "counter_profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                }
+              }
+            ]
+          },
+          {
+            "role": "after",
+            "startup": {
+              "pid": 44,
+              "process_reaped": true,
+              "metrics": {
+                "ready_seconds": 0.13298024899995653,
+                "ready_rss_bytes": 43393024,
+                "terms": 254237,
+                "pid": 44,
+                "peak_rss_bytes": 43208704
+              },
+              "status": "READY",
+              "last_rss_bytes": 0,
+              "sampled_peak_rss_bytes": 0,
+              "returncode": -15,
+              "wait4_peak_rss_bytes": 43208704
+            },
+            "templates": [
+              {
+                "template": "intersection",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 39.683194,
+                "minimum_ms": 36.941492,
+                "maximum_ms": 46.836587,
+                "actual_count": 12500,
+                "counter_profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                }
+              },
+              {
+                "template": "exists",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 46.076172,
+                "minimum_ms": 41.527858,
+                "maximum_ms": 62.908435,
+                "actual_count": 12500,
+                "counter_profile": {
+                  "candidate_rows": 75000,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 62500,
+                    "SPO": 12500
+                  },
+                  "output_bytes": 143,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "panels": 22471664,
+        "triples": 100000000,
+        "expected_count": 1123584,
+        "expected_candidate_rows": 6741500,
+        "pack": {
+          "path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/22471664/panels.pack",
+          "bytes": 3242956152,
+          "sha256": "0253522dee38e1e65f4febc67560835181289f0ff26be20cb71b72d853cf2f6b"
+        },
+        "generation": {
+          "status": "COMPLETE",
+          "started_at": "2026-11-13T06:39:43Z",
+          "seconds": 16.31548691200078
+        },
+        "compile": {
+          "status": "COMPLETE",
+          "started_at": "2026-11-13T06:40:01Z",
+          "budget_exceeded": false,
+          "stderr_path": "/workspace/scratch/1ad35372e414/round4-indexed-fixtures/22471664/compile.stderr",
+          "pid": 69,
+          "process_reaped": true,
+          "last_rss_bytes": 0,
+          "sampled_peak_rss_bytes": 5910085632,
+          "returncode": 0,
+          "wait4_peak_rss_bytes": 5910085632,
+          "seconds": 282.29686292899714,
+          "peak_rss_bytes": 5910085632,
+          "stderr_sha256": "c95055ddc1a25bd1626d932e9103469a2cc4f7b27816a8a323847cbcbd6108c5",
+          "stderr_bytes": 67,
+          "stderr_tail": "compiled 5 RDF files, 100000000 parsed triples, 100000000 distinct\n"
+        },
+        "engines": [
+          {
+            "role": "before",
+            "startup": {
+              "pid": 72,
+              "process_reaped": true,
+              "metrics": {
+                "ready_seconds": 17.637951483000506,
+                "ready_rss_bytes": 3249991680,
+                "terms": 22475901,
+                "pid": 72,
+                "peak_rss_bytes": 3249700864
+              },
+              "status": "READY",
+              "last_rss_bytes": 0,
+              "sampled_peak_rss_bytes": 0,
+              "returncode": -15,
+              "wait4_peak_rss_bytes": 3249700864
+            },
+            "templates": [
+              {
+                "template": "intersection",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 3511.168137,
+                "minimum_ms": 3241.268729,
+                "maximum_ms": 3672.702858,
+                "actual_count": 1123584,
+                "counter_profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                }
+              },
+              {
+                "template": "exists",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 3568.131177,
+                "minimum_ms": 3493.880419,
+                "maximum_ms": 3802.55687,
+                "actual_count": 1123584,
+                "counter_profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                }
+              }
+            ]
+          },
+          {
+            "role": "after",
+            "startup": {
+              "pid": 97,
+              "process_reaped": true,
+              "metrics": {
+                "ready_seconds": 16.10886478699831,
+                "ready_rss_bytes": 3250827264,
+                "terms": 22475901,
+                "pid": 97,
+                "peak_rss_bytes": 3250786304
+              },
+              "status": "READY",
+              "last_rss_bytes": 0,
+              "sampled_peak_rss_bytes": 0,
+              "returncode": -15,
+              "wait4_peak_rss_bytes": 3250786304
+            },
+            "templates": [
+              {
+                "template": "intersection",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 3407.2116,
+                "minimum_ms": 3273.395863,
+                "maximum_ms": 3528.242926,
+                "actual_count": 1123584,
+                "counter_profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 20437
+                }
+              },
+              {
+                "template": "exists",
+                "status_counts": {
+                  "COMPLETE": 11
+                },
+                "measurements": 9,
+                "median_ms": 3701.364844,
+                "minimum_ms": 3537.485908,
+                "maximum_ms": 4506.531069,
+                "actual_count": 1123584,
+                "counter_profile": {
+                  "candidate_rows": 6741500,
+                  "index_rows": {
+                    "OSP": 0,
+                    "POS": 5617916,
+                    "SPO": 1123584
+                  },
+                  "output_bytes": 145,
+                  "output_rows": 1,
+                  "peak_heap_bytes": 21720
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "records": 88,
+    "status_counts": {
+      "COMPLETE": 88
+    },
+    "all_oracles_checked": true,
+    "filesystem_observation_after_run": [
+      "Filesystem     Type    1024-blocks     Used Available Capacity Mounted on",
+      "overlay        overlay    66002476 42923540  19707112      69% /workspace",
+      "overlay        overlay    66002476 42923540  19707112      69% /workspace"
+    ]
+  },
+  "non_timing_work_regression": {
+    "file": "query-work-regression.json",
+    "before_expected_failure_preserved": true
+  },
+  "artifacts": [
+    {
+      "file": "after-focused-session.json",
+      "bytes": 213556,
+      "sha256": "6e55cc175b4f19cbf22bd4acbaae5f76b8fd74ee4d91313613677dc5004ec429"
+    },
+    {
+      "file": "after-focused-smoke.json",
+      "bytes": 51593,
+      "sha256": "6c5fb1aeeb09e27a70850ada24986ddaecede27d355bb4eddf7b781d71e2fc52"
+    },
+    {
+      "file": "after-focused.log",
+      "bytes": 4307,
+      "sha256": "60d8c14719c6702d0cac9cb0763ea3253f979dea1657ee6d6fb0b2b28765488a"
+    },
+    {
+      "file": "after-kernel-file.json",
+      "bytes": 399168,
+      "sha256": "a15f34d95ca12f1be24b8318e3f15f6d5001587b5ac2df77b9ddfa3d35fe299a"
+    },
+    {
+      "file": "after-kernel.log",
+      "bytes": 6600,
+      "sha256": "ab4c1d7da793204b6224cca44fe0c98185a0c108d52abcffebc9afe67fb5b0a4"
+    },
+    {
+      "file": "all_features.log",
+      "bytes": 10704,
+      "sha256": "d4b9a2a91e1081483aebd54c3272499f0bb114d35359fc8aef23a69d261446bd"
+    },
+    {
+      "file": "baseline-regression.log",
+      "bytes": 1704,
+      "sha256": "b5f6175dc28549268534678010623f00ca9dce37ce43ed248feb1647dc35a23a"
+    },
+    {
+      "file": "baseline-semantics.log",
+      "bytes": 759,
+      "sha256": "3e55238b9430a149692daeb04155590058ffcb1b7295d6998423f7d1f64db666"
+    },
+    {
+      "file": "before-focused-session.json",
+      "bytes": 210251,
+      "sha256": "057df205bb2efc153454e087d01f9223e57493267f017f92d9d856a27f81dd85"
+    },
+    {
+      "file": "before-focused-smoke.json",
+      "bytes": 51617,
+      "sha256": "b024cbf97278109b87fbb0837ebe569828371cca1fd55871b1a97d881b245e1d"
+    },
+    {
+      "file": "before-focused.log",
+      "bytes": 4327,
+      "sha256": "c87e2597be3a5e6e3340ff084fcc533c714ecd0715345f6a542d9e79aa320e52"
+    },
+    {
+      "file": "before-kernel-file.json",
+      "bytes": 399261,
+      "sha256": "b994669fd716858e854b9648c08c24feaf673d990b146a4e0d946fe70ecc35be"
+    },
+    {
+      "file": "before-kernel.log",
+      "bytes": 6601,
+      "sha256": "93f42c344c628ddd1ce1fdcbf92258be726a77773d3de02f43319f1b84571306"
+    },
+    {
+      "file": "benchmark_tools.log",
+      "bytes": 15193,
+      "sha256": "7076740728b899bba76001504025e1cfe900f4c127380c198c0c472829239eb4"
+    },
+    {
+      "file": "cache-clean.log",
+      "bytes": 39,
+      "sha256": "a63aae8b2d506779e7bae03aebaa3932cb354938e148b94ef462e0002fdb5d83"
+    },
+    {
+      "file": "clippy.log",
+      "bytes": 456,
+      "sha256": "7594de3d61f4d2023ca7c9daad32bd7c3579d2a5058d9548558982cc8a5ee82d"
+    },
+    {
+      "file": "fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "focused-comparison.json",
+      "bytes": 101444,
+      "sha256": "fdc00a3c3ca1bb95a4488bce730751ffcfb6688bd4b2b855bb26e93f2ec72cf9"
+    },
+    {
+      "file": "focused-comparison.md",
+      "bytes": 22854,
+      "sha256": "1c045808ad830f262b289f071f1b5057cf05ba822a265a76d20109faaa08126d"
+    },
+    {
+      "file": "formal-audit.json",
+      "bytes": 355638,
+      "sha256": "980633c433e5e93d2fe46bb09f06a6ecffef392bd3465795af4ef10cff58bd57"
+    },
+    {
+      "file": "indexed-regression.json",
+      "bytes": 70257,
+      "sha256": "c7b33d003fbdba88358037cba47d7a0f23bf488bc4898822c88237df61b22144"
+    },
+    {
+      "file": "indexed-regression.py",
+      "bytes": 22816,
+      "sha256": "64c153fc2764c11b9efd7d9a1da738b0de30a02321e9ec1bcc4530259a40a37e"
+    },
+    {
+      "file": "indexed-smoke.json",
+      "bytes": 37038,
+      "sha256": "132e414869720861a7603deaaa6a70ed014508c0ec2af896e1a9d6219cce2814"
+    },
+    {
+      "file": "integration-all_features.log",
+      "bytes": 10577,
+      "sha256": "6d180db2058af41c1be787f48f5f96dd98e0f2e9162ac24496dc50033c0902af"
+    },
+    {
+      "file": "integration-benchmark_tools.log",
+      "bytes": 17958,
+      "sha256": "c0c1c1f8c65c6f9e11bdb3f4604f67552142317d5cd168d4ba2a3978f034d5ee"
+    },
+    {
+      "file": "integration-clippy.log",
+      "bytes": 359,
+      "sha256": "46f729a024edec13052111e7be3c87fc71fbcd142a369c5154917a82f2b06589"
+    },
+    {
+      "file": "integration-corpus.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "integration-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "integration-focused-smoke.json",
+      "bytes": 51611,
+      "sha256": "6078236dc89cdb1f1a055bf7b7d5cd672f1fd8ddcc762be5d4246fc20be23094"
+    },
+    {
+      "file": "integration-focused_smoke.log",
+      "bytes": 761,
+      "sha256": "071055e2af303ddb815911f36bc4761dca35037049af5280ad9253c4edbff5d9"
+    },
+    {
+      "file": "integration-release.log",
+      "bytes": 135,
+      "sha256": "9769870ed31c3435f9aa9c57f653ebb8864c4b94e688225b8da457de3753dc2c"
+    },
+    {
+      "file": "integration-scenarios.log",
+      "bytes": 1180,
+      "sha256": "9f9eaf0445315db6bbd0455c7e24d3c7194b56c95b7ebba23d0760ecaa21255a"
+    },
+    {
+      "file": "integration-validation.json",
+      "bytes": 7047,
+      "sha256": "35cf772a340e2c4c699c0cf2f99cbff2ca248300f2806555a5cc21106ee25665"
+    },
+    {
+      "file": "integration-workspace.log",
+      "bytes": 10792,
+      "sha256": "22251f6151b99a0f0ac37aa3071aa3df65a99aabed76b43c40e6346277a72e92"
+    },
+    {
+      "file": "kernel-comparison.json",
+      "bytes": 158509,
+      "sha256": "1099dac5903393b086790c20c7f070485568ec74616e9c87a4d716c914cdc947"
+    },
+    {
+      "file": "kernel-comparison.md",
+      "bytes": 35583,
+      "sha256": "5a527f1419e7e2278d94dc0466945356ecfa446fb5a4bf79d03f5e7ce95a03b9"
+    },
+    {
+      "file": "measurement-run.json",
+      "bytes": 4781,
+      "sha256": "90d66d79826325b84defc5a45a87a062ba13b6e8b44a37c39059c6d60b7c6e6f"
+    },
+    {
+      "file": "merged-benchmark-tests.log",
+      "bytes": 17958,
+      "sha256": "d46e5549288e9e10e71c54346f99c10815c27bfa050c5735b3aec9b166d917df"
+    },
+    {
+      "file": "native-clean-tests.log",
+      "bytes": 5527,
+      "sha256": "4a9b151b9afeb1abc2e2a6944c67751b2a6a6a13c037f98fdee24a7cdd36e94b"
+    },
+    {
+      "file": "query-work-regression.json",
+      "bytes": 1862,
+      "sha256": "155b29d03d2ccdefa0523d90f36a997a8155effa4ebae664eb4d1397b59704d1"
+    },
+    {
+      "file": "release-build.json",
+      "bytes": 1127,
+      "sha256": "fb0964884e024ba88b6500f267c4982ccb84ac67b9101bccfbc7be78a23791df"
+    },
+    {
+      "file": "release-build.log",
+      "bytes": 350,
+      "sha256": "b291055b887269a9ada2e99f4c5ecc422e9725fa0f519c5559f7e3e31dfc8fb5"
+    },
+    {
+      "file": "scenarios.log",
+      "bytes": 1180,
+      "sha256": "2db3ff01a0bac979cee6930afb1e0d06787c1d1f871c8a20b403916a63dc4c75"
+    },
+    {
+      "file": "shared-target-attempt/clippy.log",
+      "bytes": 359,
+      "sha256": "3ef2e16a1c970688cc13969f8c7c45f97ffdee6362719dfa28cf46faa96543dd"
+    },
+    {
+      "file": "shared-target-attempt/dep-info-roots.json",
+      "bytes": 272,
+      "sha256": "a9240cce7215ff4b1d5fb5ce6159a4253118f9ea5cc4054db489738392fa3cc9"
+    },
+    {
+      "file": "shared-target-attempt/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "shared-target-attempt/validation.json",
+      "bytes": 1610,
+      "sha256": "bdfeb205688582504cefec1b160703032a9b10685ef0645245c96345c7d9b31c"
+    },
+    {
+      "file": "shared-target-attempt/workspace.log",
+      "bytes": 6925,
+      "sha256": "64dc8ec26797f7b34a10c660f56152e4dd7ce4e67afad7d983308abef3babb15"
+    },
+    {
+      "file": "tested-code-commit.json",
+      "bytes": 166,
+      "sha256": "677cfe996d319139bc226a226780d25f35b7cf6f62931abed3aefd77ff928e02"
+    },
+    {
+      "file": "validation.json",
+      "bytes": 2220,
+      "sha256": "669ba33ac0e4b1a6fd2af8af7b1a5a974a330eea8be73fb247c2d7eded718fe6"
+    },
+    {
+      "file": "workspace.log",
+      "bytes": 10771,
+      "sha256": "18b174b467061185549abb59cd6344d18cf79f5faad2fba862a8e69d51c37faf"
+    }
+  ],
+  "remote_ci": {
+    "status": "Not embedded before publication; verify the final report head in PR #1.",
+    "url": "https://github.com/Codefor/ontokiln/pull/1"
+  }
+}

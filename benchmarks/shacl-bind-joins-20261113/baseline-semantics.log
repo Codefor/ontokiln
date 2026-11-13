@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+     Running unittests src/lib.rs (/workspace/scratch/1ad35372e414/target-build/debug/deps/ontokiln-9941565c225ceb37)
+
+running 4 tests
+test shacl::sqlite_validation_tests::prepared_joins_keep_original_input_compatibility_when_bind_rewrites_it ... ok
+test shacl::sqlite_validation_tests::prepared_joins_keep_subquery_slices_global_and_private_variables_local ... ok
+test shacl::sqlite_validation_tests::prepared_joins_preserve_duplicate_inputs_diamond_paths_and_right_matches ... ok
+test shacl::sqlite_validation_tests::prepared_joins_preserve_undef_optional_and_union_compatibility ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 0.01s
+

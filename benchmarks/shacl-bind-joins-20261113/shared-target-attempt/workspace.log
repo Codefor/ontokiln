@@ -1,0 +1,82 @@
+   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)
+   Compiling ontokiln-compiler v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/compiler)
+   Compiling ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln/crates/reasoner)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.01s
+     Running unittests src/lib.rs (/workspace/scratch/1ad35372e414/target-build/debug/deps/ontokiln-9941565c225ceb37)
+
+running 55 tests
+test full_snapshot::tests::oversized_mount_is_rejected_before_manifest_or_inventory_reads ... ok
+test full_artifact::publication_tests::atomic_publication_preserves_an_existing_destination ... ok
+test full_snapshot::tests::strict_parser_policy_requires_complete_explicit_document_options ... ok
+test full_snapshot::tests::copying_anonymous_snapshot_keeps_budget_and_digest_checks ... ok
+test full_snapshot::tests::parser_policy_is_bound_to_verified_input_manifest_bytes ... ok
+test full_snapshot::tests::source_growth_after_verification_cannot_outgrow_the_reservation ... ok
+test full_snapshot::tests::one_shot_reservation_identifies_anonymous_snapshot_bytes ... ok
+test full_snapshot::tests::vfs_short_reads_offsets_and_errors_follow_sqlite_contract ... ok
+test full_snapshot::tests::snapshot_survives_source_replacement_and_owner_drop ... ok
+test full_snapshot::tests::snapshot_mount_rejects_budget_corruption_and_writable_descriptors ... ok
+test full_snapshot::tests::verified_mount_keeps_the_checked_identity_and_rechecks_database_bytes ... ok
+test shacl::sqlite_validation_tests::native_read_failure_never_becomes_a_conformance_report ... ok
+test shacl::sqlite_validation_tests::prepared_joins_keep_original_input_compatibility_when_bind_rewrites_it ... ok
+test shacl::sqlite_validation_tests::prepared_joins_preserve_duplicate_inputs_diamond_paths_and_right_matches ... ok
+test shacl::sqlite_validation_tests::prepared_joins_keep_subquery_slices_global_and_private_variables_local ... ok
+test shacl::sqlite_validation_tests::literal_targets_and_lexical_forms_survive_union_navigation ... ok
+test shacl::sqlite_validation_tests::global_queries_keep_union_default_graph_and_bindings ... ok
+test shacl::sqlite_validation_tests::prepared_joins_preserve_undef_optional_and_union_compatibility ... ok
+test shacl::sqlite_validation_tests::prepared_queries_preserve_cycles_alternatives_inverse_and_zero_length_paths ... ok
+test shacl::sqlite_validation_tests::unused_queries_remain_lazy ... ok
+test shacl::sqlite_validation_tests::prepared_queries_preserve_ask_exists_empty_results_and_expression_errors ... ok
+test shacl::sqlite_validation_tests::prepared_query_cache_keeps_prebindings_values_and_subquery_scopes_separate ... ok
+test shacl::sqlite_validation_tests::target_transitivity_and_pinned_class_constraint_are_distinct ... ok
+test shacl_sqlite::tests::a_complete_recent_neighborhood_reuses_values_without_sql_but_never_hides_failure ... ok
+test shacl::sqlite_validation_tests::prepared_queries_preserve_union_counts_bags_limits_and_empty_named_graphs ... ok
+test shacl_sqlite::tests::a_real_sqlite_interrupt_cannot_become_an_empty_result ... ok
+test shacl_sqlite::tests::construction_rejects_missing_read_schema_before_any_shape_access ... ok
+test shacl_sqlite::tests::literal_subject_conversion_is_an_rdf_result_not_a_store_failure ... ok
+test shacl::sqlite_validation_tests::prepared_queries_preserve_rdf_term_identity_and_document_blank_labels ... ok
+test shacl_sqlite::tests::failed_visitors_discard_both_previous_and_partial_neighborhoods ... ok
+test shacl::sqlite_validation_tests::native_core_reads_preserve_closed_peer_and_literal_constraints ... ok
+test shacl::sqlite_validation_tests::nested_and_qualified_constraints_visit_the_same_dependencies ... ok
+test shacl_sqlite::tests::all_graphs_and_views_form_one_distinct_union_for_every_pattern ... ok
+test shacl_sqlite::tests::native_terms_preserve_blank_labels_and_literal_lexical_forms ... ok
+test shacl_sqlite::tests::native_decode_failures_include_blank_label_rules_and_remain_sticky ... ok
+test shacl_sqlite::tests::previous_query_fault_rejects_even_queries_that_need_no_rows ... ok
+test shacl_sqlite::tests::native_object_projection_and_cache_both_keep_decode_errors_sticky ... ok
+test shacl_sqlite::tests::query_adapter_has_only_default_union_and_preserves_unknown_external_terms ... ok
+test shacl_sqlite::tests::prepared_queries_restore_decode_failures_swallowed_by_expressions ... ok
+test shacl_sqlite::tests::prepared_queries_restore_sql_failures_swallowed_by_exists ... ok
+test shacl_sqlite::tests::query_empty_graph_keeps_unit_bindings_counts_and_graph_absence ... ok
+test shacl_sqlite::tests::neighborhood_byte_bound_does_not_truncate_large_values ... ok
+test shacl_sqlite::tests::query_dictionary_round_trips_canonical_identity_and_preserves_numeric_lexical_forms ... ok
+test shacl_sqlite::tests::row_conversion_failure_is_sticky_after_the_value_is_repaired ... ok
+test shacl_sqlite::tests::sql_failure_is_sticky_even_after_the_schema_is_repaired ... ok
+test shacl_sqlite::tests::sqlite_full_and_interrupt_remain_typed_in_the_sticky_error ... ok
+test shacl_sqlite::tests::visitor_budget_preserves_its_type_and_stops_before_the_next_value ... ok
+test shacl_sqlite::tests::query_page_failure_is_reported_once_and_preserved_as_a_typed_sticky_error ... ok
+test shacl_sqlite::tests::joins_with_only_outer_bound_keys_keep_a_single_right_scan ... ok
+test full_snapshot::tests::temporary_files_use_the_platform_vfs ... ok
+test shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches ... FAILED
+test shacl_sqlite::tests::query_pages_preserve_minimum_ids_and_dangling_filters_with_optional_indexes ... ok
+test shacl_sqlite::tests::neighborhood_count_bound_does_not_truncate_a_complete_read ... ok
+test shacl_sqlite::tests::query_adapter_pages_all_index_orders_without_duplicate_or_missing_union_rows ... ok
+test shacl_sqlite::tests::query_pages_seek_past_fixed_prefixes_without_scanning_or_sorting_the_remaining_graph ... ok
+
+failures:
+
+---- shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches stdout ----
+path join: three-quad BGP, background=32, progress_steps=900
+path join: three-hop path, background=32, progress_steps=900
+path join: inverse two-hop path, background=32, progress_steps=400
+path join: three-quad BGP, background=8192, progress_steps=302600
+
+thread 'shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches' (1806) panicked at src/../tests/shacl/sqlite_store.rs:1154:13:
+three-quad BGP traversed unrelated predicate rows: background=8192, progress_steps=302600
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shacl_sqlite::tests::bound_path_joins_do_not_scan_unrelated_predicate_branches
+
+test result: FAILED. 54 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
+
+error: test failed, to rerun pass `-p ontokiln --lib`
