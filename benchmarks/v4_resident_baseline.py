@@ -51,6 +51,7 @@ def flatten_metrics(report):
     metrics.update({f"hot.query.{name}": data["median_ms"] for name, data
                     in report["benchmark"]["queries"].items()})
     metrics["hot.shacl"] = report["benchmark"]["shacl"]["median_ms"]
+    metrics["hot.shacl_focused"] = report["benchmark"]["shacl_focused"]["median_ms"]
     return metrics
 
 
@@ -136,6 +137,16 @@ def execute(args):
                 f"SHACL target set differs: expected {expect_coverage}, got {covered}")
         require(len(data["shacl"]["samples_ms"]) == args.samples,
                 "missing SHACL samples")
+        focus = data["shacl_focused"]["result"]
+        require(
+            focus["checked_shapes"] == 1
+            and focus["conforms"] is True
+            and focus["violations"] == 0
+            and focus["target_count"] == 1,
+            "focused ProbeShape no longer has the independently expected target/result",
+        )
+        require(len(data["shacl_focused"]["samples_ms"]) == args.samples,
+                "missing focused SHACL samples")
         require(data["pack_bytes"] > 0, "empty pack")
         digest = hashlib.sha256(canonical({
             "generator": corpus["generator"], "source": corpus["files"],
@@ -174,6 +185,7 @@ def execute(args):
             "resident_queries_median_ms": {name: case["median_ms"]
                 for name, case in data["queries"].items()},
             "resident_shacl_median_ms": data["shacl"]["median_ms"],
+            "resident_shacl_focused_median_ms": data["shacl_focused"]["median_ms"],
             "peak_rss_kib": data["memory"]["after_validation"]["peak_rss_kib"],
             "report": str(args.output),
         }

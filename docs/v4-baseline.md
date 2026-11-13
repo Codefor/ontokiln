@@ -29,6 +29,7 @@ Rust example: examples/v4_resident_bench.rs。
 - `save_ms`：完整 Pack v4 写入、数据摘要/原子发布。
 - `load_ms`：读取、校验、解码与构造 Engine；只计一次。
 - `cold_after_load_ms`：首次读取该 Query 或首次 SHACL 校验（可能构建数据图/缓存）。
+- `shacl_focused`：固定 ProbeShape + 单个 focus，衡量局部校验的首次与常驻热耗时；不得与全目标 SHACL 的规模线性扫描相混淆。
 - `hot.{query,shacl}.median_ms`：同一 Engine 对象预热后进行的 N 次实际请求；不重新 load_pack。
 - `memory.*`：Linux /proc/self/status 中的当前 RSS 和进程高水位 RSS；跨进程和 mmap 共享页不能简单相加，也不等于 PSS。
 

@@ -10,7 +10,7 @@ use ontokiln_pack::v4::View;
 use oxigraph::io::{RdfFormat, RdfParser};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -216,6 +216,19 @@ fn main() -> Result<()> {
         Ok(summary(loaded.validate(Some(&shapes), None, None, 64)?))
     })?;
     ensure!(validation == first, "cold/warm SHACL result changed");
+    // Fixed-focus SHACL distinguishes local neighborhood validation from
+    // intentionally full-target work (which scales with all order records).
+    let focus = "<urn:ontokiln:kernel-bench:order/000000000>";
+    let chosen = BTreeSet::from([
+        "<urn:ontokiln:kernel-bench:ProbeShape>".to_owned(),
+    ]);
+    let focused_started = Instant::now();
+    let focus_first = summary(loaded.validate(Some(&shapes), Some(&chosen), Some(focus), 64)?);
+    let focused_cold_ms = focused_started.elapsed().as_secs_f64() * 1e3;
+    let (focused, focused_timing) = sample(args.warmups, args.samples, || {
+        Ok(summary(loaded.validate(Some(&shapes), Some(&chosen), Some(focus), 64)?))
+    })?;
+    ensure!(focused == focus_first, "focused SHACL changed between samples");
     let after_validation = memory_stats();
     let report = json!({
         "schema_version":"ontokiln-v4-resident-benchmark/v1",
@@ -234,7 +247,11 @@ fn main() -> Result<()> {
         "shacl":{"cold_after_load_ms":cold_validation_ms,
             "median_ms":timing["median_ms"],
             "samples_ms":timing["samples_ms"],
-            "result":validation}
+            "result":validation},
+        "shacl_focused":{"first_ms":focused_cold_ms,
+            "median_ms":focused_timing["median_ms"],
+            "samples_ms":focused_timing["samples_ms"],
+            "result":focused}
     });
     if let Some(parent) = args.output.parent() {
         fs::create_dir_all(parent)?;
@@ -248,6 +265,7 @@ fn main() -> Result<()> {
             .map(|(key,value)|(key.clone(),value["median_ms"].clone()))
             .collect::<BTreeMap<_,_>>(),
         "resident_shacl_median_ms":report["shacl"]["median_ms"],
+        "resident_shacl_focused_median_ms":report["shacl_focused"]["median_ms"],
         "peak_rss_kib":report["memory"]["after_validation"]["peak_rss_kib"]})
     );
     Ok(())
