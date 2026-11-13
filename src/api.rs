@@ -12,6 +12,7 @@ use std::{
 pub const CONTRACT: &str = "ontokiln-api/v1";
 pub const READ_CONTRACT: &str = "ontokiln-sqlite-read/v1";
 const CONTENT_DIGEST_CAPABILITY: &str = "dataset-content-digest/v1";
+const MANIFEST_DIGEST_CAPABILITY: &str = "dataset-manifest-digest/v1";
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -53,6 +54,8 @@ pub enum Operation {
         dataset: PathBuf,
         #[serde(skip_serializing_if = "Option::is_none")]
         expected_content_digest: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expected_manifest_sha256: Option<String>,
         query: String,
         #[serde(default)]
         parameters: BTreeMap<String, parameters::Parameter>,
@@ -72,6 +75,8 @@ pub enum Operation {
         dataset: PathBuf,
         #[serde(skip_serializing_if = "Option::is_none")]
         expected_content_digest: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expected_manifest_sha256: Option<String>,
         #[serde(default)]
         shapes: Vec<Source>,
         #[serde(default)]
@@ -185,21 +190,30 @@ impl Request {
             "INVALID_REQUEST|invalid limits"
         );
         if let Operation::Query {
-            expected_content_digest: Some(expected),
+            expected_content_digest,
+            expected_manifest_sha256,
             ..
         }
         | Operation::Validate {
-            expected_content_digest: Some(expected),
+            expected_content_digest,
+            expected_manifest_sha256,
             ..
         } = &self.operation
         {
-            ensure!(
-                expected.len() == 64
-                    && expected
-                        .bytes()
-                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
-                "INVALID_REQUEST|expected_content_digest must be 64 lowercase hexadecimal digits"
-            );
+            for (field, expected) in [
+                ("expected_content_digest", expected_content_digest),
+                ("expected_manifest_sha256", expected_manifest_sha256),
+            ] {
+                if let Some(expected) = expected {
+                    ensure!(
+                        expected.len() == 64
+                            && expected
+                                .bytes()
+                                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
+                        "INVALID_REQUEST|{field} must be 64 lowercase hexadecimal digits"
+                    );
+                }
+            }
         }
         let mut v = json!({"operation":"api", "_api_request":self,
             "memory_budget_bytes":l.memory_bytes, "disk_budget_bytes":l.scratch_bytes,
@@ -331,17 +345,24 @@ fn envelope(mut response: Value, raw: &Value, bytes: &[u8], execution: &Value) -
     response
 }
 
-fn dataset(path: &Path) -> Result<(Value, Option<ontokiln_pack::Pack>)> {
+struct Dataset {
+    meta: Value,
+    pack: Option<ontokiln_pack::Pack>,
+    manifest_sha256: Option<String>,
+}
+
+fn dataset(path: &Path) -> Result<Dataset> {
     if path.is_file() {
         let pack =
             ontokiln_pack::Pack::load(path).map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
-        Ok((
-            json!({"semantics":"pack-rdfs-hierarchy/v1","capabilities":["select-ask/v1","views/v1","document-graphs/v1","revision/v1"],
+        Ok(Dataset {
+            meta: json!({"semantics":"pack-rdfs-hierarchy/v1","capabilities":["select-ask/v1","views/v1","document-graphs/v1","revision/v1"],
             "default_graph":"union","views":["asserted","inferred","closure"],"profile":"rdfs-hierarchy-v1","facts":pack.triple_count()}),
-            Some(pack),
-        ))
+            pack: Some(pack),
+            manifest_sha256: None,
+        })
     } else {
-        let manifest = crate::full_artifact::verify(path)
+        let (manifest, manifest_sha256) = crate::full_artifact::verify_with_manifest_digest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         ensure!(
             matches!(manifest["kind"].as_str(), Some("compiled" | "reasoned")),
@@ -356,11 +377,12 @@ fn dataset(path: &Path) -> Result<(Value, Option<ontokiln_pack::Pack>)> {
         } else {
             json!(["asserted"])
         };
-        Ok((
-            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT,CONTENT_DIGEST_CAPABILITY],
+        Ok(Dataset {
+            meta: json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT,CONTENT_DIGEST_CAPABILITY,MANIFEST_DIGEST_CAPABILITY],
             "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
-            None,
-        ))
+            pack: None,
+            manifest_sha256: Some(manifest_sha256),
+        })
     }
 }
 
@@ -372,6 +394,19 @@ fn check_content_digest(meta: &Value, expected: Option<&str>) -> Result<()> {
         ensure!(
             actual == expected,
             "INVALID_DATASET|dataset content digest does not match expected_content_digest"
+        );
+    }
+    Ok(())
+}
+
+fn check_manifest_digest(actual: Option<&str>, expected: Option<&str>) -> Result<()> {
+    if let Some(expected) = expected {
+        let actual = actual.ok_or_else(|| {
+            anyhow::anyhow!("UNSUPPORTED_CAPABILITY|required {MANIFEST_DIGEST_CAPABILITY}")
+        })?;
+        ensure!(
+            actual == expected,
+            "INVALID_DATASET|dataset manifest digest does not match expected_manifest_sha256"
         );
     }
     Ok(())
@@ -434,7 +469,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "read_contracts":[READ_CONTRACT],"rule_contract":"ontology-rule-ir/v1",
                 "runtime":crate::full::runtime_info(),"default_view":"asserted","proof_coverage":{"per_fact":"not_recorded"}});
             if let Some(path) = path {
-                let (mut meta, _) = dataset(path)?;
+                let Dataset { mut meta, .. } = dataset(path)?;
                 meta.as_object_mut()
                     .context("dataset metadata")?
                     .remove("manifest");
@@ -445,6 +480,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
         Operation::Query {
             dataset: path,
             expected_content_digest,
+            expected_manifest_sha256,
             query,
             parameters,
             rdf_bindings,
@@ -461,8 +497,16 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 values,
             )
             .map_err(invalid)?;
-            let (meta, pack) = dataset(path)?;
+            let Dataset {
+                meta,
+                pack,
+                manifest_sha256,
+            } = dataset(path)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
+            check_manifest_digest(
+                manifest_sha256.as_deref(),
+                expected_manifest_sha256.as_deref(),
+            )?;
             ensure!(
                 meta["views"]
                     .as_array()
@@ -588,6 +632,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
         Operation::Validate {
             dataset: path,
             expected_content_digest,
+            expected_manifest_sha256,
             shapes,
             shapes_from_dataset,
             selected_shapes,
@@ -601,8 +646,16 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 !*shapes_from_dataset || shapes.is_empty(),
                 "INVALID_REQUEST|choose dataset shapes or external shapes"
             );
-            let (meta, pack) = dataset(path)?;
+            let Dataset {
+                meta,
+                pack,
+                manifest_sha256,
+            } = dataset(path)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
+            check_manifest_digest(
+                manifest_sha256.as_deref(),
+                expected_manifest_sha256.as_deref(),
+            )?;
             ensure!(
                 pack.is_none(),
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"

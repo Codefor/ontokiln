@@ -79,12 +79,14 @@ class Contract(unittest.TestCase):
                           "output": str(cls.compiled), "profile": "rdfs-supported-v1"})
         assert reply["result"]["stats"]["explicit_facts"] == 10000, reply
         cls.compiled_content_digest = reply["result"]["artifact"]["content_digest"]
+        cls.compiled_manifest_sha256 = reply["result"]["artifact"]["manifest_sha256"]
         inspected = json.loads(subprocess.check_output([BINARY, "inspect", "--pack", cls.pack]))
         assert inspected["triples"] == 10000, inspected
         cls.reasoned = cls.root / "reasoned"
         reply = cls.call({"kind": "materialize", "dataset": str(cls.compiled), "output": str(cls.reasoned)})
         assert reply["result"]["fixpoint_reached"] is True
         cls.reasoned_content_digest = reply["result"]["artifact"]["content_digest"]
+        cls.reasoned_manifest_sha256 = reply["result"]["artifact"]["manifest_sha256"]
         cls.datasets = [cls.pack, cls.reasoned]
 
     @classmethod
@@ -276,6 +278,38 @@ class Contract(unittest.TestCase):
             if process.poll() is None:
                 process.kill();process.wait()
 
+    def test_ask_initial_bindings_preserve_boolean_semantics(self):
+        for text, expected in [
+            ("ASK { FILTER(BOUND(?given)) }", True),
+            ("ASK { FILTER(?given = <urn:binding:x>) }", True),
+            ("ASK { FILTER(?given = <urn:binding:y>) }", False),
+            ("ASK { FILTER(BOUND(?given)) } LIMIT 0", False),
+        ]:
+            with self.subTest(query=text):
+                result = self.call({"kind": "query", "dataset": str(self.reasoned),
+                                    "query": text, "rdf_bindings": {"given": "<urn:binding:x>"}})["result"]
+                self.assertEqual(result["query_type"], "ASK")
+                self.assertEqual(result["variables"], [])
+                self.assertEqual(result["items"], [])
+                self.assertIs(result["boolean"], expected)
+
+    def test_unused_values_still_validate_rdf_terms(self):
+        op = {"kind": "query", "dataset": str(self.reasoned), "query": "ASK {}"}
+        valid = [None, {"type": "iri", "value": "urn:valid"},
+                 {"type": "literal", "value": "name", "language": "en"}]
+        invalid = [
+            {"type": "iri", "value": "not an IRI"},
+            {"type": "literal", "value": "x", "datatype": "not an IRI"},
+            {"type": "literal", "value": "x", "language": "not a language"},
+            {"type": "literal", "value": "x", "language": "en", "datatype": XSD + "string"},
+        ]
+        for cell in valid + invalid:
+            with self.subTest(cell=cell):
+                reply = self.call({**op, "values": [{"variables": ["unused"], "rows": [[cell]]}]},
+                                  "INVALID_REQUEST" if cell in invalid else None)
+                if cell in valid:
+                    self.assertTrue(reply["result"]["boolean"])
+
     def test_rule_admission_frozen_inputs_and_compile_options(self):
         path = self.root/"admission.json"
         path.write_text(json.dumps({"schema_version": "ontology-rule-ir/v1", "rules": []}))
@@ -429,6 +463,32 @@ class Contract(unittest.TestCase):
                   "RESOURCE_EXHAUSTED", limits={"max_iterations": 0})
         self.assertFalse(limited.exists())
 
+    def test_materialization_large_row_allowances_do_not_overflow(self):
+        tiny = self.root / "large-allowance.ttl"
+        tiny.write_text('''@prefix ex: <urn:allowance:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+ex:item a ex:Leaf .
+ex:Leaf rdfs:subClassOf ex:Root .''')
+        compiled = self.root / "large-allowance-compiled"
+        self.call({"kind": "compile", "sources": [source(tiny)],
+                   "output": str(compiled), "profile": "rdfs-supported-v1"})
+        for allowance in [0, 2**63 - 1, 2**64 - 1]:
+            with self.subTest(max_intermediate_rows=allowance):
+                output = self.root / f"large-allowance-{allowance}"
+                reply = self.call({"kind": "materialize", "dataset": str(compiled),
+                                   "output": str(output)},
+                                  None if allowance else "RESOURCE_EXHAUSTED",
+                                  limits={"max_intermediate_rows": allowance})
+                if allowance:
+                    self.assertEqual(reply["result"]["stats"],
+                                     {"explicit_facts": 2, "inferred_facts": 1})
+                    self.assertTrue(reply["result"]["fixpoint_reached"])
+                    answer = self.query(output, "ASK { <urn:allowance:item> a <urn:allowance:Root> }",
+                                        view="inferred")
+                    self.assertTrue(answer["boolean"])
+                else:
+                    self.assertFalse(output.exists())
+
     def test_shacl_checks_real_fixture_and_rejects_pack(self):
         shapes = self.root / "shapes.ttl"
         shapes.write_text('''@prefix sh: <http://www.w3.org/ns/shacl#> .
@@ -516,6 +576,69 @@ class Contract(unittest.TestCase):
             capabilities = self.call({"kind": "capabilities", "dataset": str(dataset)})["result"]["dataset"]["capabilities"]
             self.assertEqual(capability in capabilities, supported)
 
+    def test_optional_manifest_digest_pins_metadata_and_raw_bytes(self):
+        for dataset, manifest_sha, content_digest in [
+            (self.compiled, self.compiled_manifest_sha256, self.compiled_content_digest),
+            (self.reasoned, self.reasoned_manifest_sha256, self.reasoned_content_digest),
+        ]:
+            self.assertEqual(hashlib.sha256((dataset / "manifest.json").read_bytes()).hexdigest(), manifest_sha)
+            for op in [{"kind": "query", "dataset": str(dataset), "query": "ASK {}"},
+                       {"kind": "validate", "dataset": str(dataset)}]:
+                with self.subTest(dataset=dataset.name, operation=op["kind"]):
+                    result = self.call(op)["result"]
+                    self.assertEqual(self.call({**op, "expected_manifest_sha256": None})["result"], result)
+                    self.assertEqual(self.call({**op, "expected_manifest_sha256": manifest_sha,
+                                                "expected_content_digest": content_digest})["result"], result)
+                    wrong = ("1" if manifest_sha[0] == "0" else "0") + manifest_sha[1:]
+                    self.call({**op, "expected_manifest_sha256": wrong}, "INVALID_DATASET")
+                    for invalid in ["0" * 63, "A" * 64, "g" * 64, 7]:
+                        self.call({**op, "expected_manifest_sha256": invalid}, "INVALID_REQUEST")
+                    self.call({**op, "dataset": str(self.pack), "expected_manifest_sha256": manifest_sha},
+                              "UNSUPPORTED_CAPABILITY")
+
+        # Same files and declarations, different manifest bytes: this guard is a
+        # byte identity precondition, not a hash of re-serialized parsed JSON.
+        copied = self.root / "reformatted-manifest"
+        shutil.copytree(self.reasoned, copied)
+        path = copied / "manifest.json"
+        manifest = json.loads(path.read_bytes())
+        path.write_text(json.dumps(manifest, indent=4) + "\n")
+        updated = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.assertNotEqual(updated, self.reasoned_manifest_sha256)
+        for op in [{"kind": "query", "dataset": str(copied), "query": "ASK {}"},
+                   {"kind": "validate", "dataset": str(copied)}]:
+            self.call({**op, "expected_content_digest": self.reasoned_content_digest})
+            self.call({**op, "expected_manifest_sha256": self.reasoned_manifest_sha256}, "INVALID_DATASET")
+            self.call({**op, "expected_manifest_sha256": updated})
+
+        for dataset, supported in [(self.compiled, True), (self.reasoned, True), (self.pack, False)]:
+            meta = self.call({"kind": "capabilities", "dataset": str(dataset)})["result"]["dataset"]
+            self.assertEqual("dataset-manifest-digest/v1" in meta["capabilities"], supported)
+            self.assertNotIn("manifest_sha256", meta)
+            self.assertNotIn("manifest", meta)
+
+    def test_manifest_metadata_matches_frozen_inputs(self):
+        copied = self.root / "inconsistent-manifest"
+        shutil.copytree(self.compiled, copied)
+        path = copied / "manifest.json"
+        original = json.loads(path.read_bytes())
+        for field, value in [("profile_id", "no-rules-v1"), ("source_tree_digest", "0" * 64),
+                             ("semantic_fingerprint", "0" * 64), ("kind", "unknown")]:
+            with self.subTest(field=field):
+                path.write_text(json.dumps({**original, field: value}))
+                for op in [{"kind": "query", "dataset": str(copied), "query": "ASK {}"},
+                           {"kind": "validate", "dataset": str(copied)},
+                           {"kind": "capabilities", "dataset": str(copied)}]:
+                    self.call(op, "INVALID_DATASET")
+
+        # A files-only digest cannot bind a declaration of completed reasoning.
+        # Pin the producer's complete manifest when such state matters.
+        path.write_text(json.dumps({**original, "kind": "reasoned", "fixpoint_reached": True}))
+        for op in [{"kind": "query", "dataset": str(copied), "query": "ASK {}", "view": "closure"},
+                   {"kind": "validate", "dataset": str(copied)}]:
+            self.call({**op, "expected_content_digest": self.compiled_content_digest,
+                       "expected_manifest_sha256": self.compiled_manifest_sha256}, "INVALID_DATASET")
+
     def test_digest_guard_rejects_a_different_valid_artifact_at_the_same_path(self):
         current = self.root / "guard-current"
         shutil.copytree(self.reasoned, current)
@@ -579,6 +702,30 @@ class Contract(unittest.TestCase):
                          [{"v": {"type": "literal", "value": "named", "datatype": XSD + "string"}}])
         # Preserve Full's declared union-default policy, while GRAPH keeps the original name.
         self.assertTrue(self.query(artifact, 'ASK { <urn:entity> <urn:value> ?v }')["boolean"])
+
+    def test_rdfs_rule_graph_scope_is_distinct_from_query_union(self):
+        trig = self.root / "rule-scope.trig"
+        trig.write_text('''@prefix ex: <urn:scope:> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+ex:Leaf rdfs:subClassOf ex:Root .
+ex:default a ex:Leaf .
+ex:named { ex:item a ex:Leaf . }
+ex:other { ex:Other rdfs:subClassOf ex:Parent . ex:item a ex:Other . }''')
+        compiled, reasoned = self.root / "scope-compiled", self.root / "scope-reasoned"
+        self.call({"kind": "compile", "sources": [{**source(trig), "format": "trig"}],
+                   "output": str(compiled), "profile": "rdfs-supported-v1"})
+        result = self.call({"kind": "materialize", "dataset": str(compiled),
+                            "output": str(reasoned)})["result"]
+        self.assertEqual(result["stats"], {"explicit_facts": 5, "inferred_facts": 1})
+        for query, expected in [
+            ("ASK { <urn:scope:default> a <urn:scope:Root> }", True),
+            ("ASK { <urn:scope:item> a <urn:scope:Leaf> }", True),
+            ("ASK { GRAPH <urn:scope:named> { <urn:scope:item> a <urn:scope:Leaf> } }", True),
+            ("ASK { <urn:scope:item> a <urn:scope:Root> }", False),
+            ("ASK { <urn:scope:item> a <urn:scope:Parent> }", False),
+        ]:
+            with self.subTest(query=query):
+                self.assertIs(self.query(reasoned, query, view="closure")["boolean"], expected)
 
     def test_large_query_request_has_no_implicit_transport_limit(self):
         query = 'SELECT ?value WHERE { VALUES ?value { "' + 'x' * (5 * 1024 * 1024) + '" } }'

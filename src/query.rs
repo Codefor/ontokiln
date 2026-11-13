@@ -4,7 +4,7 @@ use oxigraph::model::Term;
 use oxigraph::sparql::QueryResults;
 use serde_json::{Map, Value, json};
 
-/// Expose fixed input variables to SEP-0007 without changing the public SELECT columns.
+/// Expose fixed input variables to SEP-0007 without changing public SELECT columns or ASK results.
 pub fn expose_bindings(
     query: &mut spargebra::Query,
     names: impl Iterator<Item = String>,
@@ -20,18 +20,20 @@ pub fn expose_bindings(
             _ => anyhow::bail!("SELECT projection is unavailable"),
         }
     }
-    let spargebra::Query::Select { pattern, .. } = query else {
-        return Ok(None);
+    let (pattern, is_select) = match query {
+        spargebra::Query::Select { pattern, .. } => (pattern, true),
+        spargebra::Query::Ask { pattern, .. } => (pattern, false),
+        _ => return Ok(None),
     };
     let variables = projection(pattern)?;
-    let original = variables.iter().map(|v| v.as_str().to_owned()).collect();
+    let original = is_select.then(|| variables.iter().map(|v| v.as_str().to_owned()).collect());
     for name in names {
         let variable = oxrdf::Variable::new(name)?;
         if !variables.contains(&variable) {
             variables.push(variable);
         }
     }
-    Ok(Some(original))
+    Ok(original)
 }
 
 #[derive(Clone)]

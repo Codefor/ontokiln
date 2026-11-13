@@ -86,6 +86,11 @@ pub fn bind_tables(
         for name in &table.variables {
             spargebra::term::Variable::new(name)?;
         }
+        // Tables may be consumed only by another derived query, but malformed
+        // RDF input must be rejected independently of which slots this query uses.
+        for cell in table.rows.iter().flatten().flatten() {
+            cell.term()?;
+        }
     }
     let mut slots = Slots {
         params,

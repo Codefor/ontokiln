@@ -868,6 +868,10 @@ fn materialize(v: Value) -> Result<Value> {
             "missing/invalid field: max_intermediate_rows",
         )
     })?;
+    // Probe one row beyond the allowance without overflowing u64 or emitting
+    // a LIMIT outside SQLite's signed integer range. Larger allowances cannot
+    // be exceeded by a representable SQLite COUNT result.
+    let candidate_limit = max_rows.saturating_add(1).min(i64::MAX as u64);
     let max_derived = v["max_derived_facts"]
         .as_u64()
         .ok_or_else(|| err("SOURCE_INVALID", "missing/invalid field: max_derived_facts"))?;
@@ -915,7 +919,7 @@ fn materialize(v: Value) -> Result<Value> {
                     // Limit applies to raw join rows, before DISTINCT; counting a
                     // bounded subquery prevents an unbounded duplicate explosion.
                     let count: i64 = sql(c.query_row(
-                        &format!("SELECT COUNT(*) FROM ({q} LIMIT {})", max_rows + 1),
+                        &format!("SELECT COUNT(*) FROM ({q} LIMIT {candidate_limit})"),
                         [],
                         |r| r.get(0),
                     ))?;

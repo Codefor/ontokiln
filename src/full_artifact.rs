@@ -124,8 +124,14 @@ fn inventory(directory: &Path) -> Result<Value> {
 }
 
 pub(crate) fn verify(directory: &Path) -> Result<Value> {
+    verify_with_manifest_digest(directory).map(|(manifest, _)| manifest)
+}
+
+/// Return the digest of the same manifest bytes whose declarations were verified.
+pub(crate) fn verify_with_manifest_digest(directory: &Path) -> Result<(Value, String)> {
     regular(&directory.join("manifest.json"))?;
-    let manifest: Value = serde_json::from_slice(&fs::read(directory.join("manifest.json"))?)?;
+    let manifest_bytes = fs::read(directory.join("manifest.json"))?;
+    let manifest: Value = serde_json::from_slice(&manifest_bytes)?;
     ensure!(
         matches!(
             manifest["schema_version"].as_str(),
@@ -156,7 +162,35 @@ pub(crate) fn verify(directory: &Path) -> Result<Value> {
             "MANIFEST_CORRUPT|missing required artifact file"
         );
     }
-    Ok(manifest)
+    let input_bytes = fs::read(directory.join("input_manifest.json"))?;
+    ensure!(
+        files["input_manifest.json"]["bytes"].as_u64() == Some(input_bytes.len() as u64)
+            && digest(&input_bytes) == files["input_manifest.json"]["sha256"],
+        "MANIFEST_CORRUPT|frozen input manifest changed during verification"
+    );
+    let frozen: Value = serde_json::from_slice(&input_bytes)?;
+    ensure!(
+        frozen["sources"].is_array()
+            && frozen["profile_id"].is_string()
+            && manifest["profile_id"] == frozen["profile_id"],
+        "MANIFEST_CORRUPT|artifact profile differs from frozen inputs"
+    );
+    ensure!(
+        digest(&canonical(&frozen["sources"])) == manifest["source_tree_digest"],
+        "MANIFEST_CORRUPT|artifact source tree digest differs from frozen inputs"
+    );
+    ensure!(
+        digest(&canonical(
+            &json!({"inputs":frozen, "engine":ENGINE_VERSION, "index_profile":"core-v1"})
+        )) == manifest["semantic_fingerprint"],
+        "MANIFEST_CORRUPT|artifact semantic fingerprint differs from frozen inputs"
+    );
+    ensure!(
+        matches!(manifest["kind"].as_str(), Some("compiled" | "reasoned"))
+            && (manifest["kind"] != "reasoned" || manifest["fixpoint_reached"] == true),
+        "MANIFEST_CORRUPT|invalid artifact kind or incomplete fixpoint declaration"
+    );
+    Ok((manifest, digest(&manifest_bytes)))
 }
 
 fn integrity(stage: &Path) -> Result<()> {

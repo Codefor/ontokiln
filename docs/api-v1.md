@@ -59,8 +59,8 @@ v1 保持既有默认 envelope、查询和校验结果的字段集，不要求�
 | `rules` | `profile`、`files: [{path, expected_sha256}]`。冻结、校验并返回 `ontology-rule-ir/v1` 的 `rules` 数组 |
 | `compile` | `sources`、`output`、`profile`，可选 `rules: []`、`import_lock`、`expected_source_tree_digest`。冻结输入并验证 SHA-256，原子发布新快照；输出路径必须不存在 |
 | `materialize` | `dataset`、`output`。读取已编译快照的规则计划，求不动点并发布新快照；失败不覆盖原数据 |
-| `query` | `dataset`、`query`；可选 `parameters: {}`、`rdf_bindings: {}`、`values: []`、`derived_queries: []`、`view: asserted`、`revision`、`require: []`、`expected_content_digest`。仅本地 SELECT / ASK，不允许 FROM / SERVICE |
-| `validate` | `dataset`；可选 `shapes: []`、`shapes_from_dataset: false`、`selected_shapes`、`focus_node`、`expected_content_digest`。只能选择外部 Shapes 或数据集内 Shapes；不支持 pack |
+| `query` | `dataset`、`query`；可选 `parameters: {}`、`rdf_bindings: {}`、`values: []`、`derived_queries: []`、`view: asserted`、`revision`、`require: []`、`expected_content_digest`、`expected_manifest_sha256`。仅本地 SELECT / ASK，不允许 FROM / SERVICE |
+| `validate` | `dataset`；可选 `shapes: []`、`shapes_from_dataset: false`、`selected_shapes`、`focus_node`、`expected_content_digest`、`expected_manifest_sha256`。只能选择外部 Shapes 或数据集内 Shapes；不支持 pack |
 
 `sources` 和外部 `shapes` 的元素为 `{path, document_id, format, expected_sha256, base_iri?}`；`format` 为 `turtle`、`ntriples`、`trig` 或 `nquads`。源文件必须是普通非符号链接文件，摘要为实际字节的 SHA-256。编译时 `document_id` 隔离空白节点；外部 Shapes 的空白节点独立解析。`rules` 元素为 `{path, expected_sha256}`。
 
@@ -68,20 +68,26 @@ v1 保持既有默认 envelope、查询和校验结果的字段集，不要求�
 
 `parameters` 使用显式 `urn:ontokiln:param:NAME` 槽。IRI 为 `{"type":"iri","value":"urn:x"}`；字面量为 `{"type":"literal","value":"文本","language":"zh"}` 或带 `datatype` 的形式。`language` 与 `datatype` 不能同时提供。多余、缺失和非法参数被拒绝；SPARQL 变量仍有自身作用域。
 
-`rdf_bindings` 是独立的变量初始绑定机制，值为合法 N-Triples RDF 词项字符串，变量名不含 `?`。它保持 SELECT 列、FILTER/BOUND 和 ORDER BY 的变量语义，允许同一快照的空白节点；不通过文本替换查询实现。只有声明 `rdf-bindings/v1` 的数据集支持，pack 暂时明确拒绝。
+`rdf_bindings` 是独立的变量初始绑定机制，值为合法 N-Triples RDF 词项字符串，变量名不含 `?`。它保持 SELECT 列、SELECT / ASK 中 FILTER/BOUND 和 ORDER BY 的变量语义，允许同一快照的空白节点；不通过文本替换查询实现。只有声明 `rdf-bindings/v1` 的数据集支持，pack 暂时明确拒绝。
 
-`expected_content_digest` 为 query / validate 的可选快照前置条件，取自 compile / materialize 成功结果的 `artifact.content_digest`。省略或 null 不增加前置条件；提供时必须是由 64 个小写十六进制字符表示的 SHA-256，否则返回 `INVALID_REQUEST`。Full 在完成产物完整性核验后比较摘要，错配返回 `INVALID_DATASET`，不会返回查询或校验结果。Full 通过 `dataset-content-digest/v1` 声明此能力；pack 查询提供非 null 摘要时返回 `UNSUPPORTED_CAPABILITY`，不会忽略。该字段不增加响应字段，也不是跨重编的语义等价检查。
+`expected_content_digest` 为 query / validate 的可选产物文件前置条件，取自 compile / materialize 成功结果的 `artifact.content_digest`。它绑定文件清单及其字节摘要，**不包含 manifest.json 本身**，因此不单独绑定其中的 kind、profile 或 fixpoint 声明。Full 通过 `dataset-content-digest/v1` 声明此能力，既有摘要公式保持不变。
+
+需要固定完整快照状态时，使用 query / validate 的可选 `expected_manifest_sha256`，取自 compile / materialize 成功结果的 `artifact.manifest_sha256`。它绑定本次完整性核验实际读取并解析的同一份 manifest 原始字节，包括 kind、profile、fixpoint 和文件清单；JSON 排版变化也会改变摘要。Full 通过 `dataset-manifest-digest/v1` 声明此能力。摘要一致证明读取的是指定声明及其经核验的文件，不独立证明规则执行正确，也不是跨重编的语义等价检查。
+
+上述两个字段均可单独提供，也可同时提供；各自省略或 null 不增加对应前置条件。非 null 值必须为 64 个小写十六进制字符，否则返回 `INVALID_REQUEST`。Full 在完成产物完整性核验后比较摘要，任一错配返回 `INVALID_DATASET`，不会返回查询或校验结果；同时核对 manifest 中的 profile、来源摘要和语义指纹与受文件摘要保护的冻结输入是否一致。pack 查询提供任一非 null 摘要时返回 `UNSUPPORTED_CAPABILITY`，不会忽略。两项前置条件均不增加默认响应字段。
 
 ## 快照语义
 
 | 快照 | 语义与可用能力 |
 |---|---|
 | 既有 pack | `pack-rdfs-hierarchy/v1`；默认图为所选文档的去重并集，asserted 命名图是文档图；层级推理与版本隔离维持原语义。能力含 `document-graphs/v1`、`revision/v1` |
-| Full | `rdf-dataset-union/v1`；存储保留 RDF 图名，SPARQL 默认图为所有可见图的去重并集，GRAPH 使用原始 RDF 图名；规则以冻结 profile / plan 为准。能力含 `rdf-named-graphs/v1`、`shacl/v1`、`dataset-content-digest/v1`；不支持 pack 的 revision 投影 |
+| Full | `rdf-dataset-union/v1`；存储保留 RDF 图名，SPARQL 默认图为所有可见图的去重并集，GRAPH 使用原始 RDF 图名；规则以冻结 profile / plan 为准。能力含 `rdf-named-graphs/v1`、`shacl/v1`、`dataset-content-digest/v1`、`dataset-manifest-digest/v1`；不支持 pack 的 revision 投影 |
 
 两者共同提供 `select-ask/v1`、`views/v1`。不同图语义、不同规则 profile 不能仅因接口相同就互换。未来替换存储适配器时必须保留原快照的语义和能力，不能将 Full 具名图自动解释为 pack 文档图。
 
 `asserted` 为原始事实；`inferred` 为新增推导事实；`closure` 为两者并集。Full 先按四元组的 explicit 标记筛选，再投影默认图；同一 SPO 在不同图的显式 / 推导状态可以不同。pack 按所选版本的三元组区分，显式声明优先。Full 带规则的 compiled 快照只允许 asserted，完成物化后才允许 inferred / closure；`no-rules-v1` 的 compiled 快照可直接查询三个视图。reasoned 快照必须记录已完成不动点。pack 的层级视图由受预算约束的查询求值生成。
+
+Full 规则的图范围与查询默认图分别定义：规则 IR 的三元组 atom 省略图位置时固定为物理默认图 `g=0`；四元组 atom 可显式指定图或图变量。当前内置 RDFS、inverse / symmetric 和自动生成的 property-chain 规则均作用于物理默认图；property-chain 声明及列表也要求在该图。SPARQL 默认图的 union 不会自动扩大这些规则的输入范围。更改规则的图范围须使用新的 profile，不能作为索引或执行计划优化悄然引入。
 
 compile 成功表示冻结输入已编译为新快照，不表示已经执行规则物化。materialize 读取 compiled 快照及其冻结规则计划，求不动点后发布新的 reasoned 快照，原快照不变；超限或未达到不动点均不能发布成功。query 只读取指定快照和可用视图，不隐式执行 Full 物化。
 
@@ -119,7 +125,17 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 | 校验 | `conforms`、`checked_shapes`、`violations` 数量、结构化 `report`（含 violations）。不符合 Shape 是正常校验结果，不是执行失败；现有 report 的字段及 RDF 词项表示仍属于兼容范围 |
 | 能力 | `operations`、`default_view`、`proof_coverage`，以及按请求提供的 `dataset` 元数据 |
 
-查询词项为 SPARQL JSON 的 `uri`、`bnode`、`literal` 对象；保留词法、datatype 和 `xml:lang`。普通字符串统一显式标记 `xsd:string`。不支持的结果词项明确拒绝。未绑定变量不出现在该行中。SELECT 保留重复解；只有 ORDER BY 承诺指定顺序。空白节点标签可合法重命名，等价比较需保留同一结果内的节点关系，不能按标签字节比较不同快照。
+查询词项为 SPARQL JSON 的 `uri`、`bnode`、`literal` 对象；保留词法、datatype 和 `xml:lang`。普通字符串统一显式标记 `xsd:string`。不支持的结果词项明确拒绝。未绑定变量不出现在该行中。未使用 DISTINCT / REDUCED 的 SELECT 保留重复解；只有 ORDER BY 承诺指定顺序。空白节点标签可合法重命名，等价比较需保留同一结果内的节点关系，不能按标签字节比较不同快照。
+
+### 查询结果的语义等价
+
+兼容比较遵循 [SPARQL 1.1 的结果修饰符](https://www.w3.org/TR/sparql11-query/#solutionModifiers)与[聚合语义](https://www.w3.org/TR/sparql11-query/#aggregates)，不把一次执行的遍历顺序当作额外承诺：
+
+- 对完整、确定性的 SELECT 结果，按变量绑定的多重集比较，保留重复次数、未绑定状态和 RDF 词项身份；不能用去重集合掩盖重复解变化。确定性 ASK 比较布尔值。
+- ORDER BY 的比较键可比较且足以确定顺序时，按有序结果比较；相同排序键之间、或规范未定义比较关系的解之间，不承诺额外顺序。LIMIT / OFFSET 在没有确定全序或截断同值组时，可以选出不同的合法解，不能要求两次切片的行集合必然相等。
+- SAMPLE 的取值、GROUP_CONCAT 的拼接顺序、REDUCED 的重复消除，以及 RAND、NOW、UUID / STRUUID、BNODE 等函数产生的值，按各自规范检查允许的结果；不能要求跨执行字节一致，也不能免除规范要求的取值范围、同一请求内的一致性、唯一性或空白节点关系。
+
+性能基线优先使用确定性的完整计数或完整结果多重集；需要稳定切片或逐行比较时，使用足以唯一确定顺序的稳定排序键。不能仅用行数证明任意结果集正确，也不能从待测引擎的输出反写预期；包含上述不确定行为的查询应使用专门的合法性检查，或不纳入确定性结果差分门禁。
 
 本版 `proof_coverage` 固定为 `{"per_fact":"not_recorded"}`，不把结果数量、闭包或成功终态当作逐事实证明。
 
@@ -129,7 +145,8 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 |---|---|
 | `request_sha256` | 原始公开请求文件字节的摘要；JSON 排版变化也会改变。绑定请求内容，不是幂等键，也不单独绑定 dataset 路径所指的内容 |
 | `source_tree_digest` | 按 document_id 排序后的冻结来源清单摘要，包含来源格式、base IRI、字节摘要等；不是 RDF 图的语义规范化摘要 |
-| `content_digest` | 产物文件清单及其字节摘要的摘要。绑定精确产物内容；即使语义相同，重编或物理格式变化也可能改变，前置条件应使用对应新产物的摘要 |
+| `content_digest` | 产物文件清单及其字节摘要的摘要，排除 manifest.json；不单独绑定 manifest 中的状态或 profile。即使语义相同，重编或物理格式变化也可能改变 |
+| `manifest_sha256` | manifest 原始文件字节的摘要，绑定其中的 kind、profile、fixpoint 和文件清单；完整快照前置条件使用对应产物的此摘要，JSON 排版变化也会改变 |
 | `semantic_fingerprint` | 冻结输入与配置配方的摘要，包含 engine semantic version 和 index profile。不是 RDF 图语义等价判定；compiled / reasoned 可共享此值，不能据此判断物化是否完成 |
 | `kernel` | 实际构建与发行身份；用于诊断、固定发行和精确版本核验，不作为 API 或读取格式的兼容版本 |
 
@@ -199,7 +216,7 @@ cargo test --locked --test api
 
 ## 派生查询数据
 
-Full 查询可以提供 `values` 和 `derived_queries`，分别要求 `values-bindings/v1`、`derived-query-data/v1` 能力。`values` 是 `{variables:["s","o"],rows:[[typedTerm,typedTerm]]}` 的表数组，绑定查询内变量列表相同的空 `VALUES (?s ?o) {}`；`null` 表示 UNDEF。使用同一套 IRI/字面量类型校验，不插入查询文本。
+Full 查询可以提供 `values` 和 `derived_queries`，分别要求 `values-bindings/v1`、`derived-query-data/v1` 能力。`values` 是 `{variables:["s","o"],rows:[[typedTerm,typedTerm]]}` 的表数组，绑定查询内变量列表相同的空 `VALUES (?s ?o) {}`；`null` 表示 UNDEF。所有非 null 单元格均使用同一套 IRI/字面量类型校验，包括当前查询未使用的表；合法表可以只供某条派生查询使用。不插入查询文本。
 
 `derived_queries` 最多 32 条本地 CONSTRUCT 或 SELECT s/p/o 查询，按列表顺序在同一核验过的 Full 只读快照上执行。前序结果是后序查询默认图的去重三元组，不写入 Bundle，也不进入具名图；最终查询仍为 SELECT/ASK。请求只携带查询和 typed VALUES，不接受调用方任意 RDF 请求图。pack 不支持此扩展，能力不足明确失败。
 
