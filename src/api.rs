@@ -56,6 +56,10 @@ pub enum Operation {
         #[serde(default)]
         rdf_bindings: BTreeMap<String, String>,
         #[serde(default)]
+        values: Vec<parameters::ValuesTable>,
+        #[serde(default)]
+        derived_queries: Vec<String>,
+        #[serde(default)]
         view: View,
         revision: Option<String>,
         #[serde(default)]
@@ -319,7 +323,7 @@ fn dataset(path: &Path) -> Result<(Value, Option<ontokiln_pack::Pack>)> {
             json!(["asserted"])
         };
         Ok((
-            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1",READ_CONTRACT],
+            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT],
             "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
             None,
         ))
@@ -354,7 +358,9 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             return Ok(reply);
         }
         Operation::PrepareQuery { query } => {
-            crate::query::local_query(query).map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+            crate::query::local_query(query)
+                .or_else(|_| crate::query::local_derived_query(query))
+                .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
             json!({"valid":true})
         }
         Operation::Rules { profile, files } => {
@@ -394,14 +400,19 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             query,
             parameters,
             rdf_bindings,
+            values,
+            derived_queries,
             view,
             revision,
             require,
         } => {
             crate::query::local_query(query).map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
-            let parsed =
-                parameters::bind(sparql::SparqlParser::new().parse_query(query)?, parameters)
-                    .map_err(invalid)?;
+            let parsed = parameters::bind_tables(
+                sparql::SparqlParser::new().parse_query(query)?,
+                parameters,
+                values,
+            )
+            .map_err(invalid)?;
             let (meta, pack) = dataset(path)?;
             ensure!(
                 meta["views"]
@@ -420,6 +431,10 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 );
             }
             let mut data = if let Some(pack) = pack {
+                ensure!(
+                    values.is_empty() && derived_queries.is_empty(),
+                    "UNSUPPORTED_CAPABILITY|derived query data requires a Full dataset"
+                );
                 ensure!(
                     rdf_bindings.is_empty(),
                     "UNSUPPORTED_CAPABILITY|pack does not support variable bindings"
@@ -461,11 +476,57 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     revision.is_none(),
                     "UNSUPPORTED_CAPABILITY|revision selection is not available for this dataset"
                 );
+                ensure!(
+                    derived_queries.len() <= 32,
+                    "INVALID_REQUEST|at most 32 derived queries are allowed"
+                );
+                for text in derived_queries {
+                    crate::query::local_derived_query(text)
+                        .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+                }
                 let copy = tempfile::tempdir()?;
                 snapshot(path, &meta, copy.path())?;
+                let mut overlay = Vec::new();
+                let mut unique = std::collections::BTreeSet::new();
+                let mut intermediate_rows = 0u64;
+                for text in derived_queries {
+                    let rows = crate::disk::query(&json!({"dataset":copy.path().join("facts.sqlite"),
+                        "query":text,"parameters":parameters,"rdf_bindings":rdf_bindings,"values":values,"derived_data":true,
+                        "view":view,"overlay":overlay,"max_rows":limits.max_intermediate_rows,
+                        "max_bytes":limits.memory_bytes.unwrap_or(u64::MAX),"query_seconds":null}))
+                        .map_err(|e| if e.to_string().contains("budget") {
+                            anyhow::anyhow!("BUDGET_EXHAUSTED|{e}")
+                        } else { anyhow::anyhow!("INVALID_QUERY|{e}") })?;
+                    ensure!(
+                        (rows["query_type"] == "SELECT" || rows["query_type"] == "CONSTRUCT")
+                            && rows["variables"]
+                                .as_array()
+                                .is_some_and(|vars| ["s", "p", "o"]
+                                    .iter()
+                                    .all(|v| vars.contains(&json!(v)))),
+                        "INVALID_QUERY|derived queries must SELECT s p o RDF terms"
+                    );
+                    for row in rows["items"].as_array().context("derived query rows")? {
+                        intermediate_rows += 1;
+                        ensure!(
+                            intermediate_rows <= limits.max_intermediate_rows,
+                            "BUDGET_EXHAUSTED|derived query intermediate row limit"
+                        );
+                        let triple = crate::query::rdf_triple(row)
+                            .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+                        if unique.insert(triple.clone()) {
+                            ensure!(
+                                unique.len() as u64 <= limits.max_derived_facts,
+                                "BUDGET_EXHAUSTED|derived query fact limit"
+                            );
+                            overlay.push(triple);
+                        }
+                    }
+                }
                 crate::full::execute(
                     json!({"operation":"query","dataset":copy.path().join("facts.sqlite"),
-                    "query":query,"parameters":parameters,"rdf_bindings":rdf_bindings,"view":view,"max_rows":limits.max_rows,
+                    "query":query,"parameters":parameters,"rdf_bindings":rdf_bindings,"values":values,
+                    "overlay":overlay,"view":view,"max_rows":limits.max_rows,
                     "max_bytes":limits.max_bytes,"query_seconds":null}),
                 )
                 .map_err(anyhow::Error::msg)?

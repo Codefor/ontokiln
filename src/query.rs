@@ -155,6 +155,26 @@ pub fn local_select(text: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn local_derived_query(text: &str) -> Result<()> {
+    let ts = tokens(text);
+    ensure!(
+        !ts.iter().any(|t| ["FROM", "SERVICE"]
+            .iter()
+            .any(|w| t.word.eq_ignore_ascii_case(w))
+            && text.as_bytes().get(t.start.wrapping_sub(1)) != Some(&b':')),
+        "external query I/O is disabled"
+    );
+    ensure!(
+        matches!(
+            spargebra::SparqlParser::new().parse_query(text)?,
+            spargebra::Query::Select { dataset: None, .. }
+                | spargebra::Query::Construct { dataset: None, .. }
+        ),
+        "derived data requires a local SELECT s p o or CONSTRUCT query"
+    );
+    Ok(())
+}
+
 pub fn shacl_path(text: &str, path: Option<&str>) -> Result<String> {
     let mut output = text.to_owned();
     for token in tokens(text)
@@ -186,6 +206,35 @@ pub fn term_json(term: &Term) -> Value {
         #[allow(unreachable_patterns)]
         _ => json!({"type":"unsupported","value":term.to_string()}),
     }
+}
+
+pub fn rdf_triple(row: &Value) -> Result<[String; 3]> {
+    use oxigraph::model::{BlankNode, Literal, NamedNode};
+    let term = |cell: &Value| -> Result<Term> {
+        let value = cell["value"].as_str().context("derived RDF term value")?;
+        Ok(match cell["type"].as_str() {
+            Some("uri") => NamedNode::new(value)?.into(),
+            Some("bnode") => BlankNode::new(value)?.into(),
+            Some("literal") => match (cell["xml:lang"].as_str(), cell["datatype"].as_str()) {
+                (Some(lang), _) => Literal::new_language_tagged_literal(value, lang)?.into(),
+                (_, Some(datatype)) => {
+                    Literal::new_typed_literal(value, NamedNode::new(datatype)?).into()
+                }
+                _ => Literal::new_simple_literal(value).into(),
+            },
+            _ => anyhow::bail!(
+                "INVALID_QUERY|derived query returned an unbound or unsupported RDF term"
+            ),
+        })
+    };
+    let s = term(&row["s"])?;
+    let p = term(&row["p"])?;
+    let o = term(&row["o"])?;
+    ensure!(
+        matches!(s, Term::NamedNode(_) | Term::BlankNode(_)) && matches!(p, Term::NamedNode(_)),
+        "INVALID_QUERY|derived query returned an invalid RDF subject or predicate"
+    );
+    Ok([s.to_string(), p.to_string(), o.to_string()])
 }
 
 pub fn collect(
@@ -221,6 +270,25 @@ pub fn collect(
                 json!({"variables":vars,"items":items,"complete":true,"truncated":false,"query_type":"SELECT","view":view}),
             )
         }
-        _ => anyhow::bail!("only local SELECT/ASK queries are supported"),
+        QueryResults::Graph(triples) => {
+            let mut items = Vec::new();
+            let mut bytes = 0;
+            let mut seen = std::collections::HashSet::new();
+            for triple in triples {
+                let triple = triple?;
+                if !seen.insert(triple.clone()) {
+                    continue;
+                }
+                ensure!(items.len() < max_rows, "query output row budget exceeded");
+                let row = json!({"s":term_json(&triple.subject.into()),
+                    "p":term_json(&triple.predicate.into()),"o":term_json(&triple.object)});
+                bytes += serde_json::to_vec(&row)?.len();
+                ensure!(bytes <= max_bytes, "query output byte budget exceeded");
+                items.push(row);
+            }
+            Ok(
+                json!({"variables":["s","p","o"],"items":items,"complete":true,"truncated":false,"query_type":"CONSTRUCT","view":view}),
+            )
+        }
     }
 }

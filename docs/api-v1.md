@@ -49,7 +49,7 @@ flowchart TB
 | operation.kind | 字段与行为 |
 |---|---|
 | `capabilities` | 可选 `dataset`。无数据集时返回操作集合、默认视图和证明覆盖；有数据集时校验后返回其语义、profile、能力及可用视图 |
-| `prepare_query` | `query`。检查本地 SELECT / ASK，拒绝远端访问；返回 `valid: true` |
+| `prepare_query` | `query`。检查本地 SELECT / ASK / CONSTRUCT，拒绝远端访问；返回 `valid: true` |
 | `rules` | `profile`、`files: [{path, expected_sha256}]`。冻结、校验并返回 `ontology-rule-ir/v1` 的 `rules` 数组 |
 | `compile` | `sources`、`output`、`profile`，可选 `rules: []`、`import_lock`、`expected_source_tree_digest`。冻结输入并验证 SHA-256，原子发布新快照；输出路径必须不存在 |
 | `materialize` | `dataset`、`output`。读取已编译快照的规则计划，求不动点并发布新快照；失败不覆盖原数据 |
@@ -164,3 +164,10 @@ cargo test --locked --test api
 - `capabilities.runtime` 提供诊断与读取版本元数据；消费者使用 API / read_contract 协商能力，发行校验另核对实际源码及二进制摘要。
 
 10,000 条固定 RDF 回归同时验证读取表、显式数量、来源引用、变量绑定、规则检查、无超时选项及发布回执的请求所有权，防止上层适配只改命令名而遗漏执行语义。
+
+
+Full 查询可以提供 `values` 和 `derived_queries`，分别要求 `values-bindings/v1`、`derived-query-data/v1` 能力。`values` 是 `{variables:["s","o"],rows:[[typedTerm,typedTerm]]}` 的表数组，绑定查询内变量列表相同的空 `VALUES (?s ?o) {}`；`null` 表示 UNDEF。使用同一套 IRI/字面量类型校验，不插入查询文本。
+
+`derived_queries` 最多 32 条本地 CONSTRUCT 或 SELECT s/p/o 查询，按列表顺序在同一核验过的 Full 只读快照上执行。前序结果是后序查询默认图的去重三元组，不写入 Bundle，也不进入具名图；最终查询仍为 SELECT/ASK。请求只携带查询和 typed VALUES，不接受调用方任意 RDF 请求图。pack 不支持此扩展，能力不足明确失败。
+
+整个执行共享超时、RSS、scratch、取消与回收；累计中间结果受 `max_intermediate_rows` 和 `max_derived_facts` 限制，任何阶段失败均不返回部分结果。查询与参数由外层 `request_sha256` 绑定；查询派生关系不伪装成 materialization 逐事实 Proof。

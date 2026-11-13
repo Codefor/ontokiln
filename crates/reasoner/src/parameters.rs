@@ -52,12 +52,45 @@ impl Parameter {
 struct Slots<'a> {
     params: &'a BTreeMap<String, Parameter>,
     used: BTreeSet<String>,
+    tables: &'a [ValuesTable],
 }
 
-pub fn bind(mut query: Query, params: &BTreeMap<String, Parameter>) -> Result<Query> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ValuesTable {
+    pub variables: Vec<String>,
+    pub rows: Vec<Vec<Option<Parameter>>>,
+}
+
+pub fn bind(query: Query, params: &BTreeMap<String, Parameter>) -> Result<Query> {
+    bind_tables(query, params, &[])
+}
+
+pub fn bind_tables(
+    mut query: Query,
+    params: &BTreeMap<String, Parameter>,
+    tables: &[ValuesTable],
+) -> Result<Query> {
+    let mut declarations = BTreeSet::new();
+    for table in tables {
+        ensure!(
+            !table.variables.is_empty()
+                && table.variables.iter().collect::<BTreeSet<_>>().len() == table.variables.len()
+                && declarations.insert(table.variables.clone())
+                && table
+                    .rows
+                    .iter()
+                    .all(|row| row.len() == table.variables.len()),
+            "invalid VALUES table"
+        );
+        for name in &table.variables {
+            spargebra::term::Variable::new(name)?;
+        }
+    }
     let mut slots = Slots {
         params,
         used: BTreeSet::new(),
+        tables,
     };
     if let Some(dataset) = query.dataset_mut() {
         for graph in dataset
@@ -262,7 +295,31 @@ impl Slots<'_> {
                 }
                 self.pattern(inner)?
             }
-            G::Values { bindings, .. } => {
+            G::Values {
+                variables,
+                bindings,
+            } => {
+                let names = variables.iter().map(|v| v.as_str()).collect::<Vec<_>>();
+                if let Some(table) = self.tables.iter().find(|t| {
+                    t.variables
+                        .iter()
+                        .map(String::as_str)
+                        .eq(names.iter().copied())
+                }) {
+                    ensure!(
+                        bindings.is_empty(),
+                        "VALUES table requires an empty declared slot"
+                    );
+                    *bindings = table
+                        .rows
+                        .iter()
+                        .map(|row| {
+                            row.iter()
+                                .map(|cell| cell.as_ref().map(Parameter::term).transpose())
+                                .collect::<Result<Vec<_>>>()
+                        })
+                        .collect::<Result<Vec<_>>>()?;
+                }
                 for row in bindings {
                     for cell in row.iter_mut().flatten() {
                         if let GroundTerm::NamedNode(n) = cell

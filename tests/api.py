@@ -128,6 +128,63 @@ class Contract(unittest.TestCase):
         self.assertEqual(reply["result"]["artifact"]["manifest_sha256"], hashlib.sha256((self.root/"owned/manifest.json").read_bytes()).hexdigest())
         self.assertGreater(reply["execution"]["metrics"]["peak_rss_bytes"], 0)
 
+    def test_query_derived_edges_are_scoped_bounded_and_typed(self):
+        before = hashlib.sha256((self.reasoned / 'facts.sqlite').read_bytes()).hexdigest()
+        for prefix in ('urn:synthetic:first:', 'urn:synthetic:other:'):
+            op = {'kind': 'query', 'dataset': str(self.reasoned),
+                  'query': 'SELECT ?s WHERE { ?s <'+prefix+'edge>+ ?s } ORDER BY ?s',
+                  'values': [{'variables': ['left', 'right'], 'rows': [
+                      [{'type': 'iri', 'value': prefix+'a'}, {'type': 'iri', 'value': prefix+'b'}],
+                      [{'type': 'iri', 'value': prefix+'b'}, {'type': 'iri', 'value': prefix+'a'}]]}],
+                  'derived_queries': ['SELECT (?left AS ?s) (<'+prefix+'edge> AS ?p) (?right AS ?o) WHERE { VALUES (?left ?right) {} }'],
+                  'require': ['values-bindings/v1', 'derived-query-data/v1']}
+            rows = self.call(op)['result']['items']
+            self.assertEqual([r['s']['value'] for r in rows], [prefix+'a', prefix+'b'])
+            self.assertFalse(self.call({**op, 'derived_queries': []})['result']['items'])
+            constructed = {**op, 'derived_queries': ['CONSTRUCT { ?left <'+prefix+'edge> ?right } WHERE { VALUES (?left ?right) {} }']}
+            self.assertEqual(self.call(constructed)['result']['items'], rows)
+            self.assertTrue(self.call({'kind':'prepare_query','query':constructed['derived_queries'][0]})['result']['valid'])
+            self.call({**op, 'query':constructed['derived_queries'][0]}, 'INVALID_QUERY')
+            self.assertFalse(self.call({**constructed, 'query':'SELECT ?g WHERE { GRAPH ?g {?s <'+prefix+'edge> ?o} }'})['result']['items'])
+            self.call({**constructed, 'derived_queries':[*constructed['derived_queries'], 'CONSTRUCT {?s ?p ?o} WHERE {SERVICE <urn:remote> {?s ?p ?o}}']}, 'INVALID_QUERY')
+            self.call(constructed, 'RESOURCE_EXHAUSTED', limits={'timeout_ms':1})
+
+            self.call(op, 'RESOURCE_EXHAUSTED', limits={'max_derived_facts': 1})
+            self.call(op, 'RESOURCE_EXHAUSTED', limits={'max_intermediate_rows': 1})
+            self.call({**op, 'derived_queries': ['ASK {}']}, 'INVALID_QUERY')
+            self.call({**op, 'derived_queries': ['SELECT ("bad" AS ?s) (<urn:p> AS ?p) (<urn:o> AS ?o) WHERE {}']}, 'INVALID_QUERY')
+            self.call({**op, 'dataset': str(self.pack)}, 'UNSUPPORTED_CAPABILITY')
+            invalid = [{'variables': ['left', 'right'], 'rows': [[{'type': 'iri', 'value': prefix+'a'}]]}]
+            self.call({**op, 'values': invalid}, 'INVALID_REQUEST')
+        self.assertEqual(before, hashlib.sha256((self.reasoned / 'facts.sqlite').read_bytes()).hexdigest())
+
+    def test_cancel_derived_query_reaps_the_real_worker(self):
+        op = {'kind':'query','dataset':str(self.reasoned),'query':'ASK {}',
+              'derived_queries':['CONSTRUCT {<urn:new:s> <urn:new:p> <urn:new:o>} WHERE {}',
+                  'SELECT (?a AS ?s) (<urn:new:edge> AS ?p) (?d AS ?o) WHERE {?a ?b ?c .?d ?e ?f .?g ?h ?i}']}
+        request, result, raw = request_files(self.root, 'cancel-derived', op)
+        process = subprocess.Popen([BINARY,'api','--request',request,'--result',result])
+        worker = None
+        try:
+            deadline = time.monotonic()+5
+            while time.monotonic()<deadline:
+                listing = subprocess.check_output(['ps','-eo','pid,ppid'],text=True)
+                for line in listing.splitlines()[1:]:
+                    parts=line.split()
+                    if len(parts)==2 and int(parts[1])==process.pid:
+                        worker=int(parts[0]);break
+                if worker:break
+                self.assertIsNone(process.poll())
+                time.sleep(.005)
+            self.assertIsNotNone(worker)
+            process.send_signal(signal.SIGTERM)
+            self.assertEqual(process.wait(timeout=5),0)
+            reply=terminal(result,raw,'CANCELLED')
+            self.assertEqual(reply['execution']['worker_pid'],worker)
+        finally:
+            if process.poll() is None:
+                process.kill();process.wait()
+
     def test_rule_admission_frozen_inputs_and_compile_options(self):
         path = self.root/"admission.json"
         path.write_text(json.dumps({"schema_version": "ontology-rule-ir/v1", "rules": []}))

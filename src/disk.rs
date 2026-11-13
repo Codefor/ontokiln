@@ -6,7 +6,7 @@ use rusqlite::{Connection, OpenFlags, OptionalExtension, params_from_iter};
 use serde_json::{Value, json};
 use spareval::{InternalQuad, QueryableDataset};
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
@@ -24,7 +24,10 @@ struct Disk {
     rows: Cell<usize>,
     bytes: Cell<usize>,
     cache: RefCell<HashMap<i64, Term>>,
-    overlay: Vec<[Term; 3]>,
+    encoded_cache: RefCell<HashMap<Term, Encoded>>,
+    overlay: Vec<[Encoded; 3]>,
+    overlay_set: HashSet<[Encoded; 3]>,
+    overlay_index: [HashMap<Encoded, Vec<usize>>; 3],
 }
 impl Disk {
     fn charge(&self, rows: usize, bytes: usize) -> io::Result<()> {
@@ -72,27 +75,36 @@ impl<'a> QueryableDataset<'a> for &'a Disk {
         let disk = *self;
         let mut overlay = Vec::new();
         if g == Some(None) {
-            for triple in &disk.overlay {
-                let terms = triple
-                    .iter()
-                    .cloned()
-                    .map(|t| disk.internalize_term(t))
-                    .collect::<io::Result<Vec<_>>>();
-                match terms {
-                    Ok(t)
-                        if s.is_none_or(|s| s == &t[0])
-                            && p.is_none_or(|p| p == &t[1])
-                            && o.is_none_or(|o| o == &t[2]) =>
-                    {
-                        overlay.push(Ok(InternalQuad {
-                            subject: t[0].clone(),
-                            predicate: t[1].clone(),
-                            object: t[2].clone(),
-                            graph_name: None,
-                        }))
-                    }
-                    Err(e) => overlay.push(Err(e)),
-                    _ => {}
+            let candidates = [(0, s), (1, p), (2, o)]
+                .into_iter()
+                .filter_map(|(column, term)| {
+                    term.map(|term| {
+                        disk.overlay_index[column]
+                            .get(term)
+                            .map(Vec::as_slice)
+                            .unwrap_or(&[])
+                    })
+                })
+                .min_by_key(|rows| rows.len());
+            let all;
+            let candidates = if let Some(rows) = candidates {
+                rows
+            } else {
+                all = (0..disk.overlay.len()).collect::<Vec<_>>();
+                &all
+            };
+            for &index in candidates {
+                let t = &disk.overlay[index];
+                if s.is_none_or(|s| s == &t[0])
+                    && p.is_none_or(|p| p == &t[1])
+                    && o.is_none_or(|o| o == &t[2])
+                {
+                    overlay.push(Ok(InternalQuad {
+                        subject: t[0].clone(),
+                        predicate: t[1].clone(),
+                        object: t[2].clone(),
+                        graph_name: None,
+                    }))
                 }
             }
         }
@@ -204,11 +216,11 @@ impl<'a> QueryableDataset<'a> for &'a Disk {
             if let Ok(q) = row
                 && union
             {
-                return !disk.overlay.iter().any(|t| {
-                    disk.internalize_term(t[0].clone()).ok().as_ref() == Some(&q.subject)
-                        && disk.internalize_term(t[1].clone()).ok().as_ref() == Some(&q.predicate)
-                        && disk.internalize_term(t[2].clone()).ok().as_ref() == Some(&q.object)
-                });
+                return !disk.overlay_set.contains(&[
+                    q.subject.clone(),
+                    q.predicate.clone(),
+                    q.object.clone(),
+                ]);
             }
             true
         })
@@ -250,14 +262,23 @@ impl<'a> QueryableDataset<'a> for &'a Disk {
     }
     fn internalize_term(&self, t: Term) -> io::Result<Encoded> {
         self.charge(0, 0)?;
-        Ok(self
+        if let Some(value) = self.encoded_cache.borrow().get(&t) {
+            return Ok(value.clone());
+        }
+        let encoded = self
             .db
             .query_row("SELECT id FROM terms WHERE n=?", [t.to_string()], |r| {
                 r.get(0)
             })
             .optional()
             .map_err(io::Error::other)?
-            .map_or(Encoded::External(t), Encoded::Stored))
+            .map_or_else(|| Encoded::External(t.clone()), Encoded::Stored);
+        let mut cache = self.encoded_cache.borrow_mut();
+        if cache.len() >= 4096 {
+            cache.clear();
+        }
+        cache.insert(t, encoded.clone());
+        Ok(encoded)
     }
     fn externalize_term(&self, t: Encoded) -> io::Result<Term> {
         match t {
@@ -293,7 +314,7 @@ pub fn query(a: &Value) -> Result<Value> {
         ["asserted", "closure", "inferred"].contains(&view),
         "unknown graph view"
     );
-    let disk = Disk {
+    let mut disk = Disk {
         db,
         inferred: view == "inferred",
         asserted: view == "asserted",
@@ -301,35 +322,62 @@ pub fn query(a: &Value) -> Result<Value> {
         rows: Cell::new(0),
         bytes: Cell::new(0),
         cache: RefCell::new(HashMap::new()),
-        overlay: a["overlay"]
-            .as_array()
-            .map(|rows| {
-                rows.iter()
-                    .map(|row| {
-                        let cells = row.as_array().context("overlay triple")?;
-                        ensure!(cells.len() == 3, "overlay triple");
-                        Ok([
-                            cells[0].as_str().context("overlay term")?.parse()?,
-                            cells[1].as_str().context("overlay term")?.parse()?,
-                            cells[2].as_str().context("overlay term")?.parse()?,
-                        ])
-                    })
-                    .collect::<Result<Vec<_>>>()
-            })
-            .transpose()?
-            .unwrap_or_default(),
+        encoded_cache: RefCell::new(HashMap::new()),
+        overlay: Vec::new(),
+        overlay_set: HashSet::new(),
+        overlay_index: Default::default(),
     };
+    let triples: Vec<[Term; 3]> = a["overlay"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .map(|row| {
+                    let cells = row.as_array().context("overlay triple")?;
+                    ensure!(cells.len() == 3, "overlay triple");
+                    Ok([
+                        cells[0].as_str().context("overlay term")?.parse()?,
+                        cells[1].as_str().context("overlay term")?.parse()?,
+                        cells[2].as_str().context("overlay term")?.parse()?,
+                    ])
+                })
+                .collect::<Result<Vec<_>>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
+    for triple in triples {
+        let terms = [
+            (&disk).internalize_term(triple[0].clone())?,
+            (&disk).internalize_term(triple[1].clone())?,
+            (&disk).internalize_term(triple[2].clone())?,
+        ];
+        if disk.overlay_set.insert(terms.clone()) {
+            for (column, term) in terms.iter().enumerate() {
+                disk.overlay_index[column]
+                    .entry(term.clone())
+                    .or_default()
+                    .push(disk.overlay.len());
+            }
+            disk.overlay.push(terms);
+        }
+    }
     let text = a["query"].as_str().context("query")?;
     ensure!(
         a.get("params")
             .is_none_or(|v| v.is_null() || v.as_object().is_some_and(|v| v.is_empty())),
         "use typed parameters with explicit urn:ontokiln:param: slots"
     );
-    crate::query::local_query(text)?;
+    if a["derived_data"] == true {
+        crate::query::local_derived_query(text)?;
+    } else {
+        crate::query::local_query(text)?;
+    }
     let params = serde_json::from_value(a.get("parameters").cloned().unwrap_or(json!({})))?;
-    let mut parsed = ontokiln_reasoner::parameters::bind(
+    let tables: Vec<ontokiln_reasoner::parameters::ValuesTable> =
+        serde_json::from_value(a.get("values").cloned().unwrap_or(json!([])))?;
+    let mut parsed = ontokiln_reasoner::parameters::bind_tables(
         spargebra::SparqlParser::new().parse_query(text)?,
         &params,
+        &tables,
     )?;
     let bindings = a["rdf_bindings"].as_object();
     let columns = if let Some(bindings) = bindings.filter(|b| !b.is_empty()) {
