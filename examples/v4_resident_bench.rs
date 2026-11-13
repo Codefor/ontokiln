@@ -18,15 +18,24 @@ use std::time::Instant;
 #[derive(Parser)]
 #[command(about = "Measure Pack v4 build, load and resident query/SHACL independently")]
 struct Args {
-    #[arg(long)] sources: PathBuf,
-    #[arg(long)] rules: PathBuf,
-    #[arg(long)] queries: PathBuf,
-    #[arg(long)] shapes: PathBuf,
-    #[arg(long)] pack: PathBuf,
-    #[arg(long)] output: PathBuf,
-    #[arg(long, default_value = "rdfs-supported-v1")] profile: String,
-    #[arg(long, default_value_t = 1)] warmups: usize,
-    #[arg(long, default_value_t = 3)] samples: usize,
+    #[arg(long)]
+    sources: PathBuf,
+    #[arg(long)]
+    rules: PathBuf,
+    #[arg(long)]
+    queries: PathBuf,
+    #[arg(long)]
+    shapes: PathBuf,
+    #[arg(long)]
+    pack: PathBuf,
+    #[arg(long)]
+    output: PathBuf,
+    #[arg(long, default_value = "rdfs-supported-v1")]
+    profile: String,
+    #[arg(long, default_value_t = 1)]
+    warmups: usize,
+    #[arg(long, default_value_t = 3)]
+    samples: usize,
 }
 
 #[derive(Deserialize)]
@@ -58,7 +67,9 @@ fn median(values: &[f64]) -> f64 {
 }
 
 fn sample<F>(warmups: usize, samples: usize, mut run: F) -> Result<(Value, Value)>
-where F: FnMut() -> Result<Value> {
+where
+    F: FnMut() -> Result<Value>,
+{
     for _ in 0..warmups {
         run()?;
     }
@@ -100,9 +111,12 @@ fn shapes_graph(path: &Path) -> Result<Graph> {
 
 fn memory_stats() -> Value {
     // Only Linux offers this kernel accounting; non-Linux callers get null.
-    let Ok(info) = fs::read_to_string("/proc/self/status") else {return Value::Null};
+    let Ok(info) = fs::read_to_string("/proc/self/status") else {
+        return Value::Null;
+    };
     let field = |name: &str| -> Option<u64> {
-        info.lines().find_map(|line| line.strip_prefix(name))
+        info.lines()
+            .find_map(|line| line.strip_prefix(name))
             .and_then(|suffix| suffix.split_whitespace().next())
             .and_then(|n| n.parse::<u64>().ok())
     };
@@ -111,15 +125,23 @@ fn memory_stats() -> Value {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    ensure!(args.samples > 0 && args.samples <= 30 && args.warmups <= 30,
-        "benchmark sample counts must be between 1 and 30");
+    ensure!(
+        args.samples > 0 && args.samples <= 30 && args.warmups <= 30,
+        "benchmark sample counts must be between 1 and 30"
+    );
     let sources: Vec<Source> = serde_json::from_slice(&fs::read(&args.sources)?)?;
     let rules: Vec<Rule> = serde_json::from_slice(&fs::read(&args.rules)?)?;
     let cases: Vec<QueryCase> = serde_json::from_slice(&fs::read(&args.queries)?)?;
-    ensure!(!sources.is_empty() && !cases.is_empty(), "empty source/query list");
+    ensure!(
+        !sources.is_empty() && !cases.is_empty(),
+        "empty source/query list"
+    );
     let mut names = std::collections::BTreeSet::new();
     for item in &cases {
-        ensure!(names.insert(item.name.as_str()), "duplicate benchmark query name");
+        ensure!(
+            names.insert(item.name.as_str()),
+            "duplicate benchmark query name"
+        );
     }
     let shapes = shapes_graph(&args.shapes)?;
     let before = memory_stats();
@@ -143,8 +165,10 @@ fn main() -> Result<()> {
     let now = Instant::now();
     let loaded = OntologyEngine::load_pack(&args.pack)?;
     let load_ms = now.elapsed().as_secs_f64() * 1e3;
-    ensure!(loaded.pack().quad_count() == engine.pack().quad_count(),
-        "reloaded Pack quad mismatch");
+    ensure!(
+        loaded.pack().quad_count() == engine.pack().quad_count(),
+        "reloaded Pack quad mismatch"
+    );
     let after_load = memory_stats();
 
     let mut measured_queries = BTreeMap::new();
@@ -154,32 +178,41 @@ fn main() -> Result<()> {
         let loaded_first_start = Instant::now();
         let first: Value = serde_json::from_slice(&loaded.query(&case.query, view)?)?;
         let first_ms = loaded_first_start.elapsed().as_secs_f64() * 1e3;
-        ensure!(original == first, "Pack save/reload changed query {}", case.name);
-        let (result, timings) = sample(args.warmups,args.samples, || {
-            Ok(serde_json::from_slice(&loaded.query(&case.query,view)?)?)
+        ensure!(
+            original == first,
+            "Pack save/reload changed query {}",
+            case.name
+        );
+        let (result, timings) = sample(args.warmups, args.samples, || {
+            Ok(serde_json::from_slice(&loaded.query(&case.query, view)?)?)
         })?;
         ensure!(first == result, "cold/warm query result mismatch");
-        measured_queries.insert(case.name,json!({
-            "view":case.view,
-            "cold_after_load_ms":first_ms,
-            "median_ms":timings["median_ms"],
-            "samples_ms":timings["samples_ms"],
-            "result":result
-        }));
+        measured_queries.insert(
+            case.name,
+            json!({
+                "view":case.view,
+                "cold_after_load_ms":first_ms,
+                "median_ms":timings["median_ms"],
+                "samples_ms":timings["samples_ms"],
+                "result":result
+            }),
+        );
     }
     // Full validator produces a rich report; record its counts + coverage
     // rather than allocating a huge second serialized JSON answer per sample.
-    let summary = |result: Value| json!({
-        "conforms":result["conforms"],
-        "checked_shapes":result["checked_shapes"],
-        "violations":result["violations"],
-        "coverage":result["report"]["coverage"],
-        "target_count":result["report"]["target_count"],
-    });
+    let summary = |result: Value| {
+        json!({
+            "conforms":result["conforms"],
+            "checked_shapes":result["checked_shapes"],
+            "violations":result["violations"],
+            "coverage":result["report"]["coverage"],
+            "target_count":result["report"]["target_count"],
+        })
+    };
     let first_started = Instant::now();
     let first = summary(loaded.validate(Some(&shapes), None, None, 64)?);
     let cold_validation_ms = first_started.elapsed().as_secs_f64() * 1e3;
-    let (validation, timing) = sample(args.warmups,args.samples, || {
+    let (validation, timing) = sample(args.warmups, args.samples, || {
         Ok(summary(loaded.validate(Some(&shapes), None, None, 64)?))
     })?;
     ensure!(validation == first, "cold/warm SHACL result changed");
@@ -206,13 +239,16 @@ fn main() -> Result<()> {
     if let Some(parent) = args.output.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&args.output,serde_json::to_vec_pretty(&report)?)?;
-    println!("{}",json!({"status":"PASS","output":args.output,
+    fs::write(&args.output, serde_json::to_vec_pretty(&report)?)?;
+    println!(
+        "{}",
+        json!({"status":"PASS","output":args.output,
         "facts":report["facts"],"build_ms":report["build_ms"],
         "resident_query_medians_ms":measured_queries.iter()
             .map(|(key,value)|(key.clone(),value["median_ms"].clone()))
             .collect::<BTreeMap<_,_>>(),
         "resident_shacl_median_ms":report["shacl"]["median_ms"],
-        "peak_rss_kib":report["memory"]["after_validation"]["peak_rss_kib"]}));
+        "peak_rss_kib":report["memory"]["after_validation"]["peak_rss_kib"]})
+    );
     Ok(())
 }

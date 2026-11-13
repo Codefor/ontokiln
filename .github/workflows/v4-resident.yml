@@ -24,13 +24,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Pin Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
-      - name: Rustfmt diagnostic
-        run: cargo fmt --all
-      - name: Export formatted resident benchmark source
-        run: |
-          echo BEGIN_FORMATTED_RESIDENT_BENCH
-          cat examples/v4_resident_bench.rs
-          echo END_FORMATTED_RESIDENT_BENCH
+      - name: Check rustfmt
+        run: cargo fmt --all --check
       - name: Compile release example
         run: cargo build --release --locked --example v4_resident_bench
       - name: Golden 100K corpus (three hot samples)
