@@ -6,6 +6,8 @@
 
 独立的 [Full 查询与 SHACL 优化实测（2026-11-13）](kernel-20261113.md)包含同机 10K/100K 前后对照、常驻实例启动与热请求、编译/物化及空间代价，原始 JSON 随报告提交。其被测内核与规模范围单独记录。
 
+后续的 [Full SHACL SQLite 邻域读取实测（2026-11-13）](shacl-sqlite-20261113.md)记录 10K/100K/1M 单 focus 会话对照、10K/100K 文件 API 全量回归、预算失败和回退；100K Core 通过用例约 56×，1M Core 在 512 MiB 内完成，非局部 1M 校验仍预算失败，附原始样本、比较结果与构建记录。
+
 Full 编译、物化、API 查询与 SHACL 的基线工具为 [kernel_baseline.py](kernel_baseline.py)，方法与独立预期见[基线说明](../tests/benchmarks/README.md)。后续新增的文件 API 与常驻实例测量分开计量，后者单列启动挂载时间和热请求时间；`46e0fb5` 报告不包含后续常驻快照或 SHACL 索引改动的收益。[A/B 比较工具](compare_kernel_baseline.py)
 
 以下保留历史 pack 与在线服务实测。其机器、版本、负载和计时边界不同，不能直接与 Full 基线计算加速比。

@@ -1,0 +1,171 @@
+{
+  "schema_version": "ontokiln-shacl-sqlite-build-receipt/v1",
+  "created_at_utc": "2026-11-13T04:47:35.014278+00:00",
+  "builds": [
+    {
+      "role": "before",
+      "source_revision": "5ad597f4b8c0f02fc46c58b0dda59ed4ef3a6528",
+      "source_tree": "ab5fa79281eb0b6f4f38a8e96fb74acd4e77897f",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "f5f1ee72a28194aa2ab8cb647210d25157cb7e5357e8aae5393c870d8c22201c",
+        "pack_version": 3,
+        "source_revision": "5ad597f4b8c0f02fc46c58b0dda59ed4ef3a6528",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "ba608797358398cc1ba6521d17077fa7137d995da2bcf74296f65471962b0fca",
+      "binary_bytes": 21754776,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "e63e1a97a1d037dc90279abbc4a941418a5e9398c323a16e36023be8594a144e",
+      "build_log_tail": [
+        "   Compiling ontokiln-reasoner v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln-round2-before/crates/reasoner)",
+        "   Compiling oxigraph v0.5.13",
+        "    Finished `release` profile [optimized] target(s) in 25.38s"
+      ]
+    },
+    {
+      "role": "after",
+      "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+      "source_tree": "d52cd84ebc896ac33f38942159fcae9e2ca89eeb",
+      "kernel_identity": {
+        "capabilities": [
+          "ontokiln-api/v1",
+          "rdf-pack/v3",
+          "sparql/v1",
+          "positive-rules/v1",
+          "proofs/v1",
+          "full-source-doc/v2",
+          "full-execution/v1",
+          "shacl-core-and-local-select/v1",
+          "values-bindings/v1",
+          "derived-query-data/v1"
+        ],
+        "contract_version": "ontokiln-core/v3",
+        "kernel_sha256": "faf847360784cfd5c8fe6279219eeca3119624bae2f5217d0d7c872c833a1c39",
+        "pack_version": 3,
+        "source_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+        "version": "0.1.0"
+      },
+      "binary_sha256": "4aca58f157d080636673dece73179ccd32222947142014f1cdd7416d94801064",
+      "binary_bytes": 22123576,
+      "build_command": "cargo build --release --offline --locked --bin ontokiln",
+      "build_profile": "release",
+      "features": "default",
+      "build_log_sha256": "5144d9a89d27d3ba4b2199917d68a0ea0daed1f20369110cddc0c4148e3f8273",
+      "build_log_tail": [
+        "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+        "    Finished `release` profile [optimized] target(s) in 24.53s"
+      ]
+    }
+  ],
+  "validation": {
+    "local_source_revision": "1a6a640cbdf1f44cd263b43f9cf0db6a78f2f967",
+    "source_tree": "d52cd84ebc896ac33f38942159fcae9e2ca89eeb",
+    "published_code_revision": "f5b8c5f05a3de9313191e4a9ffeebab16df16648",
+    "published_tree_verified_equal": true,
+    "rust_test_threads": 1,
+    "checks": [
+      {
+        "command": "cargo fmt --all --check",
+        "exit_code": 0,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "log_tail": []
+      },
+      {
+        "command": "cargo clippy --workspace --all-targets --offline --locked -- -D warnings",
+        "exit_code": 0,
+        "log_sha256": "745ffc231c44a66a60295caf4699bd187b3a771bbe1d2503f9aa8445782fe4be",
+        "log_tail": [
+          "   Compiling ontokiln v0.1.0 (/workspace/scratch/1ad35372e414/ontokiln)",
+          "    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.80s"
+        ]
+      },
+      {
+        "command": "cargo test --workspace --offline --locked",
+        "exit_code": 0,
+        "log_sha256": "bd3110ad43e00ed136fe7f93cdb4d807724ede4bee2eb831b90dc98bab675185",
+        "log_tail": [
+          "",
+          "running 0 tests",
+          "",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          ""
+        ]
+      },
+      {
+        "command": "cargo test --workspace --all-features --offline --locked",
+        "exit_code": 0,
+        "log_sha256": "ecc69f86a5ca12297be0d3ff27266189fa60c03fbb6e7136f218808fdc970623",
+        "log_tail": [
+          "",
+          "running 0 tests",
+          "",
+          "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+          ""
+        ]
+      },
+      {
+        "command": "cargo run --offline --locked --example scenario_lab -- --compare",
+        "exit_code": 0,
+        "log_sha256": "9f9eaf0445315db6bbd0455c7e24d3c7194b56c95b7ebba23d0760ecaa21255a",
+        "log_tail": [
+          "PASS V8 certain={\"Summary.address\"} possible_only={\"DeliveryPanel.text\"}",
+          "PASS V9 certain={} possible_only={}",
+          "PASS V10 certain={\"DeliveryPanel.text\"} possible_only={}",
+          "comparison (4 cases), all candidates: Counts { correct: 6, extra: 14, missing: 0 }, selected: Counts { correct: 6, extra: 0, missing: 0 }",
+          "14/14 cases passed"
+        ]
+      },
+      {
+        "command": "python3 -B -m unittest discover -s tests/benchmarks -p 'test_*.py'",
+        "exit_code": 0,
+        "log_sha256": "eca5831622c992523ed0c63d4e39e7972ef487a85f1315caa03741d111df2be1",
+        "log_tail": [
+          ".............................................................",
+          "----------------------------------------------------------------------",
+          "Ran 61 tests in 0.226s",
+          "",
+          "OK"
+        ]
+      }
+    ],
+    "notes": [
+      "The Python harness was unchanged during the final neighborhood-cache adjustment; its 61 passing tests belong to the same final harness bytes.",
+      "Local test and GitHub-created commit IDs differ; Git tree equality was checked before building the measured published revision.",
+      "Binary identities, rather than the harness working directory Git status, identify the measured engines."
+    ]
+  },
+  "harness_sha256": "102ae92f3dad4cda61507a855a448535f7054ede10857914fb93cdd18b179139",
+  "comparisons": {
+    "focused": true,
+    "kernel": true
+  },
+  "raw_sha256": {
+    "after-focused-session.json": "5a0f4096c12d0c94d7c1490d575867466265543d6143bec95afeb8a042ee7200",
+    "after-kernel-file.json": "2e17f21b8f29a0ab2c6a776772ba6ca570aa20390e596f3be7ff0b9c0197da44",
+    "before-focused-session.json": "18e56695fd5b54de5df3210220c6d67df455b3a2cba4460f818f3ea9d952fcbb",
+    "before-kernel-file.json": "bbf8dd3fbd5b31f2809c0578f81b99151645fdbd808e56e1c82f7aa5f646ae28",
+    "focused-comparison.json": "4699312d17090da0ad48db59ede73a74085ef0252828e58de1c1e8c623bef4fa",
+    "kernel-comparison.json": "f24ef3049db21e9e1342b4061109784b3116cf380712ce23a4023cd6dca55c2d"
+  },
+  "remote_code_ci": {
+    "run_id": 43367612991,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/Codefor/ontokiln/actions/runs/43367612991"
+  }
+}
