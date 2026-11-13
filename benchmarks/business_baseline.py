@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Replay real API v1 workload templates and collect a bounded local baseline.
+"""Measure a local ontology repository or existing API v1 workload templates.
 
-Only the Python standard library is required. No engine build, upload, rule
-generation, query rewriting, or implicit business-answer oracle is performed.
+Repository mode prepares requests and can build a missing engine with Cargo.
+Existing request mode preserves its explicit inputs. No data is uploaded and
+neither mode supplies an implicit business-answer oracle.
 See benchmarks/business-baseline.md for the one-command workflow.
 """
 import argparse
@@ -390,6 +391,11 @@ def sharing_summary(report):
         "timing_policy", "statistics", "concurrency", "method", "environment", "read_case_count",
         "read_dataset", "input_cwd", "process_environment_overrides", "budget_overrides",
         "binary_sha256_after", "interrupt_signal"))
+    shared.update(selected_fields(report, ("input_mode", "discovery", "coverage")))
+    if "engine_preparation" in report:
+        shared["engine_preparation"] = selected_fields(report["engine_preparation"], (
+            "method", "status", "binary", "command", "log_directory", "returncode",
+            "end_to_end_seconds", "watchdog_timeout"))
     shared["summary_variant"] = "sharing-metadata/v1"
     shared["diagnostics"] = "Full diagnostic text is retained only in local summary.json and requests/. Paths and build metadata are not anonymized."
     if report.get("error"):
@@ -463,11 +469,26 @@ def render_report(report):
         lines.append("| " + " | ".join([cell(stage["name"]), str(summary.get("successful_samples", 0)),
                       "—" if median is None else f"{median:.4f}", spread,
                       *("—" if value is None else f"{value / 1024**2:.2f}" for value in resources), cell(notes)]) + " |")
+    if report["status"] == "PREPARED":
+        lines += ["", "本轮只生成输入请求，尚未执行引擎或采集性能样本。"]
+    if "discovery" in report:
+        discovery = report["discovery"]
+        lines += ["", "## 仓库输入范围", "", "扫描目录：" + cell(discovery["repository"]),
+                  "", "发现统计：" + cell(discovery.get("counts", {})),
+                  "", "自动准备的请求和清单位于 `generated/`；准备失败时可能只有部分文件，以本地实际文件为准。",
+                  "本轮按公开基准 profile / view 执行独立资产；不会推断生产配置或跨查询依赖顺序。",
+                  "CONSTRUCT probe 使用原始 CONSTRUCT 加固定 ASK 终止查询，测量请求内构造，不核验其业务答案。"]
+        if discovery.get("skipped_assets"):
+            lines += ["", "### 待补充或未接入的资产", "", "| 路径 | 原因码 |", "|---|---|"]
+            lines += ["| " + cell(item["path"]) + " | " + cell(item["reason_code"]) + " |"
+                      for item in discovery["skipped_assets"]]
+        if report.get("coverage", {}).get("empty_validation_cases"):
+            lines += ["", "SHACL 空覆盖用例：" + cell(report["coverage"]["empty_validation_cases"])]
     lines += ["", "计时包含新进程启动至退出并读完响应字节；JSON 解析、摘要准备及结果检查在计时之外。",
               "预热独立记录；失败和跳过不进入成功中位数。没有 p95/p99 或跨机器加速比。",
-              "输入、profile、参数和 Shape 选择来自原始请求；脚本仅管理新产物、快照摘要、请求 ID、预算及路径解析。",
+              "输入、profile、参数和 Shape 选择来自已记录的生成请求或显式模板；业务答案由调用方核对。",
               "`.rq` 准入不会自动物化 CONSTRUCT；derived_queries 仍只在其请求内生效。",
-              "查询默认 asserted 不会自动改为 closure；SHACL 的 conforms=false 可为正常违规结果，空校验范围也需核对。", "",
+              "显式模板省略 view 时为 asserted；仓库模式使用已记录的 query_view。SHACL 的 conforms=false 可为正常违规结果，空校验范围也需核对。", "",
               "`summary.json` 保留全部样本、阶段指标、事实计数、产物统计和失败原因。",
               "`requests/` 保留本地原始请求/响应/日志；`inputs/` 保留原始模板；`artifacts/` 默认保留首个 compiled/reasoned。",
               "资源列为成功正式样本中 API 上报的最高值；失败样本的已采集指标仍保存在 JSON 中。",
@@ -493,6 +514,70 @@ def write_outputs(directory, report):
     temporary.replace(directory / "results.zip")
 
 
+def ensure_binary(args, directory, report):
+    """Prepare an engine before timing; existing template mode never builds."""
+    explicit = args.binary is not None
+    candidate = args.binary if explicit else ROOT / "target/release/ontokiln"
+    method = "explicit" if explicit else "repository-release"
+    if not explicit and args.ontology_repo is not None and not candidate.is_file():
+        on_path = shutil.which("ontokiln")
+        if on_path:
+            candidate, method = Path(on_path), "PATH"
+    if candidate.is_file() and os.access(candidate, os.X_OK):
+        args.binary = candidate.resolve()
+        report["engine_preparation"] = {"method": method, "status": "READY", "binary": str(args.binary)}
+        return
+    require(not explicit, f"explicit binary is missing or not executable: {candidate}")
+    require(args.ontology_repo is not None,
+            "binary is missing or not executable; build/install it before measurement")
+    cargo = shutil.which("cargo")
+    require(cargo is not None,
+            "No OntoKiln binary or Cargo found. Generated requests are retained under generated/. "
+            "Install the Rust toolchain to enable the automatic build, or specify an installed engine with --binary.")
+    logs = directory / "engine-build"
+    command = [cargo, "build", "--release", "--locked", "--bin", "ontokiln", "--target-dir", str(ROOT / "target")]
+    preparation = {"method": "cargo-build", "status": "RUNNING", "binary": str(candidate),
+                   "command": command, "log_directory": str(logs.relative_to(directory))}
+    report["engine_preparation"] = preparation
+    core.publish(directory / "summary.json", report)
+    print("Building missing release engine before measurement; logs: " + str(logs), flush=True)
+    invocation_cwd = Path.cwd()
+    try:
+        # Cargo must discover this checkout's pinned toolchain, independently
+        # of the caller's business-repository working directory.
+        os.chdir(ROOT)
+        measurements, _ = core.timed_command(command, logs, 1800, os.environ.copy())
+    except KeyboardInterrupt:
+        preparation["status"] = "INTERRUPTED"
+        raise
+    except Exception:
+        preparation["status"] = "FAILED"
+        raise
+    finally:
+        os.chdir(invocation_cwd)
+    preparation.update(measurements)
+    preparation["status"] = "FAILED"
+    require(not measurements["watchdog_timeout"] and measurements["returncode"] == 0,
+            "Release engine build failed or timed out; inspect engine-build/stderr.log")
+    require(candidate.is_file() and os.access(candidate, os.X_OK), "Cargo did not produce the expected release binary")
+    preparation["status"] = "READY"
+    args.binary = candidate.resolve()
+    args.build_profile, args.build_features = "release", "default"
+
+
+def repository_coverage(report):
+    empty = []
+    for stage in report["stages"]:
+        if stage["kind"] == "validate" and any(
+                sample.get("observation", {}).get("empty_validation_scope") for sample in stage["samples"]):
+            empty.append(stage["name"])
+    skipped = report["discovery"].get("skipped_assets", [])
+    report["coverage"] = {"unexecuted_assets": len(skipped), "empty_validation_cases": empty,
+                          "whole_business_workflow": "NOT_VERIFIED",
+                          "query_execution": "Independent files; no inferred cross-file workflow or parameter values"}
+    return bool(skipped or empty)
+
+
 def positive_int(value):
     result = int(value)
     if result <= 0:
@@ -516,8 +601,17 @@ def positive_float(value):
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--binary", type=Path, default=ROOT / "target/release/ontokiln")
-    parser.add_argument("--compile-request", type=Path, required=True, help="existing real API v1 compile request JSON")
+    parser.add_argument("--binary", type=Path, help="engine binary; defaults to this checkout's release binary")
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--compile-request", type=Path, help="existing real API v1 compile request JSON")
+    inputs.add_argument("--ontology-repo", type=Path, help="local ontology directory; generate API requests automatically")
+    parser.add_argument("--profile", choices=("no-rules-v1", "datalog-v1", "rdfs-supported-v1", "rdfs-property-chain-v1"),
+                        help="repository-mode benchmark profile (default: rdfs-property-chain-v1)")
+    parser.add_argument("--query-view", choices=("asserted", "inferred", "closure"),
+                        help="repository-mode query view (default: closure on reasoned, asserted on compiled)")
+    parser.add_argument("--exclude", action="append", default=[], help="repository-relative path glob to exclude; repeatable")
+    parser.add_argument("--shapes-root", type=Path, help="explicit external Shapes directory; default: Shapes from dataset")
+    parser.add_argument("--prepare-only", action="store_true", help="generate repository requests without building or running an engine")
     parser.add_argument("--read-requests", type=Path, help="directory of query/validate API v1 JSON templates, recursively")
     parser.add_argument("--read-dataset", choices=("compiled", "reasoned"), default="reasoned")
     parser.add_argument("--input-cwd", type=Path, default=Path.cwd(), help="base for relative input paths (default: invocation cwd)")
@@ -538,7 +632,18 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     if not (sys.platform.startswith("linux") or sys.platform == "darwin"):
         parser.error("this benchmark requires Linux or macOS (POSIX process groups and wait4)")
-    args.binary = args.binary.resolve()
+    if args.ontology_repo is not None:
+        if args.read_requests is not None:
+            parser.error("--ontology-repo generates read requests; use --compile-request for an explicit read-requests directory")
+        args.ontology_repo = Path(os.path.abspath(args.ontology_repo))
+        args.profile = args.profile or "rdfs-property-chain-v1"
+        args.query_view = args.query_view or ("closure" if args.read_dataset == "reasoned" else "asserted")
+    elif args.profile is not None or args.query_view is not None or args.exclude or args.shapes_root or args.prepare_only:
+        parser.error("--profile, --query-view, --exclude, --shapes-root and --prepare-only require --ontology-repo")
+    if args.binary is not None:
+        args.binary = args.binary.resolve()
+    if args.shapes_root is not None:
+        args.shapes_root = Path(os.path.abspath(args.shapes_root))
     args.input_cwd = args.input_cwd.resolve()
     args.work_dir = args.work_dir.resolve()
     return args
@@ -557,6 +662,7 @@ def main(argv=None):
               "timing_policy": "Process creation through exit and reading response bytes; JSON decoding, hashes and checks excluded. Watchdog = API timeout + 5 s.",
               "statistics": "Verified COMPLETE executions only; warm-ups, failures and skipped samples remain separate. No tail quantiles or speedup claims.",
               "concurrency": 1, "stages": [],
+              "input_mode": "ontology-repository" if args.ontology_repo is not None else "explicit-api-requests",
               "method": {"driver_sha256": core.digest_file(Path(__file__)),
                          "helper_sha256": core.digest_file(ROOT / "benchmarks/kernel_baseline.py")}}
     core.publish(directory / "summary.json", report)
@@ -585,39 +691,64 @@ def main(argv=None):
                                       ("max_intermediate_rows", "max_intermediate_rows", 1)]:
             if getattr(args, option) is not None:
                 overrides[field] = getattr(args, option) * scale
-        compiled = load_template(args.compile_request, {"compile"}, args.input_cwd, overrides)
+        compile_request, read_requests = args.compile_request, args.read_requests
+        if args.ontology_repo is not None:
+            repository_driver = ROOT / "benchmarks/business_repository.py"
+            repository_spec = importlib.util.spec_from_file_location("business_repository", repository_driver)
+            repository_module = importlib.util.module_from_spec(repository_spec)
+            repository_spec.loader.exec_module(repository_module)
+            report["method"]["repository_input_sha256"] = core.digest_file(repository_driver)
+            generated = directory / "generated"
+            try:
+                prepared = repository_module.prepare_repository(
+                    args.ontology_repo, generated, args.work_dir, args.profile, args.query_view,
+                    args.exclude, args.shapes_root, core)
+            finally:
+                inventory = generated / "inventory.json"
+                if inventory.is_file():
+                    report["discovery"] = decode_json(inventory.read_bytes())
+            compile_request, read_requests = prepared["compile_request"], prepared["read_requests"]
+            report["scope"] = "Repository-selected RDF and native rules with independent query assets and declared SHACL targets. Fixed benchmark profile/view; production workflow and business answers require independent review."
+            print("Generated requests: " + str(generated), flush=True)
+            print("Discovery: " + json.dumps(prepared["inventory"].get("counts", {}), ensure_ascii=False), flush=True)
+        compiled = load_template(compile_request, {"compile"}, args.input_cwd, overrides)
         cases = []
-        if args.read_requests is not None:
-            require(args.read_requests.is_dir(), "read-requests must be a directory containing only query/validate JSON templates")
-            paths = sorted(args.read_requests.rglob("*.json"))
+        if read_requests is not None:
+            require(read_requests.is_dir(), "read-requests must be a directory containing only query/validate JSON templates")
+            paths = sorted(read_requests.rglob("*.json"))
             require(paths, "read-requests directory contains no JSON templates")
             for path in paths:
-                cases.append((path.relative_to(args.read_requests).as_posix(),
+                cases.append((path.relative_to(read_requests).as_posix(),
                               load_template(path, {"query", "validate"}, args.input_cwd, overrides)))
         inputs = directory / "inputs"
         inputs.mkdir()
         (inputs / "compile.request.json").write_bytes(compiled["original_bytes"])
         for i, (_, template) in enumerate(cases, 1):
             (inputs / f"read-{i:04d}.request.json").write_bytes(template["original_bytes"])
-        require(args.binary.is_file() and os.access(args.binary, os.X_OK), "binary is missing or not executable; build/install it before measurement")
-        environment = core.environment_info(args.binary, directory, args)
-        require(isinstance(environment.get("kernel_identity"), dict) and environment["kernel_identity"],
-                "binary identity command did not return a valid kernel identity")
-        report["environment"] = environment
         report["read_case_count"] = len(cases)
         report["budget_overrides"] = overrides
-        core.publish(directory / "environment.json", environment)
-        core.publish(directory / "identity.json", environment["kernel_identity"])
-        runner = Runner(args, directory, report, compiled, cases)
-        runner.run()
-        report["binary_sha256_after"] = core.digest_file(args.binary)
-        require(report["binary_sha256_after"] == environment["binary_sha256"], "binary changed during the benchmark")
-        failed = any(s["status"] != "COMPLETE" for stage in report["stages"] for s in stage["samples"])
-        report["status"] = "COMPLETE_WITH_FAILURES" if failed else "COMPLETE"
-        code = 1 if failed else 0
+        if args.prepare_only:
+            report["status"] = "PREPARED"
+        else:
+            ensure_binary(args, directory, report)
+            report["configuration"] = {k: str(v) if isinstance(v, Path) else v for k, v in vars(args).items()}
+            environment = core.environment_info(args.binary, directory, args)
+            require(isinstance(environment.get("kernel_identity"), dict) and environment["kernel_identity"],
+                    "binary identity command did not return a valid kernel identity")
+            report["environment"] = environment
+            core.publish(directory / "environment.json", environment)
+            core.publish(directory / "identity.json", environment["kernel_identity"])
+            runner = Runner(args, directory, report, compiled, cases)
+            runner.run()
+            report["binary_sha256_after"] = core.digest_file(args.binary)
+            require(report["binary_sha256_after"] == environment["binary_sha256"], "binary changed during the benchmark")
+            failed = any(s["status"] != "COMPLETE" for stage in report["stages"] for s in stage["samples"])
+            gaps = repository_coverage(report) if args.ontology_repo is not None else False
+            report["status"] = "COMPLETE_WITH_FAILURES" if failed else "COMPLETE_WITH_GAPS" if gaps else "COMPLETE"
+            code = 1 if failed else 3 if gaps else 0
     except KeyboardInterrupt:
         report.update(status="INTERRUPTED", interrupt_signal=signal.Signals(interrupted_signal or signal.SIGINT).name,
-                      error="runner interrupted; active API command process group terminated and supervisor waited; worker_reaped is not asserted without an API receipt")
+                      error="runner interrupted; active command cleanup terminates its process group and waits the direct child; worker_reaped is not asserted without an API receipt")
         code = 128 + (interrupted_signal or signal.SIGINT)
     except (ValueError, OSError, TypeError, KeyError) as error:
         report.update(status="SETUP_FAILED" if runner is None else "HARNESS_FAILED",

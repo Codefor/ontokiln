@@ -1,36 +1,44 @@
 # 真实业务库基线：一条命令运行
 
-使用已经构建好的 OntoKiln 二进制和业务方现有的 [API v1 请求](../docs/api-v1.md)，测量真实 RDF 的编译、规则物化，以及选定的 SPARQL / SHACL 请求。脚本保留输入语义，记录执行结果与资源成本，业务答案由调用方按独立预期核对。
+直接指定业务本体仓库目录，工具发现 RDF、规则、SPARQL 和 Shapes，生成 [API v1 请求](../docs/api-v1.md)并运行编译、规则物化与读取基线。**不需要先准备请求 JSON。** 实际输入、生成的请求、未测范围和执行记录都会保留，业务答案仍由调用方核对。
 
 ## 运行
 
-在仓库根目录运行这一条命令，将路径换成自己的文件和磁盘目录：
+在 OntoKiln 仓库根目录运行这一条命令，将路径换成自己的本体仓库：
 
 ```sh
-python3 -B benchmarks/business_baseline.py \
-  --binary /path/ontokiln \
-  --compile-request /path/real-compile.request.json \
-  --read-requests /path/read-cases \
-  --work-dir /disk/bench
+python3 -B benchmarks/business_baseline.py --ontology-repo /path/to/business-ontology
 ```
 
-只有 `--compile-request` 必填。`--binary` 默认使用仓库的 `target/release/ontokiln`；工具使用现有二进制，不执行构建。`--read-requests` 可省略，此时报告明确只覆盖编译和规则物化；若提供该参数，目录必须存在且包含 JSON 模板。`--work-dir` 默认是 `data/business-baseline`，建议选择有足够空间的磁盘目录。运行环境为 Linux 或 macOS，脚本只依赖 Python 标准库。
+从其他目录运行时，把脚本路径换成绝对路径即可。`--work-dir /disk/bench` 可指定有足够空间的待测磁盘，默认是 `data/business-baseline`。运行环境为 Linux 或 macOS，脚本只依赖 Python 标准库。
 
-`--compile-request` 是完整的 Full `compile` 请求 JSON，必须显式提供非空 `sources` 和实际使用的 `profile`。`--read-requests` 递归收集目录中的 JSON 文件；每个文件是一条完整的 Full API v1 `query` 或 `validate` 请求模板，主 `query` 支持 SELECT / ASK。查询文本、参数和 Shapes 选择都留在请求里，无需另写一套基准用例格式。
+仓库模式未指定 `--binary` 时，先找 OntoKiln 的 `target/release/ontokiln`，再找 PATH 中的 `ontokiln`；都没有且可用 Cargo 时，自动进行 release 构建。构建在测量之外。没有可用二进制或 Rust 构建环境时，工具明确报错并保留已生成文件。`--prepare-only` 只发现资产、生成请求，不要求二进制，也不进行性能测量。
 
-`sources`、`rules`、`shapes` 的每个文件项都必须包含实际输入的 `expected_sha256`（64 位小写十六进制），并指向普通文件，不能是符号链接。工具先核对文件摘要，不自动补写或刷新它们。
+## 自动发现的范围
 
-输入文件引用中的相对路径默认相对于**启动命令时的工作目录**解析，而不是相对于 JSON 所在目录；`--input-cwd` 可以指定另一输入基目录。
+扫描整个指定目录中的 `.ttl`、`.nt`、`.trig`、`.nq`，**包括 tests、examples 及并存版本**，不猜哪个版本属于生产。跳过 `.git`、`.hg`、`.svn`、`.venv`、`venv`、`node_modules`、`__pycache__`、`target`、本次 work-dir、生成目录和符号链接；可重复添加 `--exclude` glob，例如 `--exclude 'tests/**'`，显式缩小范围。glob 按各扫描根的相对 POSIX 路径匹配。
+
+| 资产 | 自动处理 |
+|---|---|
+| RDF 文件 | 计算实际字节 SHA-256，以仓库相对路径作为 document ID；不猜测 `base_iri` |
+| JSON 规则 | 仅接纳原生 `ontology-rule-ir/v1`，普通业务 JSON 不转成规则 |
+| `.rq` / `.sparql` 的 SELECT、ASK | 保留查询原文，生成读取用例；识别到参数槽、模板占位符、`$this` 或空 VALUES 时列为待补充 |
+| 无参 CONSTRUCT | 每个文件独立作为 `derived_queries`，配合 `ASK {}` 测量构造过程；不猜跨文件执行顺序 |
+| SHACL | 默认从数据集中的 Shapes 生成校验；`--shapes-root` 可明确指定独立的外部 Shapes 根目录 |
+
+仓库模式默认采用 `--profile rdfs-property-chain-v1`；读取 reasoned 产物时默认 `--query-view closure`，选择 compiled 产物时默认 asserted，显式指定的 `--query-view` 保持不变。这是**固定、公开的基准策略**，不是自动识别出的生产配置。默认 Shapes/focus 按引擎合同发现，不把所有 subject 当作 target。`owl:imports` 只解析本地输入，缺失导入按实际引擎行为失败，不自动联网补齐。
+
+`--shapes-root` 在仓库之外时，其 RDF 只用于外部校验，不自动加入编译输入；在仓库之内时，其中 RDF 仍按仓库扫描规则进入编译。未支持的 RDF 格式、压缩 RDF、未接纳的规则版本和不可独立执行的查询会列出原因码；语法和能力仍以引擎实际执行结果为准。
+
+`.rq` 准入不表示查询已经执行或持久物化。CONSTRUCT 的派生数据只对该次请求可见，成本计入该请求；`ASK {}` 探针不能证明构造结果符合业务预期。缺参数等待补充资产会列在清单里，不自动编造业务参数或工作流。
 
 ## 本轮实际执行什么
 
 默认串行执行三次独立编译，再从首个成功编译产物出发，独立物化三次；物化不会以上一轮的推导产物继续累加。每条读取请求先预热一次，再测三次。`--build-samples`、`--read-samples`、`--warmups` 可调整这些次数；`--threads` 默认为 1。
 
-读取请求统一指向本轮选定的产物。`--read-dataset reasoned` 是默认值，选择首个成功物化产物；需要编译态对照时使用 `--read-dataset compiled`。这个选择作用于本轮全部读取请求，模板里的 `view` 保持原样；省略时仍按 API 的 `asserted` 默认值执行，选用 reasoned 产物不会自动改成 `closure`。
+读取请求统一指向本轮选定的产物。`--read-dataset reasoned` 是默认值，选择首个成功物化产物；`--read-dataset compiled` 选择编译态。这个选择作用于本轮全部读取请求，不重写请求中的 `view`；视图必须与所选快照的能力匹配。
 
-运行器分配新的产物路径、设置本轮读取所需的数据集引用与摘要，保留 sources、document_id、base_iri、profile、rules、import_lock、查询文本、参数、VALUES、derived_queries 和 Shapes/focus 选择。输入已有的摘要约束照常核验，错配时明确失败，不刷新摘要或修改锁文件。
-
-`.rq` 被编译接纳不表示查询已经执行，也不表示其结果已持久物化。`derived_queries` 可包含 CONSTRUCT，随每次读取请求执行，产生请求内派生数据，其成本计入该请求；规则 `materialize` 的测量单独记录。
+运行器分配新的产物路径、设置本轮读取所需的数据集引用与摘要，按生成或提供的请求执行规则和查询。CONSTRUCT 探针与规则物化分别计量。
 
 每次请求使用文件 API v1 和独立进程，包含该边界下的快照验证、复制与执行成本。本工具没有常驻 session 测量；与其他报告比较时，应保持二进制以外的输入、预算、计时边界和机器条件一致。
 
@@ -53,16 +61,17 @@ python3 -B benchmarks/business_baseline.py \
 
 失败、预算耗尽和跳过分别保留，不进入成功延迟中位数，也不能用于计算加速比。预热与正式样本分开记录；默认三次样本用于观察中位数和范围，不报告尾延迟保证。
 
-执行期间可用 Ctrl+C（SIGINT）或 SIGTERM 受控中断，退出码分别为 130 / 143。运行器终止当前 API 命令进程组、等待直属 supervisor 进程结束，并保存中断状态、已有样本和结果包；未取得 API 回执时，不据此声明 `worker_reaped=true`。
+执行期间可用 Ctrl+C（SIGINT）或 SIGTERM 受控中断，退出码分别为 130 / 143。运行器终止当前构建或 API 命令进程组、等待直属命令进程结束，并保存中断状态、已有样本和结果包；未取得 API 回执时，不据此声明 `worker_reaped=true`。
 
 ## 去哪里看结果
 
-每次运行在 `--work-dir` 下创建新的子目录，子进程 `TMPDIR` 也放在其中。原始模板保存在 `inputs/`，实际请求、响应和日志保存在 `requests/`，便于核对业务答案；`artifacts/` 默认保留首个成功编译/物化产物，其余重复产物在记录后清理。`--keep-all-artifacts` 可保留全部产物。命令末尾打印结果包路径。
+每次运行在 `--work-dir` 下创建新的子目录，子进程 `TMPDIR` 也放在其中。仓库模式生成 `generated/compile.request.json`、`generated/read-cases/` 和 `generated/inventory.json`；原始模板副本保存在 `inputs/`，实际请求、响应和日志保存在 `requests/`。`artifacts/` 默认保留首个成功编译/物化产物，其余重复产物在记录后清理；`--keep-all-artifacts` 可保留全部产物。命令末尾打印结果包路径。
 
-阶段名为 `compile`、`materialize` 和 `read/<模板相对路径.json>`，可直接对应到输入用例。
+阶段名为 `compile`、`materialize` 和 `read/<模板相对路径.json>`；自动生成的读取用例通过 inventory 对应到原始资产。
 
 | 文件 | 内容 |
 |---|---|
+| `generated/inventory.json` | 自动发现的资产、生成的用例及待补充范围 |
 | `report.md` | 阶段状态、成功样本数、耗时，以及成功正式样本中最高 RSS / scratch（MiB） |
 | `summary.json` | 全部样本、状态、阶段资源指标、事实计数、产物统计与本地详细诊断 |
 | `environment.json` | 机器、文件系统、运行及构建环境、二进制 SHA-256 |
@@ -77,4 +86,12 @@ python3 -B benchmarks/business_baseline.py \
 
 报告将**协议执行完成**与**业务正确性**分开，业务正确性标记为 `MANUAL_REVIEW_REQUIRED`。调用方需要按已有独立预期核对查询结果、推导范围，以及 Shapes/focus 覆盖和违规项；工具不会把本次引擎输出自动当成正确答案。
 
-有效的 `conforms=false` 是一次完成的 SHACL 执行，表示发现不符合约束的数据；是否符合业务预期仍需核对。Shapes 或 focus 覆盖为零表示本次校验范围为空，不能据此确认业务约束已经通过。没有提供读取请求时，SPARQL 与 SHACL 属于本轮未测范围。
+`--prepare-only` 的状态为 `PREPARED`，没有测量结果。仓库模式下，执行全部成功但仍有未测资产或空校验范围时，状态为 `COMPLETE_WITH_GAPS`、退出码为 3；报告会列出缺口。即使状态为 `COMPLETE`，业务正确性仍需人工复核。
+
+有效的 `conforms=false` 是一次完成的 SHACL 执行，表示发现不符合约束的数据。Shapes 或 focus 覆盖为零表示本次范围为空，不能据此确认业务约束已经通过。
+
+## 已有精确请求时
+
+可使用 `--compile-request` 代替 `--ontology-repo`，并以可选的 `--read-requests` 指向读取请求 JSON 目录。该模式沿用已有请求，不自动选 profile、猜参数或补工作流；未提供读取目录时只测 compile/materialize。主 `query` 为 SELECT / ASK，`derived_queries` 可含 CONSTRUCT；原有 `view` 保持不变，省略时仍为 API 默认的 `asserted`。
+
+完整 compile 请求必须显式提供非空 `sources` 和 `profile`，sources/rules/shapes 文件项须带实际 `expected_sha256` 并指向普通非符号链接文件。已有摘要和 import_lock 照常核验，不刷新或改写。输入引用中的相对路径按启动目录解析，`--input-cwd` 可指定输入基目录。此模式使用现有二进制，不自动构建；通过 `--binary` 可指定路径。

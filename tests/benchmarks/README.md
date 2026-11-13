@@ -1,7 +1,9 @@
 # Kernel baseline harness
 
-For an existing business dataset and API v1 compile/query/validate requests,
-use the [one-command business baseline guide](../../benchmarks/business-baseline.md).
+To run a business ontology repository without preparing API request JSON,
+use `--ontology-repo` and the [one-command business baseline guide](../../benchmarks/business-baseline.md).
+Generated templates and the discovery inventory remain available for review;
+the explicit API request mode is also supported.
 Its file-API measurements keep protocol completion separate from business
 correctness, which remains `MANUAL_REVIEW_REQUIRED`.
 Detailed diagnostics remain in the local run directory; the ZIP uses a sharing
