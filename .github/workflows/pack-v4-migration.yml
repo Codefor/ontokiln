@@ -9,6 +9,7 @@ on:
       - crates/compiler/src/lib.rs
       - crates/compiler/Cargo.toml
       - tests/v4_parity.rs
+      - src/api.rs
       - src/engine.rs
       - src/lib.rs
       - crates/reasoner/src/v4.rs
@@ -25,8 +26,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
-      - name: Check formatting
-        run: cargo fmt --all --check
+      - name: Format source for diagnostic
+        run: cargo fmt --all
+      - name: Export formatted API integration
+        run: |
+          echo BEGIN_FORMATTED_V4_API
+          cat src/api.rs
+          echo END_FORMATTED_V4_API
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked

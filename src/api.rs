@@ -392,25 +392,49 @@ fn envelope(mut response: Value, raw: &Value, bytes: &[u8], execution: &Value) -
 struct Dataset {
     meta: Value,
     pack: Option<ontokiln_pack::Pack>,
+    pack_v4: Option<ontokiln_pack::v4::PackV4>,
     manifest_sha256: Option<String>,
 }
 
 fn dataset(path: &Path) -> Result<Dataset> {
     if path.is_file() {
+        use std::io::Read;
+        // V3 and V4 share magic but are different physical layouts.
+        let mut header = [0_u8; 12];
+        fs::File::open(path)?.read_exact(&mut header)?;
+        if &header[..8] == b"ONTOKILN"
+            && u32::from_le_bytes(header[8..12].try_into()?) == 4
+        {
+            let pack = ontokiln_pack::v4::PackV4::load(path)
+                .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+            let metadata = json!({
+                "semantics":"rdf-dataset-union/v1",
+                "capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1",
+                    "shacl/v1","rdf-bindings/v1","values-bindings/v1"],
+                "default_graph":"union",
+                "views":["asserted","inferred","closure"],
+                "profile":pack.metadata().profile_id,
+                "format":"ontokiln-pack/v4",
+                "facts":pack.quad_count()
+            });
+            return Ok(Dataset {
+                meta: metadata, pack: None, pack_v4: Some(pack),
+                manifest_sha256: None,
+            });
+        }
         let pack =
             ontokiln_pack::Pack::load(path).map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Ok(Dataset {
             meta: json!({"semantics":"pack-rdfs-hierarchy/v1","capabilities":["select-ask/v1","views/v1","document-graphs/v1","revision/v1"],
             "default_graph":"union","views":["asserted","inferred","closure"],"profile":"rdfs-hierarchy-v1","facts":pack.triple_count()}),
-            pack: Some(pack),
-            manifest_sha256: None,
+            pack: Some(pack), pack_v4: None, manifest_sha256: None,
         })
     } else {
         let (manifest, manifest_sha256) = crate::full_artifact::verify_read_manifest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Ok(Dataset {
             meta: full_metadata(manifest)?,
-            pack: None,
+            pack: None, pack_v4: None,
             manifest_sha256: Some(manifest_sha256),
         })
     }
@@ -454,6 +478,7 @@ fn worker_dataset(path: &Path, request: &Value) -> Result<Dataset> {
         Ok(Dataset {
             meta: full_metadata(mounted["manifest"].clone())?,
             pack: None,
+            pack_v4: None,
             manifest_sha256: Some(
                 mounted["manifest_sha256"]
                     .as_str()
@@ -614,6 +639,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             let Dataset {
                 meta,
                 pack,
+                pack_v4,
                 manifest_sha256,
             } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
@@ -678,6 +704,31 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 json!({"query_type":if reply.get("boolean").is_some(){"ASK"}else{"SELECT"},
                     "variables":reply["head"].get("vars").cloned().unwrap_or(json!([])),
                     "items":reply["results"].get("bindings").cloned().unwrap_or(json!([])),"boolean":reply["boolean"]})
+            } else if let Some(pack) = pack_v4 {
+                ensure!(
+                    revision.is_none(),
+                    "UNSUPPORTED_CAPABILITY|revision selection is unavailable for Pack v4"
+                );
+                ensure!(
+                    derived_queries.is_empty(),
+                    "UNSUPPORTED_CAPABILITY|derived-query-data/v1 is not yet supported by Pack v4"
+                );
+                let engine = crate::engine::OntologyEngine::from_pack(pack)
+                    .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+                let view = match view {
+                    View::Asserted => ontokiln_pack::v4::View::Asserted,
+                    View::Inferred => ontokiln_pack::v4::View::Inferred,
+                    View::Closure => ontokiln_pack::v4::View::Closure,
+                };
+                let result = engine.query_bound(query, view, parameters, rdf_bindings, values)
+                    .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
+                let reply: Value = serde_json::from_slice(&result)?;
+                json!({
+                    "query_type":if reply.get("boolean").is_some(){"ASK"}else{"SELECT"},
+                    "variables":reply["head"].get("vars").cloned().unwrap_or(json!([])),
+                    "items":reply["results"].get("bindings").cloned().unwrap_or(json!([])),
+                    "boolean":reply["boolean"]
+                })
             } else {
                 ensure!(
                     revision.is_none(),
@@ -758,16 +809,13 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             focus_node,
         } => {
             ensure!(
-                value.get("_mounted_snapshot").is_some() || !path.is_file(),
-                "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
-            );
-            ensure!(
                 !*shapes_from_dataset || shapes.is_empty(),
                 "INVALID_REQUEST|choose dataset shapes or external shapes"
             );
             let Dataset {
                 meta,
                 pack,
+                pack_v4,
                 manifest_sha256,
             } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
@@ -775,6 +823,41 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 manifest_sha256.as_deref(),
                 expected_manifest_sha256.as_deref(),
             )?;
+            if let Some(pack) = pack_v4 {
+                let engine = crate::engine::OntologyEngine::from_pack(pack)
+                    .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+                let selected: Option<std::collections::BTreeSet<String>> =
+                    selected_shapes.as_ref().map(|shapes| shapes.iter().cloned().collect());
+                let selected = selected.as_ref();
+                let report = if *shapes_from_dataset {
+                    engine.validate(None, selected, focus_node.as_deref(), limits.max_validation_depth)
+                } else {
+                    let temp = tempfile::tempdir()?;
+                    let mut frozen = Vec::new();
+                    for (index, shape) in shapes.iter().enumerate() {
+                        let destination = temp.path().join(format!("shape-{index}.rdf"));
+                        crate::full_artifact::freeze(
+                            &shape.path, &destination, &shape.expected_sha256
+                        ).map_err(invalid)?;
+                        frozen.push(ontokiln_compiler::v4::Source {
+                            path: destination,
+                            document_id: shape.document_id.clone(),
+                            format: shape.format.clone(),
+                            expected_sha256: shape.expected_sha256.clone(),
+                            base_iri: shape.base_iri.clone(),
+                        });
+                    }
+                    engine.validate_shape_sources(
+                        &frozen, selected, focus_node.as_deref(), limits.max_validation_depth
+                    )
+                }.map_err(|e| anyhow::anyhow!("EXECUTION_FAILED|{e}"))?;
+                json!({
+                    "conforms":report["conforms"],
+                    "checked_shapes":report["checked_shapes"],
+                    "violations":report["violations"],
+                    "report":report["report"]
+                })
+            } else {
             ensure!(
                 pack.is_none(),
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
@@ -810,7 +893,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             let reply = crate::full::validate_api(input).map_err(anyhow::Error::msg)?;
             json!({"conforms":reply["conforms"],"checked_shapes":reply["checked_shapes"],
                 "violations":reply["violations"],"report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
-        }
+        }            }
     };
     let mut reply = json!({"api_result":result,"metrics":{}});
     if let Some(mounted) = value.get("_mounted_snapshot") {
