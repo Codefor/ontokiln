@@ -727,9 +727,11 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                         parameters,
                         rdf_bindings,
                         values,
-                        derived_queries,
-                        limits.max_derived_facts,
-                        limits.max_intermediate_rows,
+                        crate::engine::DerivedOptions {
+                            queries: derived_queries,
+                            max_derived_facts: limits.max_derived_facts,
+                            max_intermediate_rows: limits.max_intermediate_rows,
+                        },
                     )
                     .map_err(|e| {
                         if e.to_string().contains("BUDGET_EXHAUSTED") {

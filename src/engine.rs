@@ -22,6 +22,14 @@ use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
 
+/// Request-scoped derived data, with the API v1 intermediate and closure bounds.
+#[derive(Clone, Copy)]
+pub struct DerivedOptions<'a> {
+    pub queries: &'a [String],
+    pub max_derived_facts: u64,
+    pub max_intermediate_rows: u64,
+}
+
 pub struct OntologyEngine {
     reasoner: EngineV4,
     validation_graph: OnceLock<Graph>,
@@ -134,10 +142,11 @@ impl OntologyEngine {
         parameters: &BTreeMap<String, Parameter>,
         rdf_bindings: &BTreeMap<String, String>,
         values: &[ValuesTable],
-        derived_queries: &[String],
-        max_derived_facts: u64,
-        max_intermediate_rows: u64,
+        options: DerivedOptions<'_>,
     ) -> Result<Vec<u8>> {
+        let derived_queries = options.queries;
+        let max_derived_facts = options.max_derived_facts;
+        let max_intermediate_rows = options.max_intermediate_rows;
         use oxrdf::NamedOrBlankNode;
         use std::collections::HashSet;
         ensure!(
@@ -413,9 +422,7 @@ mod tests {
                 &BTreeMap::new(),
                 &BTreeMap::new(),
                 &[],
-                &derived,
-                10,
-                10,
+                DerivedOptions { queries: &derived, max_derived_facts: 10, max_intermediate_rows: 10 },
             )
             .unwrap();
         let answer: Value = serde_json::from_slice(&result).unwrap();
@@ -432,9 +439,7 @@ mod tests {
                     &BTreeMap::new(),
                     &BTreeMap::new(),
                     &[],
-                    &derived,
-                    1,
-                    10
+                    DerivedOptions { queries: &derived, max_derived_facts: 1, max_intermediate_rows: 10 },
                 )
                 .is_err()
         );
@@ -461,9 +466,7 @@ mod tests {
                     &BTreeMap::new(),
                     &BTreeMap::new(),
                     &[],
-                    &queries,
-                    1,
-                    1
+                    DerivedOptions { queries: &queries, max_derived_facts: 1, max_intermediate_rows: 1 },
                 )
                 .is_err()
         );
@@ -474,9 +477,7 @@ mod tests {
                 &BTreeMap::new(),
                 &BTreeMap::new(),
                 &[],
-                &queries,
-                1,
-                2,
+                DerivedOptions { queries: &queries, max_derived_facts: 1, max_intermediate_rows: 2 },
             )
             .unwrap();
         let reply: Value = serde_json::from_slice(&value).unwrap();
