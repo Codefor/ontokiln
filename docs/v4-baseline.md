@@ -67,6 +67,10 @@ python3 -B benchmarks/v4_resident_baseline.py \
 
 可选使用 `--max-regression-ratio 1.25` 在控制宿主上拒绝超过 25% 的耗时回退；GitHub 公共 Runner 默认只报告性能数字，不按绝对时延硬拒绝。CI 运行结果存放于 GitHub Actions `v4-resident-benchmark` 工件，含完整 JSON，包括各样本、基线身份、内核阶段时间、冷/热时延、目标数量和 RSS。
 
+## 固化观测样本
+
+历史 CI 的原始指标摘要随仓库保存在 [v4-baseline-observations.json](../benchmarks/v4-baseline-observations.json)，记录 100K/1M 的解析、物化、保存、加载、常驻查询、SHACL 全目标与单 focus 测试数据，并保留每组 GitHub Actions run ID、精确代码提交和测量边界。完整 JSON golden 报告保存在对应 run 的 v4-resident-benchmark artifact；这些公共 Runner 观测不是跨机器比较的速度门槛。
+
 ## 历史参考值与已知问题
 
 2026-11-13 的固定 Full 46e0fb5 Release 1M 语料中，编译中位 8.767 秒，规则物化中位 11.046 秒（不同内核和机器，不能直接比较）。新的 Pack v4 在另一个 GitHub Runner 的相同生成器中：1M Build + Save 6.951 秒（另一次 9.908 秒），推导 862,490 条且七类查询结果正确。优化最长索引绑定前的 1M join / aggregate 为 3.254 / 30.353 秒，优化后单次 CLI 分别为 0.421 / 0.606 秒；仍然包含 Pack 重载并受 Runner 负载影响。这些结果作为历史审计证据，不是固定性能承诺。
