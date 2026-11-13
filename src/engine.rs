@@ -422,7 +422,11 @@ mod tests {
                 &BTreeMap::new(),
                 &BTreeMap::new(),
                 &[],
-                DerivedOptions { queries: &derived, max_derived_facts: 10, max_intermediate_rows: 10 },
+                DerivedOptions {
+                    queries: &derived,
+                    max_derived_facts: 10,
+                    max_intermediate_rows: 10,
+                },
             )
             .unwrap();
         let answer: Value = serde_json::from_slice(&result).unwrap();
@@ -439,7 +443,11 @@ mod tests {
                     &BTreeMap::new(),
                     &BTreeMap::new(),
                     &[],
-                    DerivedOptions { queries: &derived, max_derived_facts: 1, max_intermediate_rows: 10 },
+                    DerivedOptions {
+                        queries: &derived,
+                        max_derived_facts: 1,
+                        max_intermediate_rows: 10
+                    },
                 )
                 .is_err()
         );
@@ -466,7 +474,11 @@ mod tests {
                     &BTreeMap::new(),
                     &BTreeMap::new(),
                     &[],
-                    DerivedOptions { queries: &queries, max_derived_facts: 1, max_intermediate_rows: 1 },
+                    DerivedOptions {
+                        queries: &queries,
+                        max_derived_facts: 1,
+                        max_intermediate_rows: 1
+                    },
                 )
                 .is_err()
         );
@@ -477,7 +489,11 @@ mod tests {
                 &BTreeMap::new(),
                 &BTreeMap::new(),
                 &[],
-                DerivedOptions { queries: &queries, max_derived_facts: 1, max_intermediate_rows: 2 },
+                DerivedOptions {
+                    queries: &queries,
+                    max_derived_facts: 1,
+                    max_intermediate_rows: 2,
+                },
             )
             .unwrap();
         let reply: Value = serde_json::from_slice(&value).unwrap();
