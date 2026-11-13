@@ -173,7 +173,7 @@ and checks the available semantic fields without inventing a response field.
 
 `--suite focused-shacl` generates the same facts and frozen rule inputs as the
 kernel suite, independently compiles a Full artifact, optionally mounts one
-session, and runs three validation workloads. It does not schedule pack builds,
+session, and runs five validation workloads. It does not schedule pack builds,
 materialization or query stages; these absent stages are not skipped successes.
 Only this suite appends its extra named Shapes to the Shapes document. The
 default kernel suite's input hashes and workloads remain unchanged.
@@ -187,16 +187,26 @@ exists in the 100-fact smoke. The first two workloads reuse the existing Shapes.
 | `shacl/focus_core_pass` | Select `OrderShape`; one checked Shape, exactly order 8 in coverage, conforms and no violations. Its cardinality, IRI, integer and numeric constraints all run. |
 | `shacl/focus_core_fail` | Select `MinCountProperty`; its declared target is order 0, but the explicit focus must override it. Order 8 has one amount, so `minCount 2` yields exactly one violation with the expected focus, amount path and named property shape. |
 | `shacl/focus_nonlocal_fail` | Select `FocusedScopeShape`; the two-hop `customer/region` path must reach region 0 and satisfy its `hasValue`. A SELECT constraint finds the unrelated `"Order 0"@en` label and yields exactly one SPARQL violation on order 8. |
+| `shacl/focus_path_fail` | Select `FocusedPathShape`; two properties traverse the same `customer/region` path. Region 0 satisfies the positive `hasValue`; region 1 is absent, producing exactly one HasValue violation on `FocusedPathMissing`. This isolates complex-path execution without a SPARQL constraint. |
+| `shacl/focus_full_scan_fail` | Select `FocusedScanShape`; a subquery computes `COUNT(*)` and `SUM(STRLEN(STR(?s)))` over `?s ?p ?o`. The aggregate must match the generator's independently calculated union count and subject-character total, yielding exactly one SPARQL violation. This scans every triple while returning one aggregate row. |
 
 The nonlocal control requires full data visibility even with an explicit focus.
+Its fixed predicate and object can use an index; it does not require a full scan.
 Cropping to the focus's outgoing facts could lose the SELECT violation and add
 an incorrect two-hop-path violation; checking only a violation count would miss
 that error. The oracle instead compares the complete coverage and structured
 violation records, including component and shape. It also checks report identity
 and engine metadata, while diagnostic prose is excluded from the semantic report
 digest. A zero-target success, wrong focus, extra target, missing violation or
-different violation cannot pass. This workload may retain full-graph costs when
-the implementation's optimized path only handles Core constraints.
+different violation cannot pass. The separate path control also rejects a single
+violation on the wrong property. The full-scan control keeps the final result
+small while measuring work that must grow with input size; it must not be used
+to claim arbitrary global queries have constant latency or bounded intermediate
+state. Its oracle reads neither engine statistics nor the produced database.
+These workloads retain full-graph loading costs in versions that only optimize
+Core navigation. Record actual failed warm-ups and subsequent skipped samples;
+never count a skipped sample as a completed validation or compute a speedup from
+a failed before-run.
 
 Run a smoke first, then use the same command and harness revision for each
 separately built before/after binary:

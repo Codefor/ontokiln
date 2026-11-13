@@ -287,18 +287,17 @@ enum QuerySource<'a> {
 }
 
 impl QuerySource<'_> {
-    fn query_dataset(&self) -> Result<oxrdf::Dataset> {
+    fn check_error(&self) -> Result<()> {
         match self {
-            Self::Memory(graph) => graph.query_dataset(),
-            // Preserve the existing SHACL query view: a deduplicated union in
-            // the default graph, with no original named graphs exposed.
-            Self::Sqlite(graph) => graph.load_graph()?.query_dataset(),
+            Self::Memory(_) => Ok(()),
+            Self::Sqlite(graph) => graph.check_error(),
         }
     }
 }
 
 /// An immutable data snapshot and unbound query plans, scoped to one validation.
-/// Core constraints and simple paths do not allocate a second RDF dataset.
+/// SQLite queries read the default-graph union directly; only the memory backend
+/// lazily allocates a query dataset.
 pub struct PreparedQueries<'a> {
     source: QuerySource<'a>,
     dataset: RefCell<Option<oxrdf::Dataset>>,
@@ -316,10 +315,8 @@ impl PreparedQueries<'_> {
         text: &str,
         bindings: &BTreeMap<String, String>,
     ) -> Result<BoundQueryResult> {
-        use oxigraph::{
-            model::Variable,
-            sparql::{QueryResults, SparqlEvaluator},
-        };
+        use oxigraph::{model::Variable, sparql::SparqlEvaluator};
+        self.source.check_error()?;
         crate::query::local_query(text)?;
         let bindings = bindings
             .iter()
@@ -400,13 +397,37 @@ impl PreparedQueries<'_> {
             query = query.substitute_variable(Variable::new(name)?, term.parse::<Term>()?);
         }
 
-        let mut dataset = self.dataset.borrow_mut();
-        if dataset.is_none() {
-            *dataset = Some(self.source.query_dataset()?);
-        }
-        let result = query
-            .on_queryable_dataset(dataset.as_ref().expect("prepared query dataset"))
-            .execute()?;
+        let evaluated = (|| {
+            let result = match &self.source {
+                QuerySource::Memory(graph) => {
+                    let mut dataset = self.dataset.borrow_mut();
+                    if dataset.is_none() {
+                        *dataset = Some(graph.query_dataset()?);
+                    }
+                    return Self::collect_query_results(
+                        query
+                            .on_queryable_dataset(dataset.as_ref().expect("prepared query dataset"))
+                            .execute()?,
+                        was_ask,
+                    );
+                }
+                QuerySource::Sqlite(graph) => query.on_queryable_dataset(*graph).execute(),
+            };
+            self.source.check_error()?;
+            Self::collect_query_results(result?, was_ask)
+        })();
+        // The evaluator may turn storage errors inside FILTER/EXISTS into an
+        // unbound value or a boolean. Check again after consuming solutions,
+        // including empty results and ASK's early exit, preserving budget types.
+        self.source.check_error()?;
+        evaluated
+    }
+
+    fn collect_query_results(
+        result: oxigraph::sparql::QueryResults<'_>,
+        was_ask: bool,
+    ) -> Result<BoundQueryResult> {
+        use oxigraph::sparql::QueryResults;
         if let QueryResults::Boolean(answer) = result {
             return Ok((Some(answer), vec![]));
         }

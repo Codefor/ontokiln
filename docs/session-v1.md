@@ -150,13 +150,18 @@ reads and validation are never truncated to fit a cache. All these caches are
 discarded when the worker exits and do not become a session result cache.
 
 The data view remains the distinct SPO union of every stored graph, including
-asserted and inferred facts. Complex paths and executed SHACL-SPARQL constraints
-or targets lazily build the complete union query dataset, which can still consume
-memory proportional to the data. This query dataset has only a default graph,
-matching the existing validation semantics. Selecting a focus does not restrict
-what those queries can see. Dataset-sourced Shapes also require loading the
-complete Shapes graph. Legacy artifacts with unknown or lenient parser policy
-retain their existing full graph and term-validation behavior.
+asserted and inferred facts. Complex paths, SHACL-SPARQL constraints, custom
+targets and validators query the same read-only SQLite snapshot directly, using
+bounded keyset pages and term caches. They do not first build a complete in-memory
+query dataset. This view has only a default graph, matching the existing validation
+semantics; original named graphs are not exposed. Selecting a focus does not
+restrict what those queries can see. A whole-graph aggregate still scans its input,
+and sorting, aggregation, joins or path traversal can retain growing intermediate
+state in the evaluator. Storage or decoding failures are checked even when an
+expression would otherwise suppress them, and cannot become an empty successful
+result. Dataset-sourced Shapes still require loading the complete Shapes graph.
+Legacy artifacts with unknown or lenient parser policy retain their existing full
+graph and term-validation behavior.
 
 File API validation uses this same implementation after its per-request mount.
 Session validation amortizes mount verification and copying across requests;
@@ -175,7 +180,7 @@ sources to obtain this index; materializing an older compiled image preserves
 its existing indexes. Indexes remain outside the public SQLite read contract,
 and new artifacts require their own content digests.
 
-This does not establish disk-native SHACL, full OWL/SHACL compatibility, or
+This does not establish unlimited-scale SHACL, full OWL/SHACL compatibility, or
 100 million fact Full capacity. The [baseline methodology](../tests/benchmarks/README.md)
 and committed measurements define the actual workload and scale.
 

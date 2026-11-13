@@ -3,6 +3,7 @@ use super::*;
 use oxrdf::NamedNode;
 use rudof_rdf::rdf_core::Any;
 use rusqlite::{ffi, params};
+use std::collections::BTreeMap;
 
 type Fact<'a> = (&'a str, &'a str, &'a str, Option<&'a str>, bool);
 
@@ -532,4 +533,378 @@ fn a_real_sqlite_interrupt_cannot_become_an_empty_result() {
         .expect("disable interruption");
     assert!(error(graph.check_error()).is::<ShaclBudgetExceeded>());
     assert_eq!(error(graph.load_graph()).to_string(), first.to_string());
+}
+
+fn query_encode(graph: &SqliteGraph, term: Term) -> QueryTerm {
+    QueryableDataset::internalize_term(&graph, term).expect("query term")
+}
+
+fn query_rows(
+    graph: &SqliteGraph,
+    fixed: [Option<&QueryTerm>; 3],
+    graph_name: Option<Option<&QueryTerm>>,
+) -> BTreeSet<[String; 3]> {
+    QueryableDataset::internal_quads_for_pattern(&graph, fixed[0], fixed[1], fixed[2], graph_name)
+        .map(|row| {
+            let row = row.expect("query row");
+            assert!(row.graph_name.is_none());
+            [row.subject, row.predicate, row.object].map(|term| {
+                QueryableDataset::externalize_term(&graph, term)
+                    .expect("RDF term")
+                    .to_string()
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn query_adapter_pages_all_index_orders_without_duplicate_or_missing_union_rows() {
+    let subjects = (0..600)
+        .map(|index| format!("<urn:s:{index}>"))
+        .collect::<Vec<_>>();
+    let objects = (0..600)
+        .map(|index| format!("<urn:o:{index}>"))
+        .collect::<Vec<_>>();
+    let mut facts = Vec::new();
+    for subject in &subjects {
+        facts.push((subject.as_str(), "<urn:p>", "<urn:shared>", None, true));
+        facts.push((
+            subject.as_str(),
+            "<urn:p>",
+            "<urn:shared>",
+            Some("<urn:g>"),
+            false,
+        ));
+    }
+    for object in &objects {
+        facts.push(("<urn:hub>", "<urn:q>", object.as_str(), None, false));
+        facts.push((
+            "<urn:hub>",
+            "<urn:q>",
+            object.as_str(),
+            Some("<urn:g>"),
+            true,
+        ));
+    }
+    facts.push(("<urn:hub>", "<urn:q>", "<urn:shared>", None, true));
+    let union = facts
+        .iter()
+        .map(|(s, p, o, _, _)| [(*s).to_owned(), (*p).to_owned(), (*o).to_owned()])
+        .collect::<BTreeSet<_>>();
+    for negative_ids in [false, true] {
+        let db = database(&facts);
+        if negative_ids {
+            db.execute_batch("UPDATE facts SET s=-s,p=-p,o=-o,g=-g; UPDATE terms SET id=-id;")
+                .expect("negative IDs exercise the first-page lower boundary");
+        }
+        let graph = SqliteGraph::new(db).expect("SQLite graph");
+        let fixed = ["<urn:hub>", "<urn:q>", "<urn:shared>"];
+        let encoded = fixed.map(|term| query_encode(&graph, term.parse().expect("fixed term")));
+        for mask in 0..8 {
+            let pattern =
+                [0, 1, 2].map(|column| (mask & (1 << column) != 0).then_some(&encoded[column]));
+            let expected = union
+                .iter()
+                .filter(|row| {
+                    (0..3).all(|column| mask & (1 << column) == 0 || row[column] == fixed[column])
+                })
+                .cloned()
+                .collect::<BTreeSet<_>>();
+            assert_eq!(
+                query_rows(&graph, pattern, Some(None)),
+                expected,
+                "pattern {mask}, negative IDs {negative_ids}"
+            );
+        }
+        assert_eq!(query_rows(&graph, [None; 3], Some(None)).len(), 1201);
+    }
+}
+
+#[test]
+fn query_adapter_has_only_default_union_and_preserves_unknown_external_terms() {
+    let graph = SqliteGraph::new(database(&[
+        ("<urn:s>", "<urn:p>", "\"one\"", None, true),
+        ("<urn:s>", "<urn:p>", "\"one\"", Some("<urn:g>"), false),
+        ("<urn:t>", "<urn:p>", "\"two\"", Some("<urn:g>"), false),
+    ]))
+    .expect("SQLite graph");
+    let name = query_encode(&graph, NamedNode::new("urn:g").expect("graph IRI").into());
+    assert_eq!(query_rows(&graph, [None; 3], Some(None)).len(), 2);
+    assert!(query_rows(&graph, [None; 3], None).is_empty());
+    assert!(query_rows(&graph, [None; 3], Some(Some(&name))).is_empty());
+    assert_eq!(QueryableDataset::internal_named_graphs(&&graph).count(), 0);
+    assert!(
+        !QueryableDataset::contains_internal_graph_name(&&graph, &name)
+            .expect("named graph absence")
+    );
+    let term = Term::from(oxrdf::Literal::new_simple_literal("not stored"));
+    let absent = query_encode(&graph, term.clone());
+    assert!(matches!(&absent, QueryTerm::External(_)));
+    assert_eq!(
+        QueryableDataset::externalize_term(&&graph, absent.clone()).expect("external value"),
+        term
+    );
+    assert!(query_rows(&graph, [None, None, Some(&absent)], Some(None)).is_empty());
+    let literal = query_encode(&graph, oxrdf::Literal::new_simple_literal("one").into());
+    assert!(query_rows(&graph, [Some(&literal), None, None], Some(None)).is_empty());
+    assert!(query_rows(&graph, [None, Some(&literal), None], Some(None)).is_empty());
+    graph
+        .check_error()
+        .expect("ordinary no-match patterns are not faults");
+}
+
+#[test]
+fn query_dictionary_round_trips_canonical_identity_and_preserves_numeric_lexical_forms() {
+    let originals = [
+        Term::from(NamedNode::new("urn:iri").expect("IRI")),
+        Term::BlankNode(BlankNode::new("blank..tail").expect("blank node")),
+        Term::from(oxrdf::Literal::new_typed_literal(
+            "text",
+            NamedNode::new("http://www.w3.org/2001/XMLSchema#string").expect("string datatype"),
+        )),
+        Term::from(oxrdf::Literal::new_language_tagged_literal("label", "EN").expect("language")),
+        Term::from(oxrdf::Literal::new_typed_literal(
+            "007",
+            NamedNode::new("http://www.w3.org/2001/XMLSchema#integer").expect("integer datatype"),
+        )),
+    ];
+    // Emulate the strict compiler's canonical, UNIQUE terms.n serialization.
+    let serialized = originals
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let facts = serialized
+        .iter()
+        .map(|term| ("<urn:s>", "<urn:p>", term.as_str(), None, true))
+        .collect::<Vec<_>>();
+    let graph = SqliteGraph::new(database(&facts)).expect("SQLite graph");
+    for original in originals {
+        let stored = query_encode(&graph, original.clone());
+        assert!(matches!(&stored, QueryTerm::Stored(_)));
+        let decoded = QueryableDataset::externalize_term(&&graph, stored.clone())
+            .expect("strict term decoding");
+        assert_eq!(decoded, original);
+        assert_eq!(query_encode(&graph, decoded), stored);
+    }
+    let query = "SELECT ?o WHERE { <urn:s> <urn:p> ?o } ORDER BY STR(?o)";
+    let memory = graph.load_graph().expect("reference union");
+    let before = memory
+        .query_bindings(query, &BTreeMap::new())
+        .expect("old N-Triples query view");
+    let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+    let after = data
+        .prepare_queries()
+        .expect("SQLite query view")
+        .query_bindings(query, &BTreeMap::new())
+        .expect("SQLite result");
+    assert_eq!(after, before);
+
+    let number = SqliteGraph::new(database(&[(
+        "<urn:s>",
+        "<urn:p>",
+        "\"007\"^^<http://www.w3.org/2001/XMLSchema#integer>",
+        None,
+        true,
+    )]))
+    .expect("numeric graph");
+    let data = crate::rdf_graph::ValidationData::Sqlite(&number);
+    let answer = data
+        .prepare_queries()
+        .expect("numeric query")
+        .query_bindings(
+            "SELECT (?v = 7 AS ?equal) (sameTerm(?v, 7) AS ?same) WHERE { <urn:s> <urn:p> ?v }",
+            &BTreeMap::new(),
+        )
+        .expect("numeric equality and term identity");
+    assert_eq!(
+        answer.1,
+        vec![BTreeMap::from([
+            ("equal".into(), oxrdf::Literal::from(true).into()),
+            ("same".into(), oxrdf::Literal::from(false).into()),
+        ])]
+    );
+}
+
+#[test]
+fn query_empty_graph_keeps_unit_bindings_counts_and_graph_absence() {
+    let graph = SqliteGraph::new(database(&[])).expect("empty graph");
+    let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+    let queries = data.prepare_queries().expect("queries");
+    let bindings = BTreeMap::new();
+    assert_eq!(
+        queries
+            .query_bindings("ASK {}", &bindings)
+            .expect("unit ASK"),
+        (Some(true), vec![])
+    );
+    assert_eq!(
+        queries
+            .query_bindings("SELECT * WHERE {}", &bindings)
+            .expect("unit SELECT")
+            .1,
+        vec![BTreeMap::new()]
+    );
+    assert_eq!(
+        queries
+            .query_bindings("SELECT (COUNT(*) AS ?n) WHERE { ?s ?p ?o }", &bindings)
+            .expect("empty count")
+            .1,
+        vec![BTreeMap::from([(
+            "n".into(),
+            oxrdf::Literal::from(0_i64).into()
+        )])]
+    );
+    assert_eq!(
+        queries
+            .query_bindings("SELECT ?v WHERE { VALUES ?v { 9 } }", &bindings)
+            .expect("external value")
+            .1,
+        vec![BTreeMap::from([(
+            "v".into(),
+            oxrdf::Literal::from(9_i64).into()
+        )])]
+    );
+    assert!(
+        queries
+            .query_bindings("SELECT ?g WHERE { GRAPH ?g {} }", &bindings)
+            .expect("no graph names")
+            .1
+            .is_empty()
+    );
+    assert_eq!(
+        queries
+            .query_bindings("ASK { GRAPH <urn:g> {} }", &bindings)
+            .expect("no named graph"),
+        (Some(false), vec![])
+    );
+}
+
+#[test]
+fn query_page_failure_is_reported_once_and_preserved_as_a_typed_sticky_error() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    };
+    let objects = (0..300)
+        .map(|index| format!("<urn:o:{index}>"))
+        .collect::<Vec<_>>();
+    let facts = objects
+        .iter()
+        .map(|object| ("<urn:s>", "<urn:p>", object.as_str(), None, true))
+        .collect::<Vec<_>>();
+    let mut graph = SqliteGraph::new(database(&facts)).expect("SQLite graph");
+    let stop = Arc::new(AtomicBool::new(false));
+    let handler_stop = Arc::clone(&stop);
+    graph
+        .db
+        .progress_handler(1, Some(move || handler_stop.load(Ordering::SeqCst)))
+        .expect("progress handler");
+    let mut iterator =
+        QueryableDataset::internal_quads_for_pattern(&&graph, None, None, None, Some(None));
+    for _ in 0..256 {
+        iterator
+            .next()
+            .expect("first page row")
+            .expect("complete first page");
+    }
+    stop.store(true, Ordering::SeqCst);
+    assert!(iterator.next().expect("second page fault").is_err());
+    assert!(iterator.next().is_none());
+    assert!(error(graph.check_error()).is::<ShaclBudgetExceeded>());
+    assert!(
+        QueryableDataset::internal_named_graphs(&&graph)
+            .next()
+            .expect("sticky named-graph query")
+            .is_err()
+    );
+}
+
+#[test]
+fn prepared_queries_restore_sql_failures_swallowed_by_exists() {
+    for query in [
+        "SELECT ?this WHERE { FILTER EXISTS { ?this <urn:p> ?o } }",
+        "SELECT ?this WHERE { FILTER NOT EXISTS { ?this <urn:p> ?o } }",
+        "ASK { FILTER EXISTS { ?this <urn:p> ?o } }",
+    ] {
+        let mut graph =
+            SqliteGraph::new(database(&[("<urn:s>", "<urn:p>", "<urn:o>", None, true)]))
+                .expect("SQLite graph");
+        for iri in ["urn:s", "urn:p"] {
+            query_encode(&graph, NamedNode::new(iri).expect("IRI").into());
+        }
+        graph
+            .db
+            .progress_handler(1, Some(|| true))
+            .expect("interrupt reads inside EXISTS");
+        let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+        let queries = data.prepare_queries().expect("query adapter");
+        let result =
+            queries.query_bindings(query, &BTreeMap::from([("this".into(), "<urn:s>".into())]));
+        assert!(error(result).is::<ShaclBudgetExceeded>(), "{query}");
+    }
+}
+
+#[test]
+fn previous_query_fault_rejects_even_queries_that_need_no_rows() {
+    let mut graph = SqliteGraph::new(database(&[])).expect("SQLite graph");
+    graph
+        .db
+        .progress_handler(1, Some(|| true))
+        .expect("inject SQL failure");
+    assert!(error(graph.predicate_objects("<urn:p>")).is::<ShaclBudgetExceeded>());
+    graph
+        .db
+        .progress_handler(0, None::<fn() -> bool>)
+        .expect("restore SQL execution");
+    let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+    let queries = data.prepare_queries().expect("query adapter");
+    for query in [
+        "ASK {}",
+        "SELECT * WHERE {}",
+        "SELECT * WHERE { ?s ?p ?o } LIMIT 0",
+        "SELECT ?g WHERE { GRAPH ?g {} }",
+        "SELECT ?o WHERE { <urn:unknown> <urn:missing> ?o }",
+    ] {
+        assert!(
+            error(queries.query_bindings(query, &BTreeMap::new())).is::<ShaclBudgetExceeded>(),
+            "{query}"
+        );
+    }
+}
+
+#[test]
+fn prepared_queries_restore_decode_failures_swallowed_by_expressions() {
+    for query in [
+        "SELECT (STR(?v) AS ?text) WHERE { <urn:s> <urn:p> ?v }",
+        "SELECT (COALESCE(STR(?v), \"fallback\") AS ?text) WHERE { <urn:s> <urn:p> ?v }",
+        "SELECT ?text WHERE { <urn:s> <urn:p> ?v BIND(STR(?v) AS ?text) }",
+    ] {
+        let graph = SqliteGraph::new(database(&[(
+            "<urn:s>",
+            "<urn:p>",
+            "<broken iri>",
+            None,
+            true,
+        )]))
+        .expect("SQLite graph");
+        let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+        let queries = data.prepare_queries().expect("query adapter");
+        let failure = error(queries.query_bindings(query, &BTreeMap::new()));
+        assert!(
+            failure.to_string().contains("SHACL query input failed"),
+            "{query}: {failure:#}"
+        );
+        assert!(!failure.is::<ShaclBudgetExceeded>());
+        assert_eq!(error(graph.check_error()).to_string(), failure.to_string());
+        let absent = QueryTerm::External(NamedNode::new("urn:absent").expect("IRI").into());
+        assert!(QueryableDataset::externalize_term(&&graph, absent.clone()).is_err());
+        assert!(
+            QueryableDataset::internalize_term(
+                &&graph,
+                NamedNode::new("urn:other").expect("IRI").into()
+            )
+            .is_err()
+        );
+        assert!(QueryableDataset::contains_internal_graph_name(&&graph, &absent).is_err());
+    }
 }
