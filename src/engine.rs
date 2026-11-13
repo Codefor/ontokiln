@@ -57,6 +57,14 @@ impl OntologyEngine {
         crate::query::local_query(query)?;
         self.reasoner.select_or_ask(query, view)
     }
+    /// Execute a local CONSTRUCT or SELECT s/p/o derived-query asset.
+    /// Results are request-scoped; this never changes the immutable Pack.
+    pub fn derived_query(&self, query: &str, view: View) -> Result<Vec<u8>> {
+        crate::query::local_derived_query(query)?;
+        let parsed = spargebra::SparqlParser::new().parse_query(query)?;
+        self.reasoner.execute(&parsed, view)
+    }
+
     fn data_graph(&self) -> &Graph {
         self.validation_graph.get_or_init(|| {
             let pack = self.pack();
@@ -203,6 +211,27 @@ mod tests {
         let restored = OntologyEngine::load_pack(&path).unwrap();
         assert_eq!(before, restored.query(query, View::Closure).unwrap());
     }
+    #[test]
+    fn construct_asset_executes_without_mutating_pack() {
+        let dir = tempdir().unwrap();
+        let (engine, _) = OntologyEngine::build(
+            &[source(dir.path(), "data.ttl", "<urn:s> <urn:p> <urn:o> .")],
+            "no-rules-v1",
+            &[],
+        ).unwrap();
+        let before = engine.pack().quad_count();
+        let construct = "CONSTRUCT { <urn:derived> <urn:p> ?o } WHERE { <urn:s> <urn:p> ?o }";
+        let result = engine.derived_query(construct, View::Closure).unwrap();
+        let value = String::from_utf8(result).unwrap();
+        assert!(value.contains("<urn:derived> <urn:p> <urn:o>"));
+        assert_eq!(engine.pack().quad_count(), before);
+        assert!(engine.query("ASK { <urn:derived> <urn:p> <urn:o> }", View::Closure).is_ok());
+        let response: Value = serde_json::from_slice(
+            &engine.query("ASK { <urn:derived> <urn:p> <urn:o> }", View::Closure).unwrap()
+        ).unwrap();
+        assert_eq!(response["boolean"], false);
+    }
+
     #[test]
     fn full_shacl_core_runs_on_memory_pack() {
         let dir = tempdir().unwrap();
