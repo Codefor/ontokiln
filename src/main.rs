@@ -15,7 +15,10 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 #[derive(Parser)]
-#[command(version, about = "Compile and query an immutable in-memory RDF Pack v4")]
+#[command(
+    version,
+    about = "Compile and query an immutable in-memory RDF Pack v4"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -138,7 +141,7 @@ fn sources(input: &Path) -> Result<Vec<Source>> {
         Ok(files)
     } else {
         let sources: Vec<Source> = serde_json::from_slice(
-            &fs::read(input).with_context(|| format!("read {}", input.display()))?
+            &fs::read(input).with_context(|| format!("read {}", input.display()))?,
         )?;
         ensure!(!sources.is_empty(), "source manifest is empty");
         Ok(sources)
@@ -146,34 +149,52 @@ fn sources(input: &Path) -> Result<Vec<Source>> {
 }
 
 fn rules(path: Option<&Path>) -> Result<Vec<Rule>> {
-    let Some(path) = path else { return Ok(Vec::new()); };
+    let Some(path) = path else {
+        return Ok(Vec::new());
+    };
     let document: Value = serde_json::from_slice(&fs::read(path)?)?;
     let entries = if let Some(rows) = document.as_array() {
         rows.clone()
     } else {
-        ensure!(document["schema_version"] == "ontology-rule-ir/v1",
-            "unsupported rule IR schema");
-        document["rules"].as_array()
-            .context("ontology-rule-ir/v1 requires rules array")?.clone()
+        ensure!(
+            document["schema_version"] == "ontology-rule-ir/v1",
+            "unsupported rule IR schema"
+        );
+        document["rules"]
+            .as_array()
+            .context("ontology-rule-ir/v1 requires rules array")?
+            .clone()
     };
     Ok(serde_json::from_value(Value::Array(entries))?)
 }
 
 fn main() -> Result<()> {
     match Cli::parse().command {
-        Command::Build { sources: input, pack, profile, rules: rules_file } => {
-            ensure!(!pack.exists(), "Pack output already exists: {}", pack.display());
+        Command::Build {
+            sources: input,
+            pack,
+            profile,
+            rules: rules_file,
+        } => {
+            ensure!(
+                !pack.exists(),
+                "Pack output already exists: {}",
+                pack.display()
+            );
             let sources = sources(&input)?;
             let rules = rules(rules_file.as_deref())?;
             let (engine, stats) = OntologyEngine::build(&sources, &profile, &rules)?;
             engine.save_pack(&pack)?;
-            println!("{}", json!({
-                "pack": pack, "format":"ontokiln-pack/v4",
-                "profile":profile, "fixpoint_reached":engine.pack().metadata().fixpoint_reached,
-                "explicit_facts":stats.explicit_facts,
-                "inferred_facts":stats.inferred_facts,
-                "quads":engine.pack().quad_count()
-            }));
+            println!(
+                "{}",
+                json!({
+                    "pack": pack, "format":"ontokiln-pack/v4",
+                    "profile":profile, "fixpoint_reached":engine.pack().metadata().fixpoint_reached,
+                    "explicit_facts":stats.explicit_facts,
+                    "inferred_facts":stats.inferred_facts,
+                    "quads":engine.pack().quad_count()
+                })
+            );
         }
         Command::Query { pack, query, view } => {
             let engine = OntologyEngine::load_pack(&pack)?;
@@ -184,8 +205,11 @@ fn main() -> Result<()> {
         Command::Validate { pack, shapes } => {
             let engine = OntologyEngine::load_pack(&pack)?;
             let report = if let Some(path) = shapes {
-                let id = path.file_name().context("Shapes source has no filename")?
-                    .to_string_lossy().into_owned();
+                let id = path
+                    .file_name()
+                    .context("Shapes source has no filename")?
+                    .to_string_lossy()
+                    .into_owned();
                 let shape = source(path, id)?;
                 engine.validate_shape_sources(&[shape], None, None, 64)?
             } else {
@@ -195,11 +219,14 @@ fn main() -> Result<()> {
         }
         Command::Inspect { pack } => {
             let pack = PackV4::load(&pack)?;
-            println!("{}", json!({
-                "format":"ontokiln-pack/v4", "version":4,
-                "quads":pack.quad_count(), "terms":pack.term_count(),
-                "metadata":pack.metadata()
-            }));
+            println!(
+                "{}",
+                json!({
+                    "format":"ontokiln-pack/v4", "version":4,
+                    "quads":pack.quad_count(), "terms":pack.term_count(),
+                    "metadata":pack.metadata()
+                })
+            );
         }
         Command::Api { request, result } => ontokiln::api::run_files(&request, &result)?,
         Command::Full { request, result } => {

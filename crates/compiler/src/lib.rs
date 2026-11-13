@@ -2,4 +2,4 @@
 pub mod v4;
 pub mod v4_materialize;
 pub use v4::{Source, compile_sources};
-pub use v4_materialize::{Rule, Materialization, materialize};
+pub use v4_materialize::{Materialization, Rule, materialize};
