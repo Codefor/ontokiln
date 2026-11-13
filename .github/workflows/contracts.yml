@@ -13,6 +13,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt --component clippy
+      - name: Resolve trimmed Cargo.lock
+        run: cargo check --workspace
+      - name: Export resolved lockfile
+        run: |
+          echo BEGIN_UPDATED_CARGO_LOCK
+          cat Cargo.lock
+          echo END_UPDATED_CARGO_LOCK
       - name: Format memory-only sources for migration validation
         run: cargo fmt --all
       - name: Export formatted SHACL and graph
