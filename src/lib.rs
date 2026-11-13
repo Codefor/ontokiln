@@ -4,6 +4,7 @@
 //! requests must run inside a supervised worker when inputs are untrusted.
 pub mod api;
 pub mod disk;
+pub mod engine;
 pub mod full;
 pub mod full_artifact;
 pub mod full_execution;
