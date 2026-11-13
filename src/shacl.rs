@@ -222,7 +222,10 @@ fn validate_data(
         &shapes,
         &reachable,
         &foci,
-        ValidationLimits { max_depth, work_budget },
+        ValidationLimits {
+            max_depth,
+            work_budget,
+        },
         native_cache,
     )?;
     data.check_error()?;
