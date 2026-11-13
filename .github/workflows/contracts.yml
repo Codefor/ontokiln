@@ -19,5 +19,9 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Pack v4 library and integration regression
         run: cargo test --workspace --locked
-      - name: Million-fact memory capacity and Pack integrity
+      - name: Million-fact memory capacity and Pack integrity (release)
         run: cargo test --release --test v4_scale --locked -- --ignored --nocapture
+      - name: Frozen Full corpus oracles on Pack v4 (100K, release)
+        run: |
+          cargo build --release --locked --bin ontokiln
+          RAYON_NUM_THREADS=1 python3 -B benchmarks/v4_baseline_regression.py             --binary target/release/ontokiln --facts 100000 --shacl
