@@ -11,6 +11,7 @@ use std::{
 
 pub const CONTRACT: &str = "ontokiln-api/v1";
 pub const READ_CONTRACT: &str = "ontokiln-sqlite-read/v1";
+const CONTENT_DIGEST_CAPABILITY: &str = "dataset-content-digest/v1";
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -50,6 +51,8 @@ pub enum Operation {
     },
     Query {
         dataset: PathBuf,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expected_content_digest: Option<String>,
         query: String,
         #[serde(default)]
         parameters: BTreeMap<String, parameters::Parameter>,
@@ -67,6 +70,8 @@ pub enum Operation {
     },
     Validate {
         dataset: PathBuf,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expected_content_digest: Option<String>,
         #[serde(default)]
         shapes: Vec<Source>,
         #[serde(default)]
@@ -146,6 +151,20 @@ fn invalid(error: impl std::fmt::Display) -> anyhow::Error {
     anyhow::anyhow!("INVALID_REQUEST|{error}")
 }
 
+// Negotiate the envelope before applying a version-specific operation schema.
+// Keep deserializing v1 from the original bytes so duplicate fields are rejected.
+fn parse_request(bytes: &[u8], raw: &Value) -> Result<Request> {
+    let contract = raw
+        .get("contract")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid("contract must be a string"))?;
+    ensure!(
+        contract == CONTRACT,
+        "UNSUPPORTED_CONTRACT|expected {CONTRACT}"
+    );
+    serde_json::from_slice(bytes).map_err(invalid)
+}
+
 impl Request {
     fn internal(&self) -> Result<Value> {
         ensure!(
@@ -165,6 +184,23 @@ impl Request {
                 && l.max_validation_depth > 0,
             "INVALID_REQUEST|invalid limits"
         );
+        if let Operation::Query {
+            expected_content_digest: Some(expected),
+            ..
+        }
+        | Operation::Validate {
+            expected_content_digest: Some(expected),
+            ..
+        } = &self.operation
+        {
+            ensure!(
+                expected.len() == 64
+                    && expected
+                        .bytes()
+                        .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()),
+                "INVALID_REQUEST|expected_content_digest must be 64 lowercase hexadecimal digits"
+            );
+        }
         let mut v = json!({"operation":"api", "_api_request":self,
             "memory_budget_bytes":l.memory_bytes, "disk_budget_bytes":l.scratch_bytes,
             "timeout_seconds":l.timeout_ms.map(|v| v / 1000.0)});
@@ -230,9 +266,7 @@ fn failure(code: &str, message: &str) -> Value {
 pub fn run_files(request: &Path, result: &Path) -> Result<()> {
     let bytes = fs::read(request)?;
     let raw: Value = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-    let internal = serde_json::from_slice::<Request>(&bytes)
-        .map_err(invalid)
-        .and_then(|req| req.internal());
+    let internal = parse_request(&bytes, &raw).and_then(|req| req.internal());
     let internal = match internal {
         Ok(mut value) => {
             value["_api_request_sha256"] = json!(crate::full_artifact::digest(&bytes));
@@ -323,11 +357,24 @@ fn dataset(path: &Path) -> Result<(Value, Option<ontokiln_pack::Pack>)> {
             json!(["asserted"])
         };
         Ok((
-            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT],
+            json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT,CONTENT_DIGEST_CAPABILITY],
             "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
             None,
         ))
     }
+}
+
+fn check_content_digest(meta: &Value, expected: Option<&str>) -> Result<()> {
+    if let Some(expected) = expected {
+        let actual = meta["manifest"]["content_digest"].as_str().ok_or_else(|| {
+            anyhow::anyhow!("UNSUPPORTED_CAPABILITY|required {CONTENT_DIGEST_CAPABILITY}")
+        })?;
+        ensure!(
+            actual == expected,
+            "INVALID_DATASET|dataset content digest does not match expected_content_digest"
+        );
+    }
+    Ok(())
 }
 
 fn snapshot(path: &Path, meta: &Value, target: &Path) -> Result<()> {
@@ -397,6 +444,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
         }
         Operation::Query {
             dataset: path,
+            expected_content_digest,
             query,
             parameters,
             rdf_bindings,
@@ -414,6 +462,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             )
             .map_err(invalid)?;
             let (meta, pack) = dataset(path)?;
+            check_content_digest(&meta, expected_content_digest.as_deref())?;
             ensure!(
                 meta["views"]
                     .as_array()
@@ -538,6 +587,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
         }
         Operation::Validate {
             dataset: path,
+            expected_content_digest,
             shapes,
             shapes_from_dataset,
             selected_shapes,
@@ -552,6 +602,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "INVALID_REQUEST|choose dataset shapes or external shapes"
             );
             let (meta, pack) = dataset(path)?;
+            check_content_digest(&meta, expected_content_digest.as_deref())?;
             ensure!(
                 pack.is_none(),
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
@@ -577,7 +628,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             if let Some(focus) = focus_node {
                 input["focus_node"] = json!(focus);
             }
-            let reply = crate::full::execute(input).map_err(anyhow::Error::msg)?;
+            let reply = crate::full::validate_api(input).map_err(anyhow::Error::msg)?;
             json!({"conforms":reply["conforms"],"checked_shapes":reply["checked_shapes"],
                 "violations":reply["violations"],"report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
         }

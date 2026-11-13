@@ -3,6 +3,19 @@ use anyhow::{Result, ensure};
 use oxrdf::Term;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
+/// Resource exhaustion during SHACL evaluation, distinct from invalid RDF or Shapes.
+/// Preserve the diagnostic text for legacy callers while API adapters classify the type.
+#[derive(Debug)]
+pub(crate) struct ShaclBudgetExceeded(pub(crate) &'static str);
+
+impl std::fmt::Display for ShaclBudgetExceeded {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.0)
+    }
+}
+
+impl std::error::Error for ShaclBudgetExceeded {}
+
 pub const RDF: &str = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 pub const RDFS: &str = "http://www.w3.org/2000/01/rdf-schema#";
 pub const SH: &str = "http://www.w3.org/ns/shacl#";
@@ -236,7 +249,7 @@ impl PreparedQueries {
             bytes += row.values().map(|t| t.to_string().len()).sum::<usize>();
             ensure!(
                 rows.len() < 4096 && bytes <= 1024 * 1024,
-                "SHACL SELECT result budget exceeded"
+                ShaclBudgetExceeded("SHACL SELECT result budget exceeded")
             );
             rows.push(row);
         }

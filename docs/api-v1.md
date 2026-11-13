@@ -22,8 +22,14 @@ flowchart TB
 - `api` 不接受后端选择开关。编译返回不透明的 `dataset` 路径，后续操作使用该路径；常规查询消费者只传回该路径。需要本地批量读取的消费者可依赖下文独立的 `ontokiln-sqlite-read/v1`，不能依赖未声明的内部表或跨快照词项 ID。适配器目前识别 Full 产物目录和已有 pack 文件。
 - 既有 `full`、`compile`、`sparql`、HTTP `/v1/*` 与 Rust 模块继续提供原有行为。新入口默认 `asserted`；旧 Full 的默认 `closure` 不被修改。应用迁移应同时切换调用、启动能力检查、终态验证及发行 pin；保留旧入口不代表迁移后的应用继续调用旧协议。
 - `src/full*`、未声明的磁盘表、pack 字节和构建身份属于内部协议或特定存储格式。`identity check` 仍用于精确版本核验，不作为 API 向后兼容判断。API 主版本与存储版本分别演进；旧物理文件的重编策略不等于 API 升级。
-- `run_files` 使用当前可执行程序启动隐藏 worker。Rust 嵌入者须保留 CLI worker 分派，或调用发布的 `ontokiln api` 进程；直接调用旧 `full::execute` 不经过此契约及进程隔离。
+- `run_files` 使用一次调用一个独立 worker 的执行方式，由当前可执行程序启动并在完成后回收；请求或启动检查失败时可能不启动 worker。进程、PID 和回收回执由 v1 执行适配层负责；更换内部执行器不能把“任务完成”冒充“进程已回收”。Rust 嵌入者须保留 CLI worker 分派，或调用发布的 `ontokiln api` 进程；直接调用旧 `full::execute` 不经过此契约及进程隔离。
 - 本版覆盖本地 SELECT / ASK、编译、物化、SHACL 和能力查询。HTTP 模板、JSONL、证明导出等现有入口继续按原协议工作；本版不承诺逐事实证明。`require` 请求不存在的能力会明确失败。
+
+版本分别约束不同内容：API 版本约束请求、结果、错误和默认行为；数据集语义标识约束图与视图的含义；规则 profile 约束规则集合和推导语义；`read_contract` 约束显式公开的读取格式。替换算法或索引应保持这些语义，扩展已有 profile 的推导范围须使用新的 profile。构建身份用于发行核验，不替代上述兼容判断。
+
+`ontokiln-api/v1` 的稳定边界是 JSON 文件协议。公开 Rust 模块、struct / enum 的源码接口及 ABI 仍是实现接口；嵌入式 Rust 接口需要独立定义兼容契约。
+
+v1 保持既有默认 envelope、查询和校验结果的字段集，不要求现有消费者事后改为忽略新增字段。新增可选请求字段必须保持省略时的原行为；新增结果元数据须由显式选择、新操作或新版本承载。`operations`、`capabilities`、`read_contracts` 等能力列表允许增加条目，消费者按集合包含关系判断所需能力，不依赖顺序或完整列表相等。
 
 ## 请求
 
@@ -44,36 +50,44 @@ flowchart TB
 }
 ```
 
-`contract` 和 `request_id` 必填；后者为 1～256 UTF-8 字节。未知版本返回 `UNSUPPORTED_CONTRACT`。未知字段、错误类型、非法枚举和无效预算返回 `INVALID_REQUEST`。路径按进程工作目录解析，推荐传绝对路径。请求文件最大 4 MiB。
+`contract` 和 `request_id` 必填；后者为 1～256 UTF-8 字节。先检查 JSON 对象及字符串类型的 `contract`，再按对应版本解析请求：未知版本返回 `UNSUPPORTED_CONTRACT`，即使其 operation 不属于 v1；缺失或类型错误的 `contract` 返回 `INVALID_REQUEST`。对 v1 请求，未知字段、错误类型、非法枚举和无效预算返回 `INVALID_REQUEST`。路径按进程工作目录解析，推荐传绝对路径。请求文件没有独立的固定字节上限，读取与解析的资源边界见“预算”。
 
 | operation.kind | 字段与行为 |
 |---|---|
 | `capabilities` | 可选 `dataset`。无数据集时返回操作集合、默认视图和证明覆盖；有数据集时校验后返回其语义、profile、能力及可用视图 |
-| `prepare_query` | `query`。检查本地 SELECT / ASK / CONSTRUCT，拒绝远端访问；返回 `valid: true` |
+| `prepare_query` | `query`。检查本地 SELECT / ASK / CONSTRUCT 的语法及本地查询限制，拒绝远端访问；返回 `valid: true`。不绑定数据集、不执行查询，不承诺后续预算内完成 |
 | `rules` | `profile`、`files: [{path, expected_sha256}]`。冻结、校验并返回 `ontology-rule-ir/v1` 的 `rules` 数组 |
 | `compile` | `sources`、`output`、`profile`，可选 `rules: []`、`import_lock`、`expected_source_tree_digest`。冻结输入并验证 SHA-256，原子发布新快照；输出路径必须不存在 |
 | `materialize` | `dataset`、`output`。读取已编译快照的规则计划，求不动点并发布新快照；失败不覆盖原数据 |
-| `query` | `dataset`、`query`；可选 `parameters: {}`、`rdf_bindings: {}`、`view: asserted`、`revision`、`require: []`。仅本地 SELECT / ASK，不允许 FROM / SERVICE |
-| `validate` | `dataset`；可选 `shapes: []`、`shapes_from_dataset: false`、`selected_shapes`、`focus_node`。只能选择外部 Shapes 或数据集内 Shapes；不支持 pack |
+| `query` | `dataset`、`query`；可选 `parameters: {}`、`rdf_bindings: {}`、`values: []`、`derived_queries: []`、`view: asserted`、`revision`、`require: []`、`expected_content_digest`。仅本地 SELECT / ASK，不允许 FROM / SERVICE |
+| `validate` | `dataset`；可选 `shapes: []`、`shapes_from_dataset: false`、`selected_shapes`、`focus_node`、`expected_content_digest`。只能选择外部 Shapes 或数据集内 Shapes；不支持 pack |
 
 `sources` 和外部 `shapes` 的元素为 `{path, document_id, format, expected_sha256, base_iri?}`；`format` 为 `turtle`、`ntriples`、`trig` 或 `nquads`。源文件必须是普通非符号链接文件，摘要为实际字节的 SHA-256。编译时 `document_id` 隔离空白节点；外部 Shapes 的空白节点独立解析。`rules` 元素为 `{path, expected_sha256}`。
 
-编译 profile 必填，可选 `no-rules-v1`、`datalog-v1`、`rdfs-supported-v1`、`rdfs-property-chain-v1`；规则格式与含义见 [Full 合同](full.md)。只解析已冻结的本地本体声明，不联网获取 imports。RDF 词项默认最大 1 MiB，可用 `limits.max_term_bytes` 显式调整；严格解析，不提供隐式业务修复。`import_lock` 为 ontology IRI 到 document ID 或 ID 数组的映射；null 使用冻结声明自动解析，空对象是禁止未声明映射的显式锁。`expected_source_tree_digest` 按冻结来源清单核对 SHA-256，失败不发布产物。
+编译 profile 必填，可选 `no-rules-v1`、`datalog-v1`、`rdfs-supported-v1`、`rdfs-property-chain-v1`；规则格式与含义见 [Full 合同](full.md)。只解析已冻结的本地本体声明，不联网获取 imports。编译 RDF 词项默认最大 1 MiB，可用 `limits.max_term_bytes` 显式调整；严格解析，不提供隐式业务修复。`import_lock` 为 ontology IRI 到 document ID 或 ID 数组的映射；null 使用冻结声明自动解析，空对象是禁止未声明映射的显式锁。`expected_source_tree_digest` 按冻结来源清单核对 SHA-256，失败不发布产物。
 
 `parameters` 使用显式 `urn:ontokiln:param:NAME` 槽。IRI 为 `{"type":"iri","value":"urn:x"}`；字面量为 `{"type":"literal","value":"文本","language":"zh"}` 或带 `datatype` 的形式。`language` 与 `datatype` 不能同时提供。多余、缺失和非法参数被拒绝；SPARQL 变量仍有自身作用域。
 
 `rdf_bindings` 是独立的变量初始绑定机制，值为合法 N-Triples RDF 词项字符串，变量名不含 `?`。它保持 SELECT 列、FILTER/BOUND 和 ORDER BY 的变量语义，允许同一快照的空白节点；不通过文本替换查询实现。只有声明 `rdf-bindings/v1` 的数据集支持，pack 暂时明确拒绝。
+
+`expected_content_digest` 为 query / validate 的可选快照前置条件，取自 compile / materialize 成功结果的 `artifact.content_digest`。省略或 null 不增加前置条件；提供时必须是由 64 个小写十六进制字符表示的 SHA-256，否则返回 `INVALID_REQUEST`。Full 在完成产物完整性核验后比较摘要，错配返回 `INVALID_DATASET`，不会返回查询或校验结果。Full 通过 `dataset-content-digest/v1` 声明此能力；pack 查询提供非 null 摘要时返回 `UNSUPPORTED_CAPABILITY`，不会忽略。该字段不增加响应字段，也不是跨重编的语义等价检查。
 
 ## 快照语义
 
 | 快照 | 语义与可用能力 |
 |---|---|
 | 既有 pack | `pack-rdfs-hierarchy/v1`；默认图为所选文档的去重并集，asserted 命名图是文档图；层级推理与版本隔离维持原语义。能力含 `document-graphs/v1`、`revision/v1` |
-| Full | `rdf-dataset-union/v1`；存储保留 RDF 图名，SPARQL 默认图为所有可见图的去重并集，GRAPH 使用原始 RDF 图名；规则以冻结 profile / plan 为准。能力含 `rdf-named-graphs/v1`、`shacl/v1`；不支持 pack 的 revision 投影 |
+| Full | `rdf-dataset-union/v1`；存储保留 RDF 图名，SPARQL 默认图为所有可见图的去重并集，GRAPH 使用原始 RDF 图名；规则以冻结 profile / plan 为准。能力含 `rdf-named-graphs/v1`、`shacl/v1`、`dataset-content-digest/v1`；不支持 pack 的 revision 投影 |
 
 两者共同提供 `select-ask/v1`、`views/v1`。不同图语义、不同规则 profile 不能仅因接口相同就互换。未来替换存储适配器时必须保留原快照的语义和能力，不能将 Full 具名图自动解释为 pack 文档图。
 
 `asserted` 为原始事实；`inferred` 为新增推导事实；`closure` 为两者并集。Full 先按四元组的 explicit 标记筛选，再投影默认图；同一 SPO 在不同图的显式 / 推导状态可以不同。pack 按所选版本的三元组区分，显式声明优先。Full 带规则的 compiled 快照只允许 asserted，完成物化后才允许 inferred / closure；`no-rules-v1` 的 compiled 快照可直接查询三个视图。reasoned 快照必须记录已完成不动点。pack 的层级视图由受预算约束的查询求值生成。
+
+compile 成功表示冻结输入已编译为新快照，不表示已经执行规则物化。materialize 读取 compiled 快照及其冻结规则计划，求不动点后发布新的 reasoned 快照，原快照不变；超限或未达到不动点均不能发布成功。query 只读取指定快照和可用视图，不隐式执行 Full 物化。
+
+validate 校验快照中**已存储全部事实的 SPO 去重并集**：不按 explicit 标记筛选，图名不参与校验数据图；不会在校验前自动执行 profile 规则物化，也不采用 query 的默认 asserted 视图。因此 compiled 和 reasoned 快照可能得到不同校验结果。外部 Shapes 同样合并为去重图；`shapes_from_dataset=true` 使用该数据图中的 Shapes。支持的约束及限制以 [Full 合同](full.md) 为准，`shacl/v1` 不表示支持全部 SHACL 扩展。
+
+Shapes 省略且 `shapes_from_dataset=false` 时为空图；`selected_shapes` 省略时选择声明为 NodeShape / PropertyShape 的节点，显式空数组表示不选择任何 Shape。`checked_shapes` 是所选 Shape 的数量，不是焦点节点或约束求值次数。没有待校验 Shape 时可以 `COMPLETE`、`conforms=true`、`checked_shapes=0`；完成和符合约束均不证明校验范围非空。调用方应按自身要求核对选择范围与报告。
 
 Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复制数据库到本次 worker 的私有临时目录。pack 复用加载器的私有只读快照。外部 Shapes 也先核验摘要再冻结。复制和求值都处于执行预算内。
 
@@ -102,12 +116,24 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 |---|---|
 | 查询 | `query_type`、`variables`、`items`、`boolean`、`view`、`complete=true`、`truncated=false`、`proof_coverage`。SELECT 的 boolean 为 null；ASK 的 variables / items 为空 |
 | 编译 / 物化 | `dataset`、`stats.explicit_facts`、`stats.inferred_facts`、`fixpoint_reached`、`proof_coverage`、`read_contract` 和 `artifact`（路径、manifest / 内容 / 来源摘要、语义指纹、profile） |
-| 校验 | `conforms`、`checked_shapes`、结构化 `report`（含 violations）。不符合 Shape 是正常校验结果，不是执行失败 |
+| 校验 | `conforms`、`checked_shapes`、`violations` 数量、结构化 `report`（含 violations）。不符合 Shape 是正常校验结果，不是执行失败；现有 report 的字段及 RDF 词项表示仍属于兼容范围 |
 | 能力 | `operations`、`default_view`、`proof_coverage`，以及按请求提供的 `dataset` 元数据 |
 
 查询词项为 SPARQL JSON 的 `uri`、`bnode`、`literal` 对象；保留词法、datatype 和 `xml:lang`。普通字符串统一显式标记 `xsd:string`。不支持的结果词项明确拒绝。未绑定变量不出现在该行中。SELECT 保留重复解；只有 ORDER BY 承诺指定顺序。空白节点标签可合法重命名，等价比较需保留同一结果内的节点关系，不能按标签字节比较不同快照。
 
 本版 `proof_coverage` 固定为 `{"per_fact":"not_recorded"}`，不把结果数量、闭包或成功终态当作逐事实证明。
+
+### 摘要与身份
+
+| 字段 | 含义与边界 |
+|---|---|
+| `request_sha256` | 原始公开请求文件字节的摘要；JSON 排版变化也会改变。绑定请求内容，不是幂等键，也不单独绑定 dataset 路径所指的内容 |
+| `source_tree_digest` | 按 document_id 排序后的冻结来源清单摘要，包含来源格式、base IRI、字节摘要等；不是 RDF 图的语义规范化摘要 |
+| `content_digest` | 产物文件清单及其字节摘要的摘要。绑定精确产物内容；即使语义相同，重编或物理格式变化也可能改变，前置条件应使用对应新产物的摘要 |
+| `semantic_fingerprint` | 冻结输入与配置配方的摘要，包含 engine semantic version 和 index profile。不是 RDF 图语义等价判定；compiled / reasoned 可共享此值，不能据此判断物化是否完成 |
+| `kernel` | 实际构建与发行身份；用于诊断、固定发行和精确版本核验，不作为 API 或读取格式的兼容版本 |
+
+### 失败与恢复
 
 | error.code | status |
 |---|---|
@@ -118,26 +144,30 @@ Full 查询与校验先校验 manifest / 文件摘要，再按已验证摘要复
 
 客户端按 code 判断，不匹配诊断 message。可选细分 `error.reason` 保留 `SOURCE_INVALID`、`RULE_INVALID`、`UNSAFE_RULE`、`BUILD_ABORTED`、`TTL_PARSE_ERROR`、`UNSUPPORTED_RULE_PROFILE`、`FORMAT_VERSION_UNSUPPORTED`、`MANIFEST_CORRUPT`、`QUERY_FAILED`、`VALIDATION_FAILED`、`RESOURCE_LIMIT_EXCEEDED`、`BUDGET_EXHAUSTED`、`FIXPOINT_LIMIT_EXCEEDED`、`CANCELLED`；未知 reason 必须退回稳定 code。对 supervisor 发 SIGTERM / SIGINT 会终止并 wait worker 后写 CANCELLED；超时、RSS 或临时磁盘预算失败同样回收 worker。系统强杀或 I/O 失败可能没有终态文件，不能解释为成功。
 
+没有本次终态文件也不表示一定没有副作用：进程可能在产物发布后、结果文件写出前终止。`request_id` 和 `request_sha256` 不提供自动幂等，已有 output 也不会被重试覆盖。宿主应结合本次所有权回执和实际输出核对发布状态，再决定恢复或重试，不能将旧结果文件当成本次成功。
+
 ## 预算
 
 `limits` 可省略；字段省略时使用下表默认值。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的显式 null 表示调用方取消该项预算，其余字段不接受 null；仍保留取消与进程回收。预算是执行许可，不是性能承诺。文件请求没有额外的固定字节上限；启动 worker 前的 JSON 读取与解析由调用方进程环境承担，不属于 worker RSS 预算。
 
 Full `compile` / `materialize` 仍要求有限的内存与临时磁盘预算：这两个操作的 `memory_bytes` / `scratch_bytes` 应省略以使用默认值，或传入正整数；传 null 返回 `INVALID_REQUEST`。查询和校验等读取操作允许取消这些预算。
 
-| 字段 | 默认值 |
-|---|---|
-| `memory_bytes` | 512 MiB，supervisor 与 worker 的 RSS 预算 |
-| `scratch_bytes` | 4 GiB，临时目录与 staging 预算 |
-| `timeout_ms` | 300,000 ms |
-| `max_rows` | 100,000；Full 可显式增大，ASK 计一行 |
-| `max_bytes` | 4 MiB；Full 可显式增大 |
-| `max_iterations` | 100 |
-| `max_derived_facts` | 1,000,000 |
-| `max_intermediate_rows` | 10,000,000 |
-| `max_validation_depth` | 64 |
-| `max_term_bytes` | 1 MiB |
+| 字段 | 默认值 | 适用范围 |
+|---|---|---|
+| `memory_bytes` | 512 MiB | 执行适配层：supervisor 与 worker 的 RSS |
+| `scratch_bytes` | 4 GiB | 执行适配层：临时目录与 staging |
+| `timeout_ms` | 300,000 ms | 执行适配层：执行、冻结输入及完成处理 |
+| `max_rows` | 100,000 | query 最终输出；Full 可显式增大，ASK 计一行 |
+| `max_bytes` | 4 MiB | query 最终 payload；Full 可显式增大 |
+| `max_iterations` | 100 | materialize 的不动点迭代 |
+| `max_derived_facts` | 1,000,000 | materialize 推导事实、query 派生数据 |
+| `max_intermediate_rows` | 10,000,000 | materialize 中间结果、query 派生查询累计行数 |
+| `max_validation_depth` | 64 | validate 的 Shape 嵌套求值 |
+| `max_term_bytes` | 1 MiB | compile 解析 RDF 词项 |
 
-`max_bytes` 检查规范化查询 payload `{query_type, variables, items, boolean}` 的紧凑 UTF-8 JSON 字节数，不包含 envelope。内部扫描、序列化和内存保护仍可提前拒绝请求；不会为了保持完成率突破预算。RSS 为采样及进程高水位验收，不承诺任何瞬时值绝不越界。SHACL 仍使用内存图，受独立进程预算限制。
+操作专用限制不代替通用执行预算，也不表示其他操作会计量同名指标。`memory_bytes`、`scratch_bytes`、`timeout_ms` 的非 null 值及 `max_validation_depth`、`max_term_bytes` 必须为正；其他计数或输出上限可以为零，但实际工作一旦超过上限即失败。pack 的 `max_rows` / `max_bytes` 不能高于其已支持的上限。
+
+`max_bytes` 检查规范化查询 payload `{query_type, variables, items, boolean}` 的紧凑 UTF-8 JSON 字节数，不包含 envelope，也不是请求文件大小限制。内部扫描、序列化和内存保护仍可提前拒绝请求；不会为了保持完成率突破预算。RSS 为采样及进程高水位验收，不承诺任何瞬时值绝不越界。SHACL 仍使用内存图，受独立进程预算限制；超出公开 `max_validation_depth` 返回 `RESOURCE_EXHAUSTED` / `BUDGET_EXHAUSTED`，不作为普通校验执行失败或 `conforms=false`。
 
 ## 契约回归与升级规则
 
@@ -149,6 +179,8 @@ cargo test --locked --test api
 ```
 
 [cases.json](../tests/fixtures/contract-v1/cases.json) 保存独立人工预期；[api.py](../tests/api.py) 同时核对预期与 pack / Full 共同子集差分。覆盖默认值、三种视图、JOIN / FILTER、重复解、排序、类型词法、参数、文档空白节点、能力拒绝、SHACL、输入损坏、原子发布、字节预算、超时和真实 worker 取消。旧接口继续由既有 Full / HTTP / 引擎测试验证。
+
+[legacy_requests.json](../tests/fixtures/contract-v1/legacy_requests.json) 固定已有消费者请求，[legacy_client.py](../tests/fixtures/contract-v1/legacy_client.py) 固定旧消费者对默认 envelope、查询和校验结果字段的解析。新增能力须同时通过这套未适配新字段的消费者回归，不能通过同步修改旧消费者来掩盖默认响应变化。快照摘要前置条件、版本协商和深度预算另有新行为回归。
 
 变更内核必须运行同一套消费者测试。不能只改预期以消除失败；有意改变旧语义、默认值、必填字段、错误码或删除能力时，应新增主版本并给出迁移。构建指纹变化不要求 API 升级。10,000 条数据是契约与机制回归，不是亿级性能证明。
 
@@ -165,6 +197,7 @@ cargo test --locked --test api
 
 10,000 条固定 RDF 回归同时验证读取表、显式数量、来源引用、变量绑定、规则检查、无超时选项及发布回执的请求所有权，防止上层适配只改命令名而遗漏执行语义。
 
+## 派生查询数据
 
 Full 查询可以提供 `values` 和 `derived_queries`，分别要求 `values-bindings/v1`、`derived-query-data/v1` 能力。`values` 是 `{variables:["s","o"],rows:[[typedTerm,typedTerm]]}` 的表数组，绑定查询内变量列表相同的空 `VALUES (?s ?o) {}`；`null` 表示 UNDEF。使用同一套 IRI/字面量类型校验，不插入查询文本。
 

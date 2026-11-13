@@ -1,6 +1,6 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
 //! Validation is called only inside the killable Rust worker.
-use crate::rdf_graph::{Graph, PreparedQueries, RDF, SH, iri, value};
+use crate::rdf_graph::{Graph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, iri, value};
 use anyhow::{Result, ensure};
 use rudof_rdf::rdf_impl::InMemoryGraph;
 use rudof_rdf::{rdf_core::RDFFormat, rdf_impl::ReaderMode};
@@ -23,7 +23,7 @@ pub fn validate_with_depth(
     ensure!(max_depth > 0, "invalid SHACL validation depth");
     ensure!(
         full || shapes.triples.len() <= 100_000,
-        "SHACL shape budget exceeded"
+        ShaclBudgetExceeded("SHACL shape budget exceeded")
     );
     let supported = "targetClass targetNode targetSubjectsOf targetObjectsOf target targetType path inversePath alternativePath zeroOrMorePath oneOrMorePath zeroOrOnePath property node class datatype nodeKind minCount maxCount minExclusive minInclusive maxExclusive maxInclusive minLength maxLength pattern flags languageIn uniqueLang equals disjoint lessThan lessThanOrEquals not and or xone in hasValue closed ignoredProperties qualifiedValueShape qualifiedMinCount qualifiedMaxCount qualifiedValueShapesDisjoint deactivated severity message name description order group defaultValue select ask prefixes declare prefix namespace parameter optional returnType validator sparql labelTemplate";
     for t in &shapes.triples {
@@ -121,7 +121,10 @@ pub fn validate_with_depth(
                 }
             }
         }
-        ensure!(nodes.len() <= work_budget, "SHACL focus budget exceeded");
+        ensure!(
+            nodes.len() <= work_budget,
+            ShaclBudgetExceeded("SHACL focus budget exceeded")
+        );
         foci.insert(shape.clone(), nodes);
     }
     // Remove unrelated targets while retaining the selected shape dependency
@@ -288,7 +291,10 @@ fn parameter_bindings(
         let mut next = vec![];
         for bindings in &combinations {
             for term in &values {
-                ensure!(next.len() < 4096, "SHACL parameter binding budget exceeded");
+                ensure!(
+                    next.len() < 4096,
+                    ShaclBudgetExceeded("SHACL parameter binding budget exceeded")
+                );
                 let mut bindings = bindings.clone();
                 ensure!(
                     bindings.insert(name.to_owned(), term.clone()).is_none(),
@@ -321,7 +327,10 @@ fn rdf_list(shapes: &Graph, head: &str) -> Result<Vec<String>> {
     Ok(result)
 }
 fn path_expression(shapes: &Graph, path: &str, depth: usize) -> Result<String> {
-    ensure!(depth < 32, "SHACL path depth budget exceeded");
+    ensure!(
+        depth < 32,
+        ShaclBudgetExceeded("SHACL path depth budget exceeded")
+    );
     if path.starts_with('<') {
         return Ok(path.into());
     }
@@ -393,12 +402,12 @@ impl Composed<'_> {
         );
         ensure!(
             self.active.len() <= self.max_depth,
-            "SHACL validation depth budget exceeded"
+            ShaclBudgetExceeded("SHACL validation depth budget exceeded")
         );
         self.visits += 1;
         ensure!(
             self.visits <= self.work_budget,
-            "SHACL evaluation budget exceeded"
+            ShaclBudgetExceeded("SHACL evaluation budget exceeded")
         );
         let result = self.evaluate_inner(shape, focus)?;
         self.active.remove(&key);
@@ -713,7 +722,7 @@ impl Composed<'_> {
         }
         ensure!(
             violations.len() <= self.work_budget,
-            "SHACL report budget exceeded"
+            ShaclBudgetExceeded("SHACL report budget exceeded")
         );
         Ok(violations)
     }

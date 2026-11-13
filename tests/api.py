@@ -1,6 +1,7 @@
 """Consumer-owned v1 expectations exercised through real supervised CLI processes."""
 from collections import Counter
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,12 @@ ROOT = Path(__file__).resolve().parent / "fixtures" / "contract-v1"
 CONTRACT = "ontokiln-api/v1"
 PREFIX = "PREFIX ex: <urn:contract:> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
 XSD = "http://www.w3.org/2001/XMLSchema#"
+ERROR_STATUS = {
+    "INVALID_REQUEST": "FAILED", "INVALID_DATASET": "FAILED",
+    "INVALID_QUERY": "FAILED", "EXECUTION_FAILED": "FAILED",
+    "UNSUPPORTED_CONTRACT": "UNSUPPORTED", "UNSUPPORTED_CAPABILITY": "UNSUPPORTED",
+    "RESOURCE_EXHAUSTED": "BUDGET_EXHAUSTED", "CANCELLED": "CANCELLED",
+}
 
 
 def source(path, document=None):
@@ -49,7 +56,7 @@ def terminal(path, raw, error=None):
         else:
             raise AssertionError(f"worker {pid} survived terminal response")
     if error:
-        assert reply["status"] != "COMPLETE" and reply["result"] is None, reply
+        assert reply["status"] == ERROR_STATUS[error] and reply["result"] is None, reply
         assert reply["error"]["code"] == error, reply
     else:
         assert reply["status"] == "COMPLETE" and reply["error"] is None, reply
@@ -71,11 +78,13 @@ class Contract(unittest.TestCase):
         reply = cls.call({"kind": "compile", "sources": cls.sources,
                           "output": str(cls.compiled), "profile": "rdfs-supported-v1"})
         assert reply["result"]["stats"]["explicit_facts"] == 10000, reply
+        cls.compiled_content_digest = reply["result"]["artifact"]["content_digest"]
         inspected = json.loads(subprocess.check_output([BINARY, "inspect", "--pack", cls.pack]))
         assert inspected["triples"] == 10000, inspected
         cls.reasoned = cls.root / "reasoned"
         reply = cls.call({"kind": "materialize", "dataset": str(cls.compiled), "output": str(cls.reasoned)})
         assert reply["result"]["fixpoint_reached"] is True
+        cls.reasoned_content_digest = reply["result"]["artifact"]["content_digest"]
         cls.datasets = [cls.pack, cls.reasoned]
 
     @classmethod
@@ -88,8 +97,90 @@ class Contract(unittest.TestCase):
         assert reply["request_id"] == name
         return reply
 
+    @classmethod
+    def call_document(cls, document, error=None):
+        """Send exact public input, without injecting defaults or request fields."""
+        cls.sequence += 1
+        name = f"document-{cls.sequence}"
+        raw = document if isinstance(document, bytes) else json.dumps(document, ensure_ascii=False).encode()
+        request, result = cls.root / f"{name}.request.json", cls.root / f"{name}.result.json"
+        request.write_bytes(raw)
+        subprocess.run([BINARY, "api", "--request", request, "--result", result], check=True, timeout=40)
+        return terminal(result, raw, error), raw
+
     def query(self, dataset, query, **options):
         return self.call({"kind": "query", "dataset": str(dataset), "query": PREFIX + query, **options})["result"]
+
+    def test_frozen_v1_client_and_requests(self):
+        spec = importlib.util.spec_from_file_location("ontokiln_legacy_client_v1", ROOT / "legacy_client.py")
+        client = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(client)
+        datasets = {"pack": self.pack, "full": self.reasoned}
+        shapes = ROOT / "legacy_shapes.rdf"
+
+        def substitute(value, dataset):
+            if isinstance(value, dict):
+                return {key: substitute(item, dataset) for key, item in value.items()}
+            if isinstance(value, list):
+                return [substitute(item, dataset) for item in value]
+            replacements = {"$DATASET": str(dataset), "$SHAPES": str(shapes),
+                            "$SHAPES_SHA256": hashlib.sha256(shapes.read_bytes()).hexdigest()}
+            return replacements.get(value, value) if isinstance(value, str) else value
+
+        for case in json.loads((ROOT / "legacy_requests.json").read_text()):
+            for dataset in case.get("datasets", ["full"]):
+                with self.subTest(case=case["id"], dataset=dataset):
+                    request = substitute(case["request"], datasets[dataset])
+                    reply, raw = self.call_document(request, case["expect"].get("error_code"))
+                    parsed = client.parse_reply(json.dumps(reply, ensure_ascii=False).encode(), raw)
+                    client.check_expected(parsed, case["expect"])
+
+    def test_contract_is_negotiated_before_operation_schema(self):
+        future = [
+            {"operation": {"kind": "future_operation", "future_option": True}},
+            {"operation": {"kind": "capabilities"}, "future_envelope": True},
+            {"operation": "future representation", "limits": {"future_budget": 1}},
+        ]
+        for body in future:
+            for contract, error in [("ontokiln-api/v2", "UNSUPPORTED_CONTRACT"),
+                                    (CONTRACT, "INVALID_REQUEST")]:
+                with self.subTest(contract=contract, body=body):
+                    reply, _ = self.call_document({"contract": contract, "request_id": "negotiate", **body}, error)
+                    self.assertEqual(reply["request_id"], "negotiate")
+                    self.assertIsNone(reply["execution"]["worker_pid"])
+        for contract in [None, 1]:
+            self.call_document({"contract": contract, "request_id": "invalid-contract",
+                                "operation": {"kind": "capabilities"}}, "INVALID_REQUEST")
+        self.call_document({"request_id": "missing-contract", "operation": {"kind": "capabilities"}},
+                           "INVALID_REQUEST")
+        reply, _ = self.call_document(b'{"contract":', "INVALID_REQUEST")
+        self.assertIsNone(reply["request_id"])
+        for duplicate in [
+            b'{"contract":"ontokiln-api/v1","contract":"ontokiln-api/v1","request_id":"duplicate","operation":{"kind":"capabilities"}}',
+            b'{"contract":"ontokiln-api/v1","request_id":"first","request_id":"last","operation":{"kind":"capabilities"}}',
+        ]:
+            self.call_document(duplicate, "INVALID_REQUEST")
+
+    def test_omitted_and_null_limits_keep_their_v1_meaning(self):
+        request = {"contract": CONTRACT, "request_id": "limit-defaults",
+                   "operation": {"kind": "query", "dataset": str(self.reasoned), "query": "ASK {}"}}
+        default, _ = self.call_document(request)
+        self.assertEqual(default["result"]["view"], "asserted")
+        for limits in [{}, {"memory_bytes": None, "scratch_bytes": None, "timeout_ms": None}]:
+            reply, _ = self.call_document({**request, "limits": limits})
+            self.assertEqual(reply["result"], default["result"])
+        for limits in [None, {"max_rows": None}, {"max_validation_depth": None},
+                       {"memory_bytes": 0}, {"max_term_bytes": 0}]:
+            with self.subTest(limits=limits):
+                self.call_document({**request, "limits": limits}, "INVALID_REQUEST")
+        for operation, limits in [
+            ({"kind": "compile", "sources": self.sources, "profile": "no-rules-v1"},
+             {"memory_bytes": None}),
+            ({"kind": "materialize", "dataset": str(self.compiled)}, {"scratch_bytes": None}),
+        ]:
+            output = self.root / f"null-budget-{operation['kind']}"
+            self.call({**operation, "output": str(output)}, "INVALID_REQUEST", limits=limits)
+            self.assertFalse(output.exists())
 
     def test_consumer_preparation_bindings_and_unlimited_allowance(self):
         info = self.call({"kind": "capabilities"}, limits={"timeout_ms": None, "memory_bytes": None,
@@ -353,6 +444,99 @@ class Contract(unittest.TestCase):
         self.assertFalse(result["conforms"])
         self.assertEqual(len(result["report"]["violations"]), 1)
         self.call({**op, "dataset": str(self.pack)}, "UNSUPPORTED_CAPABILITY")
+
+    def test_validation_depth_is_a_resource_failure_not_nonconformance(self):
+        shapes = self.root / "depth-shapes.ttl"
+        shapes.write_text('''@prefix sh: <http://www.w3.org/ns/shacl#> .
+<urn:depth:shape> a sh:NodeShape; sh:targetNode <urn:contract:e0000>;
+    sh:property <urn:depth:property> .
+<urn:depth:property> sh:path <urn:contract:score>; sh:minCount 1 .''')
+        op = {"kind": "validate", "dataset": str(self.compiled), "shapes": [source(shapes)]}
+        before = hashlib.sha256((self.compiled / "facts.sqlite").read_bytes()).hexdigest()
+        result = self.call(op, limits={"max_validation_depth": 2})["result"]
+        self.assertEqual(set(result), {"conforms", "checked_shapes", "violations", "report"})
+        self.assertTrue(result["conforms"])
+        self.assertEqual(result["checked_shapes"], 1)
+        self.call(op, "RESOURCE_EXHAUSTED", limits={"max_validation_depth": 1})
+        self.call(op, "INVALID_REQUEST", limits={"max_validation_depth": 0})
+        self.assertTrue(self.call(op)["result"]["conforms"])
+        self.call({**op, "selected_shapes": ["<urn:depth:unknown>"]}, "EXECUTION_FAILED")
+        self.assertEqual(before, hashlib.sha256((self.compiled / "facts.sqlite").read_bytes()).hexdigest())
+
+    def test_validation_uses_supplied_snapshot_and_reports_zero_shapes(self):
+        shapes = self.root / "materialized-shapes.ttl"
+        shapes.write_text('''@prefix sh: <http://www.w3.org/ns/shacl#> .
+<urn:materialized:shape> a sh:NodeShape; sh:targetNode <urn:contract:e0000>;
+    sh:property <urn:materialized:property> .
+<urn:materialized:property> sh:path <urn:contract:related>;
+    sh:hasValue <urn:contract:bucket0> .''')
+        for dataset, conforms in [(self.compiled, False), (self.reasoned, True)]:
+            with self.subTest(dataset=dataset.name):
+                op = {"kind": "validate", "dataset": str(dataset), "shapes": [source(shapes)]}
+                result = self.call(op)["result"]
+                self.assertEqual(set(result), {"conforms", "checked_shapes", "violations", "report"})
+                self.assertEqual(result["conforms"], conforms)
+                self.assertEqual(result["checked_shapes"], 1)
+                self.assertEqual(result["violations"], 0 if conforms else 1)
+                self.assertEqual(result["report"]["conforms"], conforms)
+                for empty in [{"kind": "validate", "dataset": str(dataset)},
+                              {**op, "shapes": []}, {**op, "selected_shapes": []}]:
+                    zero = self.call(empty)["result"]
+                    self.assertTrue(zero["conforms"])
+                    self.assertEqual(zero["checked_shapes"], 0)
+                    self.assertEqual(zero["violations"], 0)
+                    self.assertEqual(zero["report"]["violations"], [])
+        self.call({**op, "shapes_from_dataset": True}, "INVALID_REQUEST")
+
+    def test_optional_content_digest_pins_query_and_validation_inputs(self):
+        shapes = self.root / "guard-shapes.ttl"
+        shapes.write_text('''@prefix sh: <http://www.w3.org/ns/shacl#> .
+<urn:guard:shape> a sh:NodeShape; sh:targetNode <urn:contract:e0000>;
+    sh:property <urn:guard:property> .
+<urn:guard:property> sh:path <urn:contract:score>; sh:minCount 1 .''')
+        operations = [
+            ({"kind": "query", "dataset": str(self.reasoned), "query": "ASK {}"},
+             self.reasoned_content_digest),
+            ({"kind": "validate", "dataset": str(self.compiled), "shapes": [source(shapes)]},
+             self.compiled_content_digest),
+        ]
+        for op, digest in operations:
+            with self.subTest(operation=op["kind"]):
+                result = self.call(op)["result"]
+                self.assertEqual(self.call({**op, "expected_content_digest": None})["result"], result)
+                self.assertEqual(self.call({**op, "expected_content_digest": digest})["result"], result)
+                wrong = ("1" if digest[0] == "0" else "0") + digest[1:]
+                self.call({**op, "expected_content_digest": wrong}, "INVALID_DATASET")
+                for invalid in ["0" * 63, "A" * 64, "g" * 64, 7]:
+                    self.call({**op, "expected_content_digest": invalid}, "INVALID_REQUEST")
+                self.call({**op, "dataset": str(self.pack), "expected_content_digest": digest},
+                          "UNSUPPORTED_CAPABILITY")
+        capability = "dataset-content-digest/v1"
+        for dataset, supported in [(self.compiled, True), (self.reasoned, True), (self.pack, False)]:
+            capabilities = self.call({"kind": "capabilities", "dataset": str(dataset)})["result"]["dataset"]["capabilities"]
+            self.assertEqual(capability in capabilities, supported)
+
+    def test_digest_guard_rejects_a_different_valid_artifact_at_the_same_path(self):
+        current = self.root / "guard-current"
+        shutil.copytree(self.reasoned, current)
+        query = {"kind": "query", "dataset": str(current), "view": "closure",
+                 "query": "ASK { <urn:contract:e0000> a <urn:contract:Root> }"}
+        old = self.reasoned_content_digest
+        self.assertTrue(self.call({**query, "expected_content_digest": old})["result"]["boolean"])
+        data = self.root / "guard-replacement.ttl"
+        data.write_text('<urn:replacement:s> <urn:replacement:p> <urn:replacement:o> .')
+        replacement = self.root / "guard-replacement"
+        compiled = self.call({"kind": "compile", "sources": [source(data)],
+                              "output": str(replacement), "profile": "no-rules-v1"})["result"]
+        new = compiled["artifact"]["content_digest"]
+        self.assertNotEqual(new, old)
+        shutil.rmtree(current)
+        shutil.copytree(replacement, current)
+        self.call({**query, "expected_content_digest": old}, "INVALID_DATASET")
+        self.call({"kind": "validate", "dataset": str(current), "expected_content_digest": old},
+                  "INVALID_DATASET")
+        self.assertFalse(self.call(query)["result"]["boolean"])
+        self.assertFalse(self.call({**query, "expected_content_digest": new})["result"]["boolean"])
 
     def test_response_io_failure_rolls_back_artifact(self):
         output = self.root / "response-failed"

@@ -1107,7 +1107,37 @@ pub(crate) fn add_usage(reply: &mut Value) -> anyhow::Result<()> {
     }
     Ok(())
 }
+fn validation_error(error: anyhow::Error) -> String {
+    err(
+        if error.to_string().contains("unsupported") || error.to_string().contains("external query")
+        {
+            "UNSUPPORTED_RULE_PROFILE"
+        } else {
+            "VALIDATION_FAILED"
+        },
+        error,
+    )
+}
+
 fn validate_full(v: Value) -> Result<Value> {
+    validate_with_error_mapping(v, validation_error)
+}
+
+/// API-only error normalization; legacy Full callers retain their error categories.
+pub(crate) fn validate_api(v: Value) -> Result<Value> {
+    validate_with_error_mapping(v, |error| {
+        if error.is::<crate::rdf_graph::ShaclBudgetExceeded>() {
+            err("BUDGET_EXHAUSTED", error)
+        } else {
+            validation_error(error)
+        }
+    })
+}
+
+fn validate_with_error_mapping(
+    v: Value,
+    map_validation_error: impl FnOnce(anyhow::Error) -> String,
+) -> Result<Value> {
     let data_path = std::path::Path::new(
         v["dataset"]
             .as_str()
@@ -1214,16 +1244,7 @@ fn validate_full(v: Value) -> Result<Value> {
         max_depth,
         true,
     )
-    .map_err(|e| {
-        err(
-            if e.to_string().contains("unsupported") || e.to_string().contains("external query") {
-                "UNSUPPORTED_RULE_PROFILE"
-            } else {
-                "VALIDATION_FAILED"
-            },
-            e,
-        )
-    })?;
+    .map_err(map_validation_error)?;
     let checked = selected.len();
     Ok(
         json!({"conforms":result["conforms"],"checked_shapes":checked,"violations":result["violations"].as_array().map_or(0,Vec::len),"report":serde_json::to_string(&result).map_err(|e|err("VALIDATION_FAILED",e))?,"metrics":{},"kernel":crate::identity::kernel()}),
