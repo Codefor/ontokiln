@@ -14,6 +14,7 @@ use ontokiln_reasoner::{
 };
 use oxigraph::io::{RdfFormat, RdfParser};
 use oxrdf::{Term, Variable};
+use rudof_rdf::rdf_impl::InMemoryGraph;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -21,7 +22,6 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
-use rudof_rdf::rdf_impl::InMemoryGraph;
 
 /// Request-scoped derived data, with the API v1 intermediate and closure bounds.
 #[derive(Clone, Copy)]
@@ -332,7 +332,12 @@ impl OntologyEngine {
                 .collect()
         });
         let report = crate::shacl::validate_with_native_cache(
-            data, shapes, &selected, focus_node, max_depth, &self.native_graph,
+            data,
+            shapes,
+            &selected,
+            focus_node,
+            max_depth,
+            &self.native_graph,
         )?;
         Ok(json!({
             "conforms":report["conforms"],
@@ -558,8 +563,11 @@ mod tests {
             result,
             engine.validate(Some(&shapes), None, None, 64).unwrap()
         );
-        assert_eq!(native_ptr, engine.native_graph.get().unwrap() as *const _,
-            "SHACL rebuilt the resident native graph");
+        assert_eq!(
+            native_ptr,
+            engine.native_graph.get().unwrap() as *const _,
+            "SHACL rebuilt the resident native graph"
+        );
     }
     #[test]
     fn external_shapes_are_loaded_and_digest_checked() {

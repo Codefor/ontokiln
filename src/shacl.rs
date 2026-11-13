@@ -21,7 +21,14 @@ pub fn validate_with_depth(
     focus: Option<&str>,
     max_depth: usize,
 ) -> Result<Value> {
-    validate_data(ValidationData::Memory(data.indexed()), shapes, selected, focus, max_depth, None)
+    validate_data(
+        ValidationData::Memory(data.indexed()),
+        shapes,
+        selected,
+        focus,
+        max_depth,
+        None,
+    )
 }
 
 /// Reuse the immutable native SHACL graph across validations on one Engine.
@@ -33,7 +40,14 @@ pub(crate) fn validate_with_native_cache(
     max_depth: usize,
     native_cache: &OnceLock<std::result::Result<InMemoryGraph, String>>,
 ) -> Result<Value> {
-    validate_data(ValidationData::Memory(data.indexed()), shapes, selected, focus, max_depth, Some(native_cache))
+    validate_data(
+        ValidationData::Memory(data.indexed()),
+        shapes,
+        selected,
+        focus,
+        max_depth,
+        Some(native_cache),
+    )
 }
 
 fn validate_data(
@@ -565,7 +579,8 @@ impl Composed<'_, '_, '_> {
             let runner = runner.as_mut().expect("prepared engine");
             let ValidationData::Memory(data) = self.data;
             let native = if let Some(cache) = self.native_cache {
-                cache.get_or_init(|| native_graph(data).map_err(|e| e.to_string()))
+                cache
+                    .get_or_init(|| native_graph(data).map_err(|e| e.to_string()))
                     .as_ref()
                     .map_err(|message| anyhow::anyhow!("SHACL input failed: {message}"))?
             } else {
@@ -576,13 +591,7 @@ impl Composed<'_, '_, '_> {
             };
             let targets = FocusNodes::single(focus);
             let report = compiled
-                .validate(
-                    native,
-                    runner,
-                    Some(&targets),
-                    Some(compiled),
-                    schema,
-                )
+                .validate(native, runner, Some(&targets), Some(compiled), schema)
                 .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
             violations.extend(report.iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})));
         }
