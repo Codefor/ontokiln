@@ -122,14 +122,19 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
     type Error = io::Error;
 
     fn internalize_term(&self, term: Term) -> io::Result<Encoded> {
-        Ok(self.pack.term_id(&term.to_string())
+        Ok(self
+            .pack
+            .term_id(&term.to_string())
             .map_or(Encoded::External(term), Encoded::Stored))
     }
     fn externalize_term(&self, term: Encoded) -> io::Result<Term> {
         match term {
-            Encoded::Stored(id) => self.pack.term(id)
+            Encoded::Stored(id) => self
+                .pack
+                .term(id)
                 .ok_or_else(|| io::Error::other("invalid Pack v4 term ID"))?
-                .parse::<Term>().map_err(io::Error::other),
+                .parse::<Term>()
+                .map_err(io::Error::other),
             Encoded::External(t) => Ok(t),
         }
     }
@@ -160,7 +165,7 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
         let pack = self.pack;
         let view = self.view;
         match graph {
-            Some(None) => Box::new(pack.union_triples(s, p, o, view).map(|[s,p,o]| {
+            Some(None) => Box::new(pack.union_triples(s, p, o, view).map(|[s, p, o]| {
                 Ok(InternalQuad {
                     subject: Encoded::Stored(s),
                     predicate: Encoded::Stored(p),
@@ -172,7 +177,7 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
                 if !self.names.contains(graph_id) {
                     return Box::new(std::iter::empty()) as Rows<'a>;
                 }
-                Box::new(pack.matching(s, p, o, Some(*graph_id), view).map(|(_,q)| {
+                Box::new(pack.matching(s, p, o, Some(*graph_id), view).map(|(_, q)| {
                     Ok(InternalQuad {
                         subject: Encoded::Stored(q[1]),
                         predicate: Encoded::Stored(q[2]),
@@ -184,13 +189,15 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
             Some(Some(Encoded::External(_))) => Box::new(std::iter::empty()) as Rows<'a>,
             None => Box::new(
                 pack.matching(s, p, o, None, view)
-                    .filter(|(_,q)| q[0] != DEFAULT_GRAPH)
-                    .map(|(_,q)| Ok(InternalQuad {
-                        subject: Encoded::Stored(q[1]),
-                        predicate: Encoded::Stored(q[2]),
-                        object: Encoded::Stored(q[3]),
-                        graph_name: Some(Encoded::Stored(q[0])),
-                    }))
+                    .filter(|(_, q)| q[0] != DEFAULT_GRAPH)
+                    .map(|(_, q)| {
+                        Ok(InternalQuad {
+                            subject: Encoded::Stored(q[1]),
+                            predicate: Encoded::Stored(q[2]),
+                            object: Encoded::Stored(q[3]),
+                            graph_name: Some(Encoded::Stored(q[0])),
+                        })
+                    }),
             ) as Rows<'a>,
         }
     }
@@ -202,12 +209,28 @@ mod tests {
     use ontokiln_pack::v4::{Metadata, Statement};
     fn engine() -> EngineV4 {
         let terms = vec![
-            "<urn:g>".into(), "<urn:o>".into(), "<urn:p>".into(), "<urn:s>".into(),
+            "<urn:g>".into(),
+            "<urn:o>".into(),
+            "<urn:p>".into(),
+            "<urn:s>".into(),
         ];
-        let pack = PackV4::from_statements(terms, vec![
-            Statement { quad: [DEFAULT_GRAPH,3,2,1], asserted: true, sources: vec![] },
-            Statement { quad: [0,3,2,1], asserted: true, sources: vec![] },
-        ], Metadata::new("no-rules-v1", true)).unwrap();
+        let pack = PackV4::from_statements(
+            terms,
+            vec![
+                Statement {
+                    quad: [DEFAULT_GRAPH, 3, 2, 1],
+                    asserted: true,
+                    sources: vec![],
+                },
+                Statement {
+                    quad: [0, 3, 2, 1],
+                    asserted: true,
+                    sources: vec![],
+                },
+            ],
+            Metadata::new("no-rules-v1", true),
+        )
+        .unwrap();
         EngineV4::new(pack)
     }
     #[test]
@@ -217,10 +240,12 @@ mod tests {
         let result = engine.select_or_ask(query, View::Closure).unwrap();
         let json: serde_json::Value = serde_json::from_slice(&result).unwrap();
         assert_eq!(json["results"]["bindings"][0]["n"]["value"], "1");
-        let named = engine.select_or_ask(
-            "SELECT ?g WHERE { GRAPH ?g { <urn:s> <urn:p> <urn:o> } }",
-            View::Closure,
-        ).unwrap();
+        let named = engine
+            .select_or_ask(
+                "SELECT ?g WHERE { GRAPH ?g { <urn:s> <urn:p> <urn:o> } }",
+                View::Closure,
+            )
+            .unwrap();
         let json: serde_json::Value = serde_json::from_slice(&named).unwrap();
         assert_eq!(json["results"]["bindings"][0]["g"]["value"], "urn:g");
     }
@@ -233,6 +258,9 @@ mod tests {
         let path = dir.path().join("v4.pack");
         engine.save_pack(&path).unwrap();
         let restored = EngineV4::load_pack(&path).unwrap();
-        assert_eq!(answer, restored.select_or_ask(query, View::Closure).unwrap());
+        assert_eq!(
+            answer,
+            restored.select_or_ask(query, View::Closure).unwrap()
+        );
     }
 }
