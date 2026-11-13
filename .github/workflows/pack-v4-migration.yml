@@ -34,6 +34,11 @@ jobs:
           echo BEGIN_FORMATTED_V4_REASONER
           cat crates/reasoner/src/v4.rs
           echo END_FORMATTED_V4_REASONER
+      - name: Export formatted engine with derived overlays
+        run: |
+          echo BEGIN_FORMATTED_V4_ENGINE
+          cat src/engine.rs
+          echo END_FORMATTED_V4_ENGINE
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked
