@@ -499,14 +499,17 @@ pub fn materialize(
     let kind: Vec<u8> = vocabulary
         .iter()
         .map(|term| {
-            match term
+            let value = term
                 .parse::<Term>()
-                .expect("Pack vocabulary is already validated")
-            {
-                Term::NamedNode(_) => b'I',
-                Term::BlankNode(_) => b'B',
-                Term::Literal(_) => b'L',
-                Term::Triple(_) => b'T',
+                .expect("Pack vocabulary is already validated");
+            if matches!(value, Term::NamedNode(_)) {
+                b'I'
+            } else if matches!(value, Term::BlankNode(_)) {
+                b'B'
+            } else if matches!(value, Term::Literal(_)) {
+                b'L'
+            } else {
+                b'T'
             }
         })
         .collect();
