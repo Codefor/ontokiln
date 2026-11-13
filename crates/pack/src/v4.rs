@@ -803,7 +803,8 @@ mod tests {
         let pack = fixture();
         let selected = |subject, predicate, object| {
             pack.matching(subject, predicate, object, None, View::Closure)
-                .permutation.as_ptr()
+                .permutation
+                .as_ptr()
         };
         assert_eq!(selected(Some(3), Some(2), None), pack.spo.as_ptr());
         assert_eq!(selected(Some(3), None, Some(1)), pack.osp.as_ptr());
