@@ -106,6 +106,22 @@ class ComparisonTests(unittest.TestCase):
         self.assertTrue(result["methodology_changed"])
         self.assertIn("Measurement methodology changed", compare.markdown(result))
 
+    def test_file_and_session_boundaries_are_not_treated_as_equal(self):
+        before, after = report(), report()
+        before["configuration"]["read_transport"] = "file"
+        after["configuration"]["read_transport"] = "session"
+        result = compare.compare(before, after)
+        self.assertFalse(result["comparable"])
+        self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
+
+    def test_different_snapshot_binding_strength_is_non_comparable(self):
+        before, after = report(), report()
+        before["configuration"]["snapshot_guard"] = "content"
+        after["configuration"]["snapshot_guard"] = "manifest"
+        result = compare.compare(before, after)
+        self.assertFalse(result["comparable"])
+        self.assertIsNone(result["stages"][0]["metrics"]["end_to_end_seconds"]["change_percent"])
+
     def test_unknown_critical_metadata_is_not_proof_of_comparability(self):
         before, after = report(), report()
         before["environment"]["rustc_on_path"] = after["environment"]["rustc_on_path"] = None

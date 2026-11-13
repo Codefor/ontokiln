@@ -24,6 +24,49 @@ python3 -B benchmarks/kernel_baseline.py \
   --build-profile release --build-features default
 ```
 
+The default `--read-transport file` also runs against the pre-optimization
+API v1 binary. To measure the opt-in mounted Full transport separately:
+
+```sh
+python3 -B benchmarks/kernel_baseline.py \
+  --binary target/release/ontokiln --output data/kernel-session-smoke.json \
+  --sizes 100 --build-samples 1 --query-samples 1 --validation-samples 1 \
+  --read-transport session --build-profile release --build-features default
+```
+
+Snapshot preconditions are explicit. The default `--snapshot-guard content`
+sends `expected_content_digest`, supported by both the older `0fa3a6d` API v1
+and newer binaries. It binds the artifact file inventory and contents, not the
+manifest's own kind/profile/fixpoint declarations. Use `--snapshot-guard manifest`
+to send both `expected_content_digest` and `expected_manifest_sha256`, preserving
+the stronger full-snapshot precondition available in newer binaries. An older
+binary rejects that field; the harness reports failure and never retries with a
+weaker guard. The chosen mode is recorded in `configuration.snapshot_guard` and
+must match for an equivalent before/after comparison. The session READY check
+always additionally binds its mount's manifest, regardless of which per-request
+guard fields are selected.
+
+Session mode starts `api-session` once for each retained compiled/materialized
+Full artifact. Each READY record must bind the exact dataset path, file-content
+digest, manifest digest and kernel identity before any result is accepted.
+One-time mount/startup latency and copy bytes are separate `*/session_mount`
+stages; they are single diagnostic observations, not latency distributions.
+Every successful Full read must report `snapshot_reused=true` and
+`snapshot_bytes_copied=0`. Timing covers writing a request through receiving its
+complete response line; JSON parsing and semantic checks stay outside it.
+Workers remain isolated per request. Pack reads, compilation and materialization
+always keep the separate-process path. Failure to mount never silently falls
+back to the file API or restarts the session as a supposedly hot request.
+
+Both transports use a deadline watchdog. A stuck session startup, write or read
+kills its process group; closing stdin ends a healthy session and `wait4` reaps
+it. Session lifetime CPU/high-water RSS is recorded once on its mount sample,
+separately from the per-worker API metrics. The mount snapshot allowance equals
+`--scratch-mib`; it is recorded by the command and its READY measurements. The
+two retained Full snapshots can coexist during a scale. Session startup is not
+amortized into request latency and the default file-API measurements do not
+claim to show the benefit of snapshot reuse.
+
 The default is three independent pack compilations, three independent Full
 compilations, and three independent materializations. Each query has one
 warm-up and nine measured requests. Each SHACL workload has one warm-up and
@@ -41,6 +84,8 @@ budgets; its resource use is measured and an external timeout is enforced.
 The API has its own deadline; an outer watchdog allows five additional seconds
 for terminal publication before killing the command process group and reaping
 the direct command. Successful API replies must also report `worker_reaped=true`.
+Session startup uses the same outer allowance; session shutdown has a separate
+five-second watchdog.
 
 On a failed or exhausted repetition, the remaining repetitions of that
 workload are marked skipped. Other independent workloads continue; a failed
@@ -96,8 +141,11 @@ Answers are written in Python from these definitions. They are never learned
 from an engine run or updated from a golden engine output. Query validation
 checks RDF term types, datatype/language, lexical values, multiplicity and
 declared ordering. SHACL validates named violation fields without freezing
-diagnostic prose. Every Full query/validation request carries both the compiled
-or materialized artifact's manifest SHA-256 and its file content digest.
+diagnostic prose. Every Full query/validation request carries the compiled or
+materialized artifact's file content digest; `--snapshot-guard manifest` also
+carries its manifest SHA-256. Both digests are always recorded as provenance.
+The default content guard keeps the same workload compatible with the older
+API v1 binary without claiming that this field alone binds manifest state.
 `OrderShape` targets subjects of `customer`; `ClassOrderShape` targets class
 `Order`. They have identical property constraints and must check exactly the
 same `n` orders. Both are retained as separate workloads so a faster target
@@ -134,10 +182,12 @@ latency claims; the script does not report p95/p99.
 
 Query and validation expose no separate core-phase timer through the current
 public API. Their reports therefore use external and supervisor time without
-subtracting those fields to invent a kernel latency. Full query/validation
-verifies and copies the SQLite snapshot on every call. There is no persistent
-worker cache between calls. Generation, hashing and compilation can warm the OS
-cache before the first query; no sample is called a cold-disk measurement.
+subtracting those fields to invent a kernel latency. With `--read-transport file`,
+Full query/validation verifies and copies the SQLite snapshot on every call.
+Session mode records the mount separately and checks its reuse on every read.
+Neither mode has a persistent worker cache between calls. Generation, hashing
+and compilation can warm the OS cache before the first query; no sample is
+called a cold-disk measurement.
 
 The report separately records logical/allocated artifact bytes, input bytes,
 fact and term counts, manifest statistics (including fixpoint iteration and
@@ -153,3 +203,21 @@ This is a synthetic baseline for this machine and this binary. It does not
 establish production capacity, HTTP throughput, update performance, full OWL
 reasoning, or physical compatibility with historic artifacts. Historical
 benchmark JSON from another machine/toolchain is not an equivalent comparison.
+
+## Comparing two reports
+
+```sh
+python3 -B benchmarks/compare_kernel_baseline.py before.json after.json \
+  --format markdown --output data/kernel-comparison.md
+```
+
+The comparator checks input/query hashes, generator, method, budgets, build
+declarations, transport and recorded host/filesystem configuration. Only verified,
+complete measured samples enter medians. Failed/skipped/missing work or warm-ups
+suppress stage percentage changes. At least three successful measured samples
+are required by default; use the individual values from smoke runs only for
+functional validation. File and session reports intentionally have different
+timing boundaries and are rejected as equivalent configurations. Compare file
+before/after to isolate internal changes, and retain separate session numbers
+with their one-time mount cost to assess snapshot reuse. Matching metadata still
+does not prove an idle, identical physical host or statistical significance.

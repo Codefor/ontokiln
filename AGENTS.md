@@ -39,6 +39,7 @@ OntoKiln 将指定目录的 Turtle / N-Triples 编译成不可变 RDF 快照，�
 | 在线生命周期 | [HTTP](src/queries.rs)、[调度](src/execution.rs)、[工作进程](src/worker.rs)、[堆计量](src/allocation.rs) | TTL / pack 共用已验证的私有只读快照；启动时预留一份 pack 的临时磁盘。工作进程继承服务快照 FD，不按原始路径重开文件。先终止并 wait，再释放槽。JSONL 以 end 记录标志完整结果 |
 | Full 与 SHACL | [full](src/full.rs)、[full_rules](src/full_rules.rs)、[disk](src/disk.rs)、[shacl](src/shacl.rs)、[rdf_graph](src/rdf_graph.rs) | SQLite 编译、规则物化和查询；约束按显式 Shapes 求值。调用方选择输入、Shapes 与 focus，核心不按业务词汇分派 |
 | Full 执行与身份 | [full_artifact](src/full_artifact.rs)、[full_execution](src/full_execution.rs)、[identity](src/identity.rs)、[构建入口](scripts/build.py) | 冻结输入、摘要核验、原子产物、进程预算、取消与回收；区分引擎与发行来源。Full 的 closure 与执行摘要不冒充逐事实 Proof |
+| Full 常驻实例 | [session](src/session.rs)、[full_snapshot](src/full_snapshot.rs)、[会话协议](docs/session-v1.md) | 启动时核验并固定匿名只读数据库；worker 继承 FD，不重新打开源路径。单次 API 保持兼容；挂载磁盘与请求 scratch 分开；每请求仍先终止并 wait，取消后结束实例 |
 | 独立领域示例 | [版本化赋值链](examples/assignment/queries/assignment.rq)、[业务选择实验](examples/scenarios/README.md) | 仅验证显式建模，不定义核心隐式语义。来源为已有 RDF 声明，源码用于摘要核对。两个版本故意复用相同 IRI；结果不能跨版本。实验另有 14 个[独立预期](examples/scenarios/cases.json)，核对确定、候选、被排除的路径 |
 
 服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。当前构建工具链固定为 Rust 1.95.0（历史基准保留原工具链记录），依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。

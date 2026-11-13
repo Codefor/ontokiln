@@ -2,7 +2,7 @@
 use anyhow::{Context, Result, ensure};
 use oxigraph::model::{Term, Variable};
 use oxigraph::sparql::SparqlEvaluator;
-use rusqlite::{Connection, OpenFlags, OptionalExtension, params_from_iter};
+use rusqlite::{Connection, OptionalExtension, params_from_iter};
 use serde_json::{Value, json};
 use spareval::{InternalQuad, QueryableDataset};
 use std::cell::{Cell, RefCell};
@@ -290,10 +290,7 @@ impl<'a> QueryableDataset<'a> for &'a Disk {
 
 pub fn query(a: &Value) -> Result<Value> {
     let path = Path::new(a["dataset"].as_str().context("dataset path")?);
-    let mut db = Connection::open_with_flags(
-        path,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-    )?;
+    let mut db = crate::full_snapshot::open_readonly(path)?;
     let seconds = if a.get("query_seconds").is_some_and(Value::is_null) {
         None
     } else {

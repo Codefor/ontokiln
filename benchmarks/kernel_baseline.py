@@ -51,6 +51,9 @@ METRIC_NOTES = {
     "io_read_bytes": "Worker block-I/O accounting (ru_inblock * 512), affected by page cache; not logical input bytes.",
     "io_write_bytes": "Worker block-I/O accounting (ru_oublock * 512), not logical artifact size.",
     "query_validate_core_seconds": "Unavailable in the public API. Query/SHACL are measured end to end; no inferred core time is reported.",
+    "session_request_seconds": "Before writing a complete JSONL request through receipt of its response line; excludes one-time session startup/mount, JSON parsing and oracle checks. This replaces process-per-request end_to_end_seconds only when read_transport=session.",
+    "session_mount_seconds": "Before starting api-session through receipt of READY; includes process startup, artifact verification and its private snapshot copy. Recorded separately, never amortized into request times.",
+    "session_lifecycle_rusage": "wait4 counters after closing a session; lifetime measurements, not individual query/validation CPU or RSS. Do not add to worker measurements.",
 }
 
 
@@ -375,6 +378,123 @@ def timed_command(command, directory, timeout, environment, response=None):
     return metrics, payload
 
 
+class JsonlSession:
+    """One serial process with deadline-bounded startup, requests and shutdown.
+
+    The watchdog kills the complete process group on a hung write/read. A
+    failed transport is never transparently restarted and timed as a hot read.
+    """
+    def __init__(self, command, directory, timeout, environment):
+        directory.mkdir(parents=True, exist_ok=True)
+        self.timeout, self.buffer, self.failed, self.closed = timeout, b"", False, False
+        self.log = (directory / "stderr.log").open("wb")
+        self.proc = None
+        self.lifecycle = None
+        started = time.perf_counter()
+        try:
+            self.proc = subprocess.Popen([str(arg) for arg in command], stdin=subprocess.PIPE,
+                                         stdout=subprocess.PIPE, stderr=self.log, env=environment,
+                                         start_new_session=True, bufsize=0)
+            self.mount, self.ready_bytes = self._exchange(None, started)
+        except BaseException:
+            self.close()
+            raise
+
+    def _line(self):
+        while b"\n" not in self.buffer:
+            data = self.proc.stdout.read(65536)
+            if not data:
+                raise EOFError("session exited before its complete JSONL response")
+            self.buffer += data
+        line, self.buffer = self.buffer.split(b"\n", 1)
+        return line
+
+    def _exchange(self, payload, started):
+        timed_out = False
+
+        def expire():
+            nonlocal timed_out
+            try:
+                os.killpg(self.proc.pid, signal.SIGKILL)
+                timed_out = True
+            except ProcessLookupError:
+                pass
+
+        watchdog = threading.Timer(max(0, self.timeout - (time.perf_counter() - started)), expire)
+        watchdog.daemon = True
+        watchdog.start()
+        failure, response = None, None
+        try:
+            if payload is not None:
+                pending = memoryview(payload + b"\n")
+                while pending:
+                    written = self.proc.stdin.write(pending)
+                    if not written:
+                        raise BrokenPipeError("session stopped accepting request bytes")
+                    pending = pending[written:]
+                self.proc.stdin.flush()
+            response = self._line()
+        except (OSError, EOFError) as error:
+            failure = str(error)
+        finally:
+            elapsed = time.perf_counter() - started
+            watchdog.cancel()
+            watchdog.join()
+        status = "WATCHDOG_TIMEOUT" if timed_out else "PROCESS_FAILED" if failure else "RECEIVED"
+        self.failed = self.failed or status != "RECEIVED"
+        measured = {"end_to_end_seconds": elapsed, "watchdog_timeout": timed_out,
+                    "response_bytes": len(response) if response is not None else None,
+                    "status": status, "transport": "session"}
+        if failure:
+            measured["transport_error"] = failure
+        return measured, response
+
+    def request(self, payload):
+        if self.failed or self.closed:
+            return {"status": "PROCESS_FAILED", "transport": "session", "watchdog_timeout": False,
+                    "transport_error": "session is unavailable after an earlier transport failure"}, None
+        return self._exchange(payload, time.perf_counter())
+
+    def close(self):
+        if self.closed:
+            return self.lifecycle
+        self.closed = True
+        if self.proc is None:
+            self.log.close()
+            return None
+        try:
+            self.proc.stdin.close()
+        except OSError:
+            pass
+        expired = False
+
+        def expire():
+            nonlocal expired
+            try:
+                os.killpg(self.proc.pid, signal.SIGKILL)
+                expired = True
+            except ProcessLookupError:
+                pass
+
+        watchdog = threading.Timer(5, expire)
+        watchdog.daemon = True
+        watchdog.start()
+        try:
+            _, status, usage = os.wait4(self.proc.pid, 0)
+            self.proc.returncode = os.waitstatus_to_exitcode(status)
+            self.lifecycle = {"returncode": self.proc.returncode, "shutdown_watchdog_timeout": expired,
+                              "process_user_seconds": usage.ru_utime, "process_system_seconds": usage.ru_stime,
+                              "process_wait4_peak_rss_bytes": usage.ru_maxrss * (1 if sys.platform == "darwin" else 1024),
+                              "process_block_read_bytes": usage.ru_inblock * 512,
+                              "process_block_write_bytes": usage.ru_oublock * 512}
+        finally:
+            watchdog.cancel()
+            watchdog.join()
+            self.proc.stdout.close()
+            self.log.close()
+        return self.lifecycle
+
+
 def command_text(args, cwd=None, env=None):
     try:
         result = subprocess.run(args, cwd=cwd, env=env, capture_output=True, text=True, timeout=10)
@@ -437,10 +557,22 @@ def artifact_files(path):
             "allocated_bytes": sum(p["allocated_bytes"] for p in rows), "files": rows}
 
 
+def snapshot_guards(artifact, mode):
+    """Keep binding strength explicit; never retry with a weaker precondition."""
+    guards = {"expected_content_digest": artifact["content_digest"]}
+    if mode == "manifest":
+        guards["expected_manifest_sha256"] = artifact["manifest_sha256"]
+    elif mode != "content":
+        raise ValueError("unknown snapshot guard mode")
+    return guards
+
+
 class Baseline:
     def __init__(self, args, directory, report):
         self.args, self.directory, self.report = args, directory, report
         self.counter = 0
+        self.sessions = {}
+        self.session_required = set()
         self.environment = os.environ.copy()
         scratch = directory / "scratch"
         scratch.mkdir()
@@ -470,12 +602,23 @@ class Baseline:
         request_path, response = directory / "request.json", directory / "response.json"
         request_bytes = canonical(request)
         request_path.write_bytes(request_bytes)
-        sample, payload = timed_command([self.args.binary, "api", "--request", request_path, "--result", response],
-                                        directory, self.args.timeout_seconds + 5, self.environment, response)
-        sample.update(request_sha256=hashlib.sha256(request_bytes).hexdigest(), status="PROCESS_FAILED")
+        session = getattr(self, "sessions", {}).get(operation.get("dataset"))
+        if (operation.get("dataset") in getattr(self, "session_required", set())
+                and session is None and operation["kind"] in {"query", "validate"}):
+            return {"status": "PROCESS_FAILED", "transport": "session", "watchdog_timeout": False,
+                    "transport_error": "required session failed to start; file API fallback is disabled"}
+        if session is not None and operation["kind"] in {"query", "validate"}:
+            sample, payload = session[0].request(request_bytes)
+            if payload is not None:
+                response.write_bytes(payload)
+        else:
+            sample, payload = timed_command([self.args.binary, "api", "--request", request_path, "--result", response],
+                                            directory, self.args.timeout_seconds + 5, self.environment, response)
+            sample.update(status="PROCESS_FAILED", transport="file")
+        sample.update(request_sha256=hashlib.sha256(request_bytes).hexdigest())
         if sample["watchdog_timeout"]:
             sample["status"] = "WATCHDOG_TIMEOUT"
-        if sample["watchdog_timeout"] or sample["returncode"] or payload is None:
+        if sample["watchdog_timeout"] or sample.get("returncode", 0) or payload is None:
             return sample
         try:
             reply = json.loads(payload)
@@ -490,6 +633,10 @@ class Baseline:
             if reply["status"] == "COMPLETE":
                 if reply.get("error") is not None:
                     raise ValueError("successful API response contains an error")
+                if session is not None and operation["kind"] in {"query", "validate"}:
+                    if (sample["api_metrics"].get("snapshot_reused") is not True
+                            or sample["api_metrics"].get("snapshot_bytes_copied") != 0):
+                        raise ValueError("mounted read did not report reuse with zero snapshot copies")
                 sample["oracle"] = oracle(reply["result"])
             else:
                 sample["error"] = reply.get("error")
@@ -497,6 +644,54 @@ class Baseline:
             sample["status"] = "ORACLE_FAILED"
             sample["oracle_error"] = str(error)
         return sample
+
+    def mount(self, scale, backend, dataset, guard):
+        directory = self.directory / "sessions" / f"{scale['facts']}-{backend}"
+        self.session_required.add(str(dataset))
+        expected_manifest = digest_file(dataset / "manifest.json")
+
+        def invoke(_):
+            session = JsonlSession([self.args.binary, "api-session", "--dataset", dataset,
+                                    "--snapshot-bytes", self.limits["scratch_bytes"]],
+                                   directory, self.args.timeout_seconds + 5, self.environment)
+            measured = session.mount
+            self.sessions[str(dataset)] = (session, measured)
+            if measured["status"] != "RECEIVED":
+                return measured
+            try:
+                ready = json.loads(session.ready_bytes)
+                measured["ready"] = ready
+                measured["status"] = "ORACLE_FAILED"
+                if (ready.get("contract") != "ontokiln-session/v1" or ready.get("status") != "READY"
+                        or ready.get("dataset") != str(dataset.resolve())
+                        or ready.get("content_digest") != guard["expected_content_digest"]
+                        or ready.get("manifest_sha256") != expected_manifest
+                        or ready.get("kernel") != self.report["environment"]["kernel_identity"]):
+                    raise ValueError("session READY does not bind the expected dataset, artifact and kernel")
+                mount = ready["mount"]
+                if any(not isinstance(mount.get(key), (int, float)) or isinstance(mount[key], bool)
+                       or not math.isfinite(mount[key]) or mount[key] < 0
+                       for key in ["elapsed_seconds", "snapshot_bytes", "copied_bytes"]):
+                    raise ValueError("session READY lacks finite mount timing/byte measurements")
+                measured.update(status="COMPLETE", oracle={"checked": True}, mount_metrics=mount)
+            except (ValueError, KeyError, TypeError) as error:
+                measured["status"], measured["oracle_error"] = "ORACLE_FAILED", str(error)
+                session.failed = True
+            return measured
+
+        self.series(scale, backend + "/session_mount", 1, invoke,
+                    metadata={"transport": "session", "one_time_mount": True,
+                              "statistics": "single diagnostic observation; not a latency distribution"})
+
+    def close_sessions(self):
+        for session, measured in self.sessions.values():
+            measured["session_lifecycle_rusage"] = session.close()
+            lifecycle = measured["session_lifecycle_rusage"]
+            if (lifecycle is not None and (lifecycle["returncode"] != 0 or lifecycle["shutdown_watchdog_timeout"])
+                    and measured["status"] == "COMPLETE"):
+                measured.update(status="SESSION_EXIT_FAILED", error="session did not shut down cleanly")
+        self.sessions.clear()
+        self.session_required.clear()
 
     def series(self, scale, name, count, invoke, warmup=False, dependency=True, metadata=None):
         stage = {"name": name, "metadata": metadata or {}, "samples": []}
@@ -577,8 +772,7 @@ class Baseline:
                 if key not in selected:
                     selected[key] = output
                     artifact = sample["oracle"]["artifact"]
-                    guards[key] = {"expected_manifest_sha256": artifact["manifest_sha256"],
-                                   "expected_content_digest": artifact["content_digest"]}
+                    guards[key] = snapshot_guards(artifact, self.args.snapshot_guard)
             if output != selected.get("reasoned" if materialize else "compiled") and output.exists():
                 shutil.rmtree(output)
             return sample
@@ -589,6 +783,10 @@ class Baseline:
                     metadata={"profile": PROFILE, "explicit_rule_count": len(rules()["rules"]), "phase_metrics": True})
         self.series(scale, "full_materialize", self.args.build_samples, lambda i: full_build(i, True),
                     dependency="compiled" in selected, metadata={"profile": PROFILE, "phase_metrics": True})
+        if self.args.read_transport == "session":
+            for backend in ["compiled", "reasoned"]:
+                if backend in selected:
+                    self.mount(scale, backend, selected[backend], guards[backend])
         for backend in ["pack", "compiled", "reasoned"]:
             cases = query_cases(n, facts, materialized=backend == "reasoned")
             for case in cases:
@@ -614,6 +812,11 @@ class Baseline:
                         dependency=backend in selected, metadata={"core_time_available": False,
                                                                  "expected_conforms": name not in ["compiled_probe", "core_min_count"],
                                                                  "expected_constraint_component": SH + "MinCountConstraintComponent" if name == "core_min_count" else None})
+        self.close_sessions()
+        # Session exit is part of successful mounting/lifetime management.
+        for stage in scale["stages"]:
+            if stage["metadata"].get("one_time_mount"):
+                stage["summary"] = summarize(stage["samples"], 1, 0)
         scale["completed"] = True
         self.checkpoint()
 
@@ -638,6 +841,10 @@ def parse_args(argv=None):
     parser.add_argument("--build-profile", default="unspecified", help="caller-supplied build profile declaration")
     parser.add_argument("--work-dir", type=Path, help="parent for a new, isolated working directory")
     parser.add_argument("--keep-work-dir", action="store_true")
+    parser.add_argument("--read-transport", choices=["file", "session"], default="file",
+                        help="Full query/validate transport; compilation, materialization and pack reads always use separate processes")
+    parser.add_argument("--snapshot-guard", choices=["content", "manifest"], default="content",
+                        help="content binds artifact files and supports older API v1; manifest adds exact manifest/state binding and requires that capability (no fallback)")
     args = parser.parse_args(argv)
     for name in ["build_samples", "query_samples", "validation_samples", "memory_mib", "scratch_mib", "threads", "pack_max_mib"]:
         if getattr(args, name) <= 0:
@@ -669,7 +876,9 @@ def main(argv=None):
               "started_at_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
               "command": sys.argv, "configuration": {key: str(value) if isinstance(value, Path) else value for key, value in vars(args).items()},
               "work_directory": str(directory), "metric_definitions": METRIC_NOTES,
-              "cache_policy": "No OS cache flush. Generation, hashing and compilation precede queries. Each request starts fresh processes; first request is a warm-up, subsequent requests are not a persistent hot engine.",
+              "cache_policy": ("No OS cache flush. Generation, hashing and compilation precede queries. "
+                               + ("Full reads share one mounted private snapshot per artifact; each read still has an isolated worker. One-time mounts are separate diagnostic stages. " if args.read_transport == "session" else "Each request starts fresh processes; subsequent requests are not a persistent hot engine. ")
+                               + "Each read workload has one warm-up. Pack reads always start fresh processes."),
               "concurrency": 1, "statistics": "Raw samples, median and range of successful measured requests; warm-ups and failures excluded. No p95/p99 estimate from small sample counts.",
               "scope": "Synthetic asserted default-graph workload, RDFS supported profile plus bounded positive recursion; not complete OWL, production data or a cold-disk/HTTP throughput benchmark.",
               "environment": environment_info(args.binary, directory, args), "scales": []}
@@ -688,6 +897,7 @@ def main(argv=None):
         report.update(status="HARNESS_FAILED", fatal_error={"type": type(error).__name__, "message": str(error)})
         code = 1
     finally:
+        runner.close_sessions()
         report["finished_at_utc"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
         report["load_average_after"] = list(os.getloadavg())
         report["work_directory_retained"] = args.keep_work_dir

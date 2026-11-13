@@ -45,6 +45,14 @@ enum Command {
         #[arg(long)]
         result: PathBuf,
     },
+    /// Mount one Full snapshot once and execute newline-delimited API v1 requests.
+    ApiSession {
+        #[arg(long)]
+        dataset: PathBuf,
+        /// Maximum bytes reserved for the private mounted database.
+        #[arg(long, default_value_t = 4 * 1024 * 1024 * 1024)]
+        snapshot_bytes: u64,
+    },
     /// Report the generic engine and artifact contracts.
     Identity,
     /// Validate a pack and report its content and source identities.
@@ -219,6 +227,10 @@ fn main() -> Result<()> {
     }
     match cmd {
         Command::Api { request, result } => ontokiln::api::run_files(&request, &result),
+        Command::ApiSession {
+            dataset,
+            snapshot_bytes,
+        } => ontokiln::session::run(&dataset, snapshot_bytes),
         Command::Full { request, result } => full_execution::run_files(&request, &result),
         Command::FullWorker { request, result } => full_execution::run_worker(&request, &result),
         _ => application(cmd),
@@ -228,6 +240,7 @@ fn main() -> Result<()> {
 async fn application(cmd: Command) -> Result<()> {
     match cmd {
         Command::Api { .. }
+        | Command::ApiSession { .. }
         | Command::QueryWorker { .. }
         | Command::Full { .. }
         | Command::FullWorker { .. } => {

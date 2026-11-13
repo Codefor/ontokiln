@@ -278,9 +278,52 @@ fn failure(code: &str, message: &str) -> Value {
 /// Execute the stable file protocol through the existing supervised worker.
 /// Domain failures are terminal JSON responses; result-file I/O errors are process failures.
 pub fn run_files(request: &Path, result: &Path) -> Result<()> {
+    run_files_on_snapshot(request, result, None)
+}
+
+/// The session adapter owns a verified snapshot; original v1 bytes remain the
+/// consumer identity and are never rewritten to an internal descriptor path.
+pub(crate) fn run_files_on_snapshot(
+    request: &Path,
+    result: &Path,
+    snapshot: Option<&crate::full_snapshot::FullSnapshot>,
+) -> Result<()> {
     let bytes = fs::read(request)?;
     let raw: Value = serde_json::from_slice(&bytes).unwrap_or(Value::Null);
-    let internal = parse_request(&bytes, &raw).and_then(|req| req.internal());
+    let internal = parse_request(&bytes, &raw).and_then(|req| {
+        let mut internal = req.internal()?;
+        if let Some(snapshot) = snapshot {
+            let path = match &req.operation {
+                Operation::Query { dataset, .. } | Operation::Validate { dataset, .. } => {
+                    Some(dataset)
+                }
+                Operation::Capabilities { dataset } => dataset.as_ref(),
+                Operation::PrepareQuery { .. } => None,
+                _ => bail!("UNSUPPORTED_CAPABILITY|sessions support read operations only"),
+            };
+            if let Some(path) = path {
+                ensure!(
+                    std::path::absolute(path).map_err(invalid)? == snapshot.source_path(),
+                    "INVALID_DATASET|request dataset differs from the mounted snapshot"
+                );
+            }
+            internal["_mounted_snapshot"] = json!({
+                "source_path": snapshot.source_path(),
+                // Readers only need semantic view metadata. Do not serialize
+                // the entire source/file inventory for every hot request.
+                "manifest": {
+                    "kind": snapshot.manifest()["kind"],
+                    "profile_id": snapshot.manifest()["profile_id"],
+                    "fixpoint_reached": snapshot.manifest()["fixpoint_reached"],
+                    "content_digest": snapshot.manifest()["content_digest"],
+                },
+                "manifest_sha256": snapshot.manifest_sha256(),
+                "descriptor": snapshot.descriptor(),
+                "bytes": snapshot.database_bytes(),
+            });
+        }
+        Ok(internal)
+    });
     let internal = match internal {
         Ok(mut value) => {
             value["_api_request_sha256"] = json!(crate::full_artifact::digest(&bytes));
@@ -303,7 +346,7 @@ pub fn run_files(request: &Path, result: &Path) -> Result<()> {
     let directory = tempfile::tempdir()?;
     let input = directory.path().join("request.json");
     fs::write(&input, serde_json::to_vec(&internal)?)?;
-    crate::full_execution::run_files_with(&input, result, |reply, path| {
+    crate::full_execution::run_files_with_snapshot(&input, result, snapshot, |reply, path| {
         let execution = &reply["execution"];
         ensure!(
             execution["worker_reaped"] == true,
@@ -364,24 +407,84 @@ fn dataset(path: &Path) -> Result<Dataset> {
     } else {
         let (manifest, manifest_sha256) = crate::full_artifact::verify_with_manifest_digest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
-        ensure!(
-            matches!(manifest["kind"].as_str(), Some("compiled" | "reasoned")),
-            "INVALID_DATASET|unknown snapshot kind"
-        );
-        ensure!(
-            manifest["kind"] != "reasoned" || manifest["fixpoint_reached"] == true,
-            "INVALID_DATASET|reasoned snapshot has no completed fixpoint"
-        );
-        let views = if manifest["kind"] == "reasoned" || manifest["profile_id"] == "no-rules-v1" {
-            json!(["asserted", "inferred", "closure"])
-        } else {
-            json!(["asserted"])
-        };
         Ok(Dataset {
-            meta: json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT,CONTENT_DIGEST_CAPABILITY,MANIFEST_DIGEST_CAPABILITY],
-            "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
+            meta: full_metadata(manifest)?,
             pack: None,
             manifest_sha256: Some(manifest_sha256),
+        })
+    }
+}
+
+fn full_metadata(manifest: Value) -> Result<Value> {
+    ensure!(
+        matches!(manifest["kind"].as_str(), Some("compiled" | "reasoned")),
+        "INVALID_DATASET|unknown snapshot kind"
+    );
+    ensure!(
+        manifest["kind"] != "reasoned" || manifest["fixpoint_reached"] == true,
+        "INVALID_DATASET|reasoned snapshot has no completed fixpoint"
+    );
+    let views = if manifest["kind"] == "reasoned" || manifest["profile_id"] == "no-rules-v1" {
+        json!(["asserted", "inferred", "closure"])
+    } else {
+        json!(["asserted"])
+    };
+    Ok(
+        json!({"semantics":"rdf-dataset-union/v1","capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1","shacl/v1","rdf-bindings/v1","values-bindings/v1","derived-query-data/v1",READ_CONTRACT,CONTENT_DIGEST_CAPABILITY,MANIFEST_DIGEST_CAPABILITY],
+        "default_graph":"union","views":views,"profile":manifest["profile_id"],"read_contract":READ_CONTRACT,"manifest":manifest}),
+    )
+}
+
+fn worker_dataset(path: &Path, request: &Value) -> Result<Dataset> {
+    if let Some(mounted) = request.get("_mounted_snapshot") {
+        ensure!(
+            std::path::absolute(path)?
+                == Path::new(mounted["source_path"].as_str().context("mounted dataset")?),
+            "INVALID_DATASET|request dataset differs from the mounted snapshot"
+        );
+        let descriptor = mounted["descriptor"]
+            .as_i64()
+            .context("snapshot descriptor")?;
+        let descriptor = i32::try_from(descriptor).context("snapshot descriptor range")?;
+        crate::full_snapshot::validate_descriptor(
+            descriptor,
+            mounted["bytes"].as_u64().context("snapshot bytes")?,
+        )?;
+        Ok(Dataset {
+            meta: full_metadata(mounted["manifest"].clone())?,
+            pack: None,
+            manifest_sha256: Some(
+                mounted["manifest_sha256"]
+                    .as_str()
+                    .context("mounted manifest digest")?
+                    .to_owned(),
+            ),
+        })
+    } else {
+        dataset(path)
+    }
+}
+
+struct ReadSnapshot {
+    _copy: Option<tempfile::TempDir>,
+    database: PathBuf,
+}
+
+fn read_snapshot(path: &Path, meta: &Value, request: &Value) -> Result<ReadSnapshot> {
+    if let Some(mounted) = request.get("_mounted_snapshot") {
+        let descriptor = mounted["descriptor"]
+            .as_i64()
+            .context("snapshot descriptor")?;
+        Ok(ReadSnapshot {
+            _copy: None,
+            database: format!("ontokiln-fd:{descriptor}").into(),
+        })
+    } else {
+        let copy = tempfile::tempdir()?;
+        snapshot(path, meta, copy.path())?;
+        Ok(ReadSnapshot {
+            database: copy.path().join("facts.sqlite"),
+            _copy: Some(copy),
         })
     }
 }
@@ -469,7 +572,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "read_contracts":[READ_CONTRACT],"rule_contract":"ontology-rule-ir/v1",
                 "runtime":crate::full::runtime_info(),"default_view":"asserted","proof_coverage":{"per_fact":"not_recorded"}});
             if let Some(path) = path {
-                let Dataset { mut meta, .. } = dataset(path)?;
+                let Dataset { mut meta, .. } = worker_dataset(path, &value)?;
                 meta.as_object_mut()
                     .context("dataset metadata")?
                     .remove("manifest");
@@ -501,7 +604,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 meta,
                 pack,
                 manifest_sha256,
-            } = dataset(path)?;
+            } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
             check_manifest_digest(
                 manifest_sha256.as_deref(),
@@ -577,13 +680,12 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     crate::query::local_derived_query(text)
                         .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
                 }
-                let copy = tempfile::tempdir()?;
-                snapshot(path, &meta, copy.path())?;
+                let snapshot = read_snapshot(path, &meta, &value)?;
                 let mut overlay = Vec::new();
                 let mut unique = std::collections::BTreeSet::new();
                 let mut intermediate_rows = 0u64;
                 for text in derived_queries {
-                    let rows = crate::disk::query(&json!({"dataset":copy.path().join("facts.sqlite"),
+                    let rows = crate::disk::query(&json!({"dataset":snapshot.database,
                         "query":text,"parameters":parameters,"rdf_bindings":rdf_bindings,"values":values,"derived_data":true,
                         "view":view,"overlay":overlay,"max_rows":limits.max_intermediate_rows,
                         "max_bytes":limits.memory_bytes.unwrap_or(u64::MAX),"query_seconds":null}))
@@ -617,7 +719,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     }
                 }
                 crate::full::execute(
-                    json!({"operation":"query","dataset":copy.path().join("facts.sqlite"),
+                    json!({"operation":"query","dataset":snapshot.database,
                     "query":query,"parameters":parameters,"rdf_bindings":rdf_bindings,"values":values,
                     "overlay":overlay,"view":view,"max_rows":limits.max_rows,
                     "max_bytes":limits.max_bytes,"query_seconds":null}),
@@ -639,7 +741,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             focus_node,
         } => {
             ensure!(
-                !path.is_file(),
+                value.get("_mounted_snapshot").is_some() || !path.is_file(),
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
             );
             ensure!(
@@ -650,7 +752,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 meta,
                 pack,
                 manifest_sha256,
-            } = dataset(path)?;
+            } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
             check_manifest_digest(
                 manifest_sha256.as_deref(),
@@ -661,7 +763,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
             );
             let copy = tempfile::tempdir()?;
-            snapshot(path, &meta, copy.path())?;
+            let snapshot = read_snapshot(path, &meta, &value)?;
             let mut frozen = Vec::new();
             for (i, source) in shapes.iter().enumerate() {
                 let dest = copy.path().join(format!("shape-{i}.rdf"));
@@ -673,7 +775,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 }
                 frozen.push(s);
             }
-            let mut input = json!({"operation":"validate","dataset":copy.path(),"shapes":frozen,
+            let mut input = json!({"operation":"validate","dataset":path,"_snapshot_database":snapshot.database,"shapes":frozen,
                 "shapes_from_dataset":shapes_from_dataset,"max_validation_depth":limits.max_validation_depth});
             if let Some(selected) = selected_shapes {
                 input["selected_shapes"] = json!(selected);
@@ -686,7 +788,14 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 "violations":reply["violations"],"report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
         }
     };
-    Ok(json!({"api_result":result,"metrics":{}}))
+    let mut reply = json!({"api_result":result,"metrics":{}});
+    if let Some(mounted) = value.get("_mounted_snapshot") {
+        reply["integrity_checked"] = json!(true);
+        reply["metrics"]["snapshot_reused"] = json!(true);
+        reply["metrics"]["snapshot_bytes"] = mounted["bytes"].clone();
+        reply["metrics"]["snapshot_bytes_copied"] = json!(0);
+    }
+    Ok(reply)
 }
 
 fn normalize_query(data: &mut Value, limits: &Limits) -> Result<()> {

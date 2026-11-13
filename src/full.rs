@@ -1142,14 +1142,18 @@ fn validate_with_error_mapping(
     v: Value,
     map_validation_error: impl FnOnce(anyhow::Error) -> String,
 ) -> Result<Value> {
-    let data_path = std::path::Path::new(
-        v["dataset"]
-            .as_str()
-            .ok_or_else(|| err("VALIDATION_FAILED", "dataset"))?,
-    )
-    .join("facts.sqlite");
-    let c = Connection::open_with_flags(&data_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
-        .map_err(|e| err("VALIDATION_FAILED", e))?;
+    let data_path = if let Some(path) = v["_snapshot_database"].as_str() {
+        std::path::PathBuf::from(path)
+    } else {
+        std::path::Path::new(
+            v["dataset"]
+                .as_str()
+                .ok_or_else(|| err("VALIDATION_FAILED", "dataset"))?,
+        )
+        .join("facts.sqlite")
+    };
+    let c =
+        crate::full_snapshot::open_readonly(&data_path).map_err(|e| err("VALIDATION_FAILED", e))?;
     let mut data = crate::rdf_graph::Graph {
         triples: BTreeSet::new(),
     };

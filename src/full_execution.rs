@@ -13,6 +13,9 @@ use std::{
 
 pub const CONTRACT: &str = "full-execution/v1";
 static CANCELLED: AtomicBool = AtomicBool::new(false);
+pub(crate) fn cancelled() -> bool {
+    CANCELLED.load(Ordering::Relaxed)
+}
 extern "C" fn cancel(_: libc::c_int) {
     CANCELLED.store(true, Ordering::Relaxed);
 }
@@ -196,6 +199,15 @@ pub(crate) fn run_files_with(
     result_path: &Path,
     response: impl FnOnce(&Value, &Path) -> Result<()>,
 ) -> Result<()> {
+    run_files_with_snapshot(request_path, result_path, None, response)
+}
+
+pub(crate) fn run_files_with_snapshot(
+    request_path: &Path,
+    result_path: &Path,
+    snapshot: Option<&crate::full_snapshot::FullSnapshot>,
+    response: impl FnOnce(&Value, &Path) -> Result<()>,
+) -> Result<()> {
     let _signals = Signals::install();
     let bytes = fs::read(request_path)?;
     let request: Value = serde_json::from_slice(&bytes)?;
@@ -211,6 +223,7 @@ pub(crate) fn run_files_with(
     let started = Instant::now();
     let mut stage = None;
     let mut peak_rss = 0u64;
+    let mut request_supervisor_peak = rss(std::process::id());
     let mut peak_disk = 0u64;
     let mut worker_pid = None;
     let reaped = Cell::new(true);
@@ -290,6 +303,9 @@ pub(crate) fn run_files_with(
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::inherit());
+        if let Some(snapshot) = snapshot {
+            snapshot.inherit(&mut command)?;
+        }
         // A killed supervisor cannot leave a live worker on Linux. Normal
         // cancellation still kills and waits explicitly before releasing scope.
         #[cfg(target_os = "linux")]
@@ -327,7 +343,9 @@ pub(crate) fn run_files_with(
                 continue;
             }
             next_sample = Instant::now() + Duration::from_millis(50);
-            peak_rss = peak_rss.max(rss(worker.0.id()).saturating_add(rss(std::process::id())));
+            let supervisor_rss = rss(std::process::id());
+            request_supervisor_peak = request_supervisor_peak.max(supervisor_rss);
+            peak_rss = peak_rss.max(rss(worker.0.id()).saturating_add(supervisor_rss));
             peak_disk = peak_disk
                 .max(disk(control.path())? + stage.as_ref().map_or(Ok(0), |s| disk(s.path()))?);
             #[cfg(target_os = "linux")]
@@ -339,6 +357,20 @@ pub(crate) fn run_files_with(
                             .ok()
                             .filter(|p| p.to_string_lossy().ends_with(" (deleted)"))
                             .and_then(|_| fs::metadata(e.path()).ok())
+                    })
+                    .filter(|metadata| {
+                        use std::os::unix::fs::MetadataExt;
+                        // The mounted read-only database is charged once at
+                        // startup, not as per-request temporary disk. VFS dup
+                        // descriptors refer to the same inode and are excluded.
+                        snapshot.is_none_or(|snapshot| {
+                            fs::metadata(format!("/proc/self/fd/{}", snapshot.descriptor()))
+                                .map(|mounted| {
+                                    mounted.dev() != metadata.dev()
+                                        || mounted.ino() != metadata.ino()
+                                })
+                                .unwrap_or(true)
+                        })
                     })
                     .map(|m| m.len())
                     .sum::<u64>();
@@ -385,7 +417,9 @@ pub(crate) fn run_files_with(
         let reported = reply["metrics"]["peak_rss_bytes"]
             .as_u64()
             .context("missing worker RSS")?;
-        peak_rss = peak_rss.max(reported.saturating_add(rss(std::process::id())));
+        let supervisor_rss = rss(std::process::id());
+        request_supervisor_peak = request_supervisor_peak.max(supervisor_rss);
+        peak_rss = peak_rss.max(reported.saturating_add(supervisor_rss));
         ensure!(
             peak_rss <= memory,
             "{budget_code}|worker exceeded peak RSS allowance"
@@ -403,9 +437,15 @@ pub(crate) fn run_files_with(
     };
     let mut supervisor_usage = json!({});
     crate::full::add_usage(&mut supervisor_usage)?;
-    let supervisor_peak = supervisor_usage["metrics"]["peak_rss_bytes"]
-        .as_u64()
-        .unwrap_or(0);
+    let supervisor_peak = if snapshot.is_some() {
+        // getrusage's process-lifetime high-water mark includes earlier session
+        // requests, so use this request's sampled supervisor peak instead.
+        request_supervisor_peak.max(rss(std::process::id()))
+    } else {
+        supervisor_usage["metrics"]["peak_rss_bytes"]
+            .as_u64()
+            .unwrap_or(0)
+    };
     if reply.get("error").is_none() && supervisor_peak > memory {
         reply = json!({"error":{"code":budget_code,"message":"Full supervisor exceeded peak RSS allowance"}});
     }

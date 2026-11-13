@@ -169,6 +169,20 @@ class WorkloadTests(unittest.TestCase):
 
 
 class MeasurementTests(unittest.TestCase):
+    def test_content_guard_does_not_send_an_unsupported_manifest_field(self):
+        artifact = {"content_digest": "a" * 64, "manifest_sha256": "b" * 64}
+        self.assertEqual(bench.snapshot_guards(artifact, "content"),
+                         {"expected_content_digest": "a" * 64})
+
+    def test_manifest_guard_requires_both_digests_without_downgrading(self):
+        artifact = {"content_digest": "a" * 64, "manifest_sha256": "b" * 64}
+        self.assertEqual(bench.snapshot_guards(artifact, "manifest"),
+                         {"expected_content_digest": "a" * 64, "expected_manifest_sha256": "b" * 64})
+        with self.assertRaises(KeyError):
+            bench.snapshot_guards({"content_digest": "a" * 64}, "manifest")
+        with self.assertRaises(ValueError):
+            bench.snapshot_guards(artifact, "unknown")
+
     def test_failures_and_warmups_do_not_make_latency_look_faster(self):
         samples = [{"status": "COMPLETE", "end_to_end_seconds": 100, "warmup": True},
                    {"status": "COMPLETE", "end_to_end_seconds": 1},
@@ -260,6 +274,59 @@ class MeasurementTests(unittest.TestCase):
             bench.publish(path, {"status": "COMPLETE_WITH_FAILURES"})
             self.assertEqual(json.loads(path.read_text()), {"status": "COMPLETE_WITH_FAILURES"})
             self.assertFalse(path.with_name("report.json.tmp").exists())
+
+
+class SessionTransportTests(unittest.TestCase):
+    def test_serial_exchange_preserves_raw_json_and_reaps_on_eof(self):
+        script = "import sys; print('{\"status\":\"READY\"}', flush=True)\nfor line in sys.stdin: print(line.rstrip('\\n'), flush=True)"
+        with tempfile.TemporaryDirectory() as tmp:
+            session = bench.JsonlSession([sys.executable, "-u", "-c", script], Path(tmp), 5, os.environ.copy())
+            try:
+                self.assertEqual(session.mount["status"], "RECEIVED")
+                self.assertEqual(json.loads(session.ready_bytes), {"status": "READY"})
+                for request in [b'{ "first": 1 }', b'{"second":["x",2]}']:
+                    measured, payload = session.request(request)
+                    self.assertEqual(measured["status"], "RECEIVED")
+                    self.assertEqual(payload, request)
+                    self.assertGreater(measured["end_to_end_seconds"], 0)
+                    self.assertNotIn("process_wait4_peak_rss_bytes", measured)
+            finally:
+                lifecycle = session.close()
+            self.assertEqual(lifecycle["returncode"], 0)
+            self.assertFalse(lifecycle["shutdown_watchdog_timeout"])
+            self.assertIs(session.close(), lifecycle)
+
+    def test_startup_timeout_is_not_a_ready_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            session = bench.JsonlSession([sys.executable, "-c", "import time; time.sleep(10)"],
+                                        Path(tmp), .05, os.environ.copy())
+            self.assertEqual(session.mount["status"], "WATCHDOG_TIMEOUT")
+            self.assertIsNone(session.ready_bytes)
+            measured, payload = session.request(b"{}")
+            self.assertEqual(measured["status"], "PROCESS_FAILED")
+            self.assertIsNone(payload)
+            self.assertNotEqual(session.close()["returncode"], 0)
+
+    def test_request_timeout_closes_the_failed_transport_without_restart(self):
+        script = "import sys, time; print('{}', flush=True); sys.stdin.readline(); time.sleep(10)"
+        with tempfile.TemporaryDirectory() as tmp:
+            session = bench.JsonlSession([sys.executable, "-u", "-c", script], Path(tmp), 5, os.environ.copy())
+            session.timeout = .05
+            measured, payload = session.request(b"{}")
+            self.assertEqual(measured["status"], "WATCHDOG_TIMEOUT")
+            self.assertIsNone(payload)
+            self.assertEqual(session.request(b"{}")[0]["status"], "PROCESS_FAILED")
+            self.assertNotEqual(session.close()["returncode"], 0)
+
+    def test_missing_required_session_never_falls_back_to_file_api(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            runner = bench.Baseline.__new__(bench.Baseline)
+            runner.directory, runner.counter, runner.limits = Path(tmp), 0, {}
+            runner.session_required, runner.sessions = {"dataset"}, {}
+            with patch.object(bench, "timed_command", side_effect=AssertionError("no fallback")):
+                measured = runner.api({"kind": "query", "dataset": "dataset"}, lambda _: {})
+            self.assertEqual(measured["status"], "PROCESS_FAILED")
+            self.assertEqual(measured["transport"], "session")
 
 
 if __name__ == "__main__":

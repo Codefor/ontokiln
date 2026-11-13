@@ -1,5 +1,9 @@
 # OntoKiln 本地性能实测
 
+Full 编译、物化、API 查询与 SHACL 的新基线工具为 [kernel_baseline.py](kernel_baseline.py)，
+方法与独立预期见[基线说明](../tests/benchmarks/README.md)。文件 API 与常驻实例分开计量，
+后者单列启动挂载时间和热请求时间；历史 pack 成绩不代表 Full 容量。
+
 2026-11-06，Apple M2 Pro（12 核，32 GiB），macOS 26.6.2 arm64，Rust 1.93.1，release 构建。服务与压测客户端运行在同一台机器。在线服务使用 `rdfs-hierarchy-v1`，业务血缘与上下文选择使用仓库中的 Rust 实验程序。[逐轮测量与查询分位数](baseline.json) · [复现脚本](run.py)
 
 当前 pack v3 的[查询实测](indexed-queries-v3.md)记录三档规模的扫描量、答案、HTTP 延迟、算子样本及工作进程内存。

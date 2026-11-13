@@ -1,13 +1,15 @@
 //! SHACL Core plus local SELECT constraints from the pinned shapes graph.
 //! Validation is called only inside the killable Rust worker.
-use crate::rdf_graph::{Graph, PreparedQueries, RDF, SH, ShaclBudgetExceeded, iri, value};
+use crate::rdf_graph::{
+    Graph, IndexedGraph, PreparedQueries, RDF, RDFS, SH, ShaclBudgetExceeded, iri, value,
+};
 use anyhow::{Result, ensure};
 use rudof_rdf::rdf_impl::InMemoryGraph;
 use rudof_rdf::{rdf_core::RDFFormat, rdf_impl::ReaderMode};
 use serde_json::{Value, json};
 use shacl_ir::compiled::schema_ir::SchemaIR;
 use shacl_validation::focus_nodes::FocusNodes;
-use shacl_validation::shacl_engine::{engine::Engine, native::NativeEngine};
+use shacl_validation::shacl_engine::native::NativeEngine;
 use shacl_validation::shape_validation::Validate;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -39,6 +41,8 @@ pub fn validate_with_depth(
             "remote Shapes imports are unsupported"
         );
     }
+    let data = data.indexed();
+    let shapes = shapes.indexed();
     let queries = data.prepare_queries()?;
     let mut foci = BTreeMap::new();
     for shape in selected {
@@ -54,33 +58,29 @@ pub fn validate_with_depth(
             ),
             "selected SHACL shape is unavailable"
         );
+        let implicit_class = shapes.has_type(shape, &iri(&format!("{RDFS}Class")));
+        ensure!(
+            !implicit_class || shape.starts_with('<'),
+            "SHACL shape with an implicit class target must be an IRI"
+        );
         let mut nodes = BTreeSet::new();
         if let Some(focus) = focus {
             nodes.insert(focus.to_owned());
         } else {
             nodes.extend(shapes.objects(shape, &iri(&format!("{SH}targetNode"))));
             for class in shapes.objects(shape, &iri(&format!("{SH}targetClass"))) {
-                for node in data.triples.iter().map(|t| &t[0]).collect::<BTreeSet<_>>() {
-                    if data.has_type(node, &class) {
-                        nodes.insert(node.clone());
-                    }
-                }
+                nodes.extend(data.instances_of(&class));
+            }
+            // A shape that is also an rdfs:Class in the shapes graph targets
+            // that class's SHACL instances in the data graph (SHACL 2.1.3.3).
+            if implicit_class {
+                nodes.extend(data.instances_of(shape));
             }
             for p in shapes.objects(shape, &iri(&format!("{SH}targetSubjectsOf"))) {
-                nodes.extend(
-                    data.triples
-                        .iter()
-                        .filter(|t| t[1] == p)
-                        .map(|t| t[0].clone()),
-                );
+                nodes.extend(data.with_predicate(&p).map(|t| t[0].clone()));
             }
             for p in shapes.objects(shape, &iri(&format!("{SH}targetObjectsOf"))) {
-                nodes.extend(
-                    data.triples
-                        .iter()
-                        .filter(|t| t[1] == p)
-                        .map(|t| t[2].clone()),
-                );
+                nodes.extend(data.with_predicate(&p).map(|t| t[2].clone()));
             }
         }
         if focus.is_none() {
@@ -100,12 +100,12 @@ pub fn validate_with_depth(
                 ensure!(!declarations.is_empty(), "unsupported SHACL custom target");
                 for declaration in declarations {
                     let text = value(&shapes.one(&declaration, &iri(&format!("{SH}select")))?);
-                    let text = prefixed_query(shapes, &declaration, &text)?;
+                    let text = prefixed_query(&shapes, &declaration, &text)?;
                     crate::query::local_select(&text)?;
                     let bindings = if declaration == target {
                         vec![BTreeMap::new()]
                     } else {
-                        parameter_bindings(shapes, &declaration, &target, true)?
+                        parameter_bindings(&shapes, &declaration, &target, true)?
                     };
                     for bindings in bindings {
                         for row in queries.query_bindings(&text, &bindings)?.1 {
@@ -157,7 +157,7 @@ pub fn validate_with_depth(
         "validator",
     ];
     while let Some(node) = pending.pop() {
-        for t in shapes.triples.iter().filter(|t| t[0] == node) {
+        for t in shapes.outgoing(&node) {
             if (t[2].starts_with("_:") || links.iter().any(|p| t[1] == iri(&format!("{SH}{p}"))))
                 && (t[2].starts_with("_:") || t[2].starts_with('<'))
                 && reachable.insert(t[2].clone())
@@ -176,12 +176,10 @@ pub fn validate_with_depth(
             if reachable.insert(node.clone()) {
                 pending.extend(
                     shapes
-                        .triples
-                        .iter()
+                        .outgoing(&node)
                         .filter(|t| {
-                            t[0] == node
-                                && (t[2].starts_with("_:")
-                                    || links.iter().any(|p| t[1] == iri(&format!("{SH}{p}"))))
+                            t[2].starts_with("_:")
+                                || links.iter().any(|p| t[1] == iri(&format!("{SH}{p}")))
                         })
                         .map(|t| t[2].clone()),
                 );
@@ -197,9 +195,9 @@ pub fn validate_with_depth(
         }
     }
     let mut result = validate_composed(
-        data,
+        &data,
         &queries,
-        shapes,
+        &shapes,
         &reachable,
         &foci,
         max_depth,
@@ -211,7 +209,7 @@ pub fn validate_with_depth(
     Ok(result)
 }
 
-fn prefixed_query(shapes: &Graph, constraint: &str, query: &str) -> Result<String> {
+fn prefixed_query(shapes: &IndexedGraph<'_>, constraint: &str, query: &str) -> Result<String> {
     let mut prefixes = BTreeMap::new();
     for source in shapes.objects(constraint, &iri(&format!("{SH}prefixes"))) {
         for declaration in shapes.objects(&source, &iri(&format!("{SH}declare"))) {
@@ -245,7 +243,7 @@ fn prefixed_query(shapes: &Graph, constraint: &str, query: &str) -> Result<Strin
 }
 
 fn parameter_bindings(
-    shapes: &Graph,
+    shapes: &IndexedGraph<'_>,
     declaration: &str,
     instance: &str,
     required: bool,
@@ -312,7 +310,7 @@ fn parameter_bindings(
     })
 }
 
-fn rdf_list(shapes: &Graph, head: &str) -> Result<Vec<String>> {
+fn rdf_list(shapes: &IndexedGraph<'_>, head: &str) -> Result<Vec<String>> {
     let mut node = head.to_owned();
     let mut result = vec![];
     let mut seen = BTreeSet::new();
@@ -326,7 +324,7 @@ fn rdf_list(shapes: &Graph, head: &str) -> Result<Vec<String>> {
     }
     Ok(result)
 }
-fn path_expression(shapes: &Graph, path: &str, depth: usize) -> Result<String> {
+fn path_expression(shapes: &IndexedGraph<'_>, path: &str, depth: usize) -> Result<String> {
     ensure!(
         depth < 32,
         ShaclBudgetExceeded("SHACL path depth budget exceeded")
@@ -377,10 +375,10 @@ fn path_expression(shapes: &Graph, path: &str, depth: usize) -> Result<String> {
     ))
 }
 
-struct Composed<'a> {
-    data: &'a Graph,
-    queries: &'a PreparedQueries,
-    shapes: &'a Graph,
+struct Composed<'a, 'data, 'shapes> {
+    data: &'a IndexedGraph<'data>,
+    queries: &'a PreparedQueries<'a>,
+    shapes: &'a IndexedGraph<'shapes>,
     reachable: &'a BTreeSet<String>,
     native: Option<InMemoryGraph>,
     schemas: BTreeMap<String, (SchemaIR, Option<NativeEngine>)>,
@@ -390,7 +388,7 @@ struct Composed<'a> {
     max_depth: usize,
     work_budget: usize,
 }
-impl Composed<'_> {
+impl Composed<'_, '_, '_> {
     fn evaluate(&mut self, shape: &str, focus: &str) -> Result<Vec<Value>> {
         let key = (shape.to_owned(), focus.to_owned());
         if let Some(result) = self.cache.get(&key) {
@@ -431,14 +429,30 @@ impl Composed<'_> {
             .map(|p| path_expression(self.shapes, p, 0))
             .transpose()?;
         let values = if let Some(path) = &path {
-            self.queries
-                .select_focus(
-                    &format!("SELECT ?this ?v WHERE {{ ?this {path} ?v }}"),
-                    focus,
-                )?
-                .into_iter()
-                .filter_map(|row| row.get("v").map(ToString::to_string))
-                .collect::<BTreeSet<_>>()
+            if path.starts_with('<') {
+                // Preserve the SELECT ?this ?v budget of the general path
+                // evaluator when taking this indexed IRI-path fast path.
+                let mut values = BTreeSet::new();
+                let mut bytes = 0usize;
+                for value in self.data.object_terms(focus, path) {
+                    bytes = bytes.saturating_add(focus.len().saturating_add(value.len()));
+                    ensure!(
+                        values.len() < 4096 && bytes <= 1024 * 1024,
+                        ShaclBudgetExceeded("SHACL SELECT result budget exceeded")
+                    );
+                    values.insert(value.to_owned());
+                }
+                values
+            } else {
+                self.queries
+                    .select_focus(
+                        &format!("SELECT ?this ?v WHERE {{ ?this {path} ?v }}"),
+                        focus,
+                    )?
+                    .into_iter()
+                    .filter_map(|row| row.get("v").map(ToString::to_string))
+                    .collect::<BTreeSet<_>>()
+            }
         } else {
             BTreeSet::from([focus.to_owned()])
         };
@@ -533,11 +547,11 @@ impl Composed<'_> {
             }
             let native = self.native.as_ref().expect("prepared native graph");
             if runner.is_none() {
-                let mut engine = NativeEngine::new();
-                engine
-                    .build_indexes(native)
-                    .map_err(|e| anyhow::anyhow!("SHACL index construction failed: {e}"))?;
-                *runner = Some(engine);
+                // Target resolution already used our shared POS index, and
+                // every native call below supplies explicit FocusNodes.
+                // Rudof's optional class index only serves target resolution;
+                // building it here would rescan the data once per schema.
+                *runner = Some(NativeEngine::new());
             }
             let targets = FocusNodes::single(focus.parse::<oxrdf::Term>()?);
             let report = compiled
@@ -765,9 +779,9 @@ fn native_graph(data: &Graph) -> Result<rudof_rdf::rdf_impl::InMemoryGraph> {
 }
 
 fn validate_composed(
-    data: &Graph,
-    queries: &PreparedQueries,
-    shapes: &Graph,
+    data: &IndexedGraph<'_>,
+    queries: &PreparedQueries<'_>,
+    shapes: &IndexedGraph<'_>,
     reachable: &BTreeSet<String>,
     foci: &BTreeMap<String, BTreeSet<String>>,
     max_depth: usize,

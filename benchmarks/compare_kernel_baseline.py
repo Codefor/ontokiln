@@ -27,6 +27,9 @@ METRICS = {
     "api_metrics.supervisor_peak_rss_bytes": "bytes",
     "api_metrics.peak_scratch_bytes": "bytes",
     "process_wait4_peak_rss_bytes": "bytes",
+    "mount_metrics.elapsed_seconds": "seconds",
+    "mount_metrics.snapshot_bytes": "bytes",
+    "mount_metrics.copied_bytes": "bytes",
 }
 NOTES = [
     "Matching recorded configuration does not establish the same physical host, storage device, host load or cache state; virtual environments may share resources.",
@@ -34,6 +37,7 @@ NOTES = [
     "Only COMPLETE samples with oracle.checked=true enter medians. Warm-ups never enter medians; failed, skipped, unverified or missing trials suppress stage percentages.",
     "Build declarations and rustc_on_path are recorded provenance, not independent proof of how a binary was built. Different engine identities are allowed.",
     "API RSS, supervisor RSS and wait4 RSS are distinct measurements; do not add them. Engine compile time overlaps parse/index phases; query/SHACL core time is unavailable.",
+    "File and mounted-session reads have different timing boundaries; their configurations are deliberately non-comparable. Session mounts are one-time diagnostic samples and are not hidden in per-request times.",
 ]
 
 

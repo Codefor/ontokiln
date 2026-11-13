@@ -60,20 +60,63 @@ fn regular(path: &Path) -> Result<()> {
 }
 
 pub(crate) fn freeze(source: &Path, destination: &Path, expected: &str) -> Result<String> {
+    freeze_limited(source, destination, expected, u64::MAX)
+}
+
+pub(crate) fn freeze_limited(
+    source: &Path,
+    destination: &Path,
+    expected: &str,
+    max_bytes: u64,
+) -> Result<String> {
+    freeze_to(source, expected, max_bytes, || {
+        Ok(OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(destination)?)
+    })
+}
+
+/// Copy into an already anonymous private file. The caller owns and closes its
+/// writable descriptor before giving the snapshot to any worker.
+pub(crate) fn freeze_into(
+    source: &Path,
+    output: &mut File,
+    expected: &str,
+    max_bytes: u64,
+) -> Result<String> {
+    freeze_to(source, expected, max_bytes, || Ok(output))
+}
+
+fn freeze_to<W: Write>(
+    source: &Path,
+    expected: &str,
+    max_bytes: u64,
+    output: impl FnOnce() -> Result<W>,
+) -> Result<String> {
     regular(source)?;
     let before = fs::metadata(source)?;
+    ensure!(
+        before.len() <= max_bytes,
+        "BUDGET_EXHAUSTED|snapshot exceeds mount disk allowance"
+    );
     let mut input = File::open(source)?;
-    let mut output = OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(destination)?;
+    let mut output = output()?;
     let mut hash = Sha256::new();
     let mut buffer = [0; 65536];
+    let mut copied = 0u64;
     loop {
         let size = input.read(&mut buffer)?;
         if size == 0 {
             break;
         }
+        copied = copied
+            .checked_add(size as u64)
+            .context("BUDGET_EXHAUSTED|snapshot size overflow")?;
+        ensure!(
+            copied <= max_bytes,
+            "BUDGET_EXHAUSTED|snapshot exceeds mount disk allowance"
+        );
         output.write_all(&buffer[..size])?;
         hash.update(&buffer[..size]);
     }

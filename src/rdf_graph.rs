@@ -1,6 +1,7 @@
 //! RDF graph navigation for standard constraints; no domain vocabulary or pack metadata.
 use anyhow::{Result, ensure};
 use oxrdf::Term;
+use std::cell::{OnceCell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 /// Resource exhaustion during SHACL evaluation, distinct from invalid RDF or Shapes.
@@ -40,11 +41,26 @@ impl Graph {
         self.triples.clone()
     }
     pub fn objects(&self, s: &str, p: &str) -> BTreeSet<String> {
+        self.object_terms(s, p).map(str::to_owned).collect()
+    }
+    pub fn object_terms<'a>(&'a self, s: &'a str, p: &'a str) -> impl Iterator<Item = &'a str> {
         self.triples
-            .iter()
-            .filter(|t| t[0] == s && t[1] == p)
-            .map(|t| t[2].clone())
-            .collect()
+            .range([s.to_owned(), p.to_owned(), String::new()]..)
+            .take_while(move |t| t[0] == s && t[1] == p)
+            .map(|t| t[2].as_str())
+    }
+    pub fn outgoing<'a>(&'a self, s: &'a str) -> impl Iterator<Item = &'a [String; 3]> {
+        self.triples
+            .range([s.to_owned(), String::new(), String::new()]..)
+            .take_while(move |t| t[0] == s)
+    }
+    /// Borrow one reverse index for a validation; never copy the graph's terms.
+    /// The immutable borrow prevents mutation from invalidating its row references.
+    pub fn indexed(&self) -> IndexedGraph<'_> {
+        IndexedGraph {
+            graph: self,
+            pos: OnceCell::new(),
+        }
     }
     pub fn subjects(&self, p: &str, o: &str) -> BTreeSet<String> {
         self.triples
@@ -94,7 +110,14 @@ impl Graph {
     ) -> Result<BoundQueryResult> {
         self.prepare_queries()?.query_bindings(text, bindings)
     }
-    pub fn prepare_queries(&self) -> Result<PreparedQueries> {
+    pub fn prepare_queries(&self) -> Result<PreparedQueries<'_>> {
+        Ok(PreparedQueries {
+            graph: self,
+            dataset: RefCell::new(None),
+            queries: RefCell::new(BTreeMap::new()),
+        })
+    }
+    fn query_dataset(&self) -> Result<oxrdf::Dataset> {
         struct TripleReader<I>(I);
         impl<I: Iterator<Item = u8>> std::io::Read for TripleReader<I> {
             fn read(&mut self, buffer: &mut [u8]) -> std::io::Result<usize> {
@@ -117,19 +140,71 @@ impl Graph {
         {
             dataset.insert(&quad?);
         }
-        Ok(PreparedQueries {
-            dataset,
-            queries: std::cell::RefCell::new(BTreeMap::new()),
+        Ok(dataset)
+    }
+}
+
+/// SPO stays in the canonical set; POS is a sorted vector of borrowed rows.
+/// Its memory cost is one pointer per triple, independent of RDF term length.
+pub struct IndexedGraph<'a> {
+    graph: &'a Graph,
+    pos: OnceCell<Vec<&'a [String; 3]>>,
+}
+impl std::ops::Deref for IndexedGraph<'_> {
+    type Target = Graph;
+
+    fn deref(&self) -> &Self::Target {
+        self.graph
+    }
+}
+impl<'a> IndexedGraph<'a> {
+    fn pos(&self) -> &[&'a [String; 3]] {
+        self.pos.get_or_init(|| {
+            let mut rows = self.graph.triples.iter().collect::<Vec<_>>();
+            rows.sort_unstable_by(|a, b| (&a[1], &a[2], &a[0]).cmp(&(&b[1], &b[2], &b[0])));
+            rows
         })
+    }
+    pub fn subjects(&self, p: &str, o: &str) -> BTreeSet<String> {
+        let pos = self.pos();
+        let start = pos.partition_point(|t| (t[1].as_str(), t[2].as_str()) < (p, o));
+        pos[start..]
+            .iter()
+            .take_while(|t| t[1] == p && t[2] == o)
+            .map(|t| t[0].clone())
+            .collect()
+    }
+    pub fn with_predicate(&self, p: &str) -> impl Iterator<Item = &'a [String; 3]> {
+        let pos = self.pos();
+        let start = pos.partition_point(|t| t[1].as_str() < p);
+        let end = pos.partition_point(|t| t[1].as_str() <= p);
+        pos[start..end].iter().copied()
+    }
+    /// SHACL instances include all transitive subclasses, including cycles.
+    pub fn instances_of(&self, class: &str) -> BTreeSet<String> {
+        let rdf_type = iri(&format!("{RDF}type"));
+        let subclass = iri(&format!("{RDFS}subClassOf"));
+        let mut pending = vec![class.to_owned()];
+        let mut seen = HashSet::new();
+        let mut instances = BTreeSet::new();
+        while let Some(class) = pending.pop() {
+            if seen.insert(class.clone()) {
+                instances.extend(self.subjects(&rdf_type, &class));
+                pending.extend(self.subjects(&subclass, &class));
+            }
+        }
+        instances
     }
 }
 
 /// An immutable data snapshot and unbound query plans, scoped to one validation.
-pub struct PreparedQueries {
-    dataset: oxrdf::Dataset,
-    queries: std::cell::RefCell<BTreeMap<String, spargebra::Query>>,
+/// Core constraints and simple paths do not allocate a second RDF dataset.
+pub struct PreparedQueries<'a> {
+    graph: &'a Graph,
+    dataset: RefCell<Option<oxrdf::Dataset>>,
+    queries: RefCell<BTreeMap<String, spargebra::Query>>,
 }
-impl PreparedQueries {
+impl PreparedQueries<'_> {
     pub fn select_focus(&self, text: &str, focus: &str) -> Result<Vec<BTreeMap<String, Term>>> {
         crate::query::local_select(text)?;
         Ok(self
@@ -225,7 +300,13 @@ impl PreparedQueries {
             query = query.substitute_variable(Variable::new(name)?, term.parse::<Term>()?);
         }
 
-        let result = query.on_queryable_dataset(&self.dataset).execute()?;
+        let mut dataset = self.dataset.borrow_mut();
+        if dataset.is_none() {
+            *dataset = Some(self.graph.query_dataset()?);
+        }
+        let result = query
+            .on_queryable_dataset(dataset.as_ref().expect("prepared query dataset"))
+            .execute()?;
         if let QueryResults::Boolean(answer) = result {
             return Ok((Some(answer), vec![]));
         }
