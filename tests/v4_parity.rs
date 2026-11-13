@@ -165,7 +165,6 @@ fn owl_property_chain_default_graph_and_named_graph_match_full() {
     );
 }
 
-
 #[test]
 fn typed_parameters_rdf_bindings_and_values_match_full() {
     use ontokiln_reasoner::parameters::{Parameter, ValuesTable};
@@ -177,54 +176,78 @@ fn typed_parameters_rdf_bindings_and_values_match_full() {
         "turtle",
         "<urn:a> <urn:p> <urn:o> .\n<urn:b> <urn:p> <urn:other> .\n",
     );
-    let (engine, _) = OntologyEngine::build(
-        std::slice::from_ref(&src), "no-rules-v1", &[]
-    ).unwrap();
+    let (engine, _) =
+        OntologyEngine::build(std::slice::from_ref(&src), "no-rules-v1", &[]).unwrap();
     let (paths, _) = build_full(root.path(), &src, "no-rules-v1");
 
     let query = "SELECT ?s WHERE { ?s <urn:p> ?o FILTER(?o = ?wanted) } ORDER BY ?s";
     let bindings = BTreeMap::from([("wanted".into(), "<urn:o>".into())]);
-    let actual: Value = serde_json::from_slice(&engine.query_bound(
-        query, View::Closure, &BTreeMap::new(), &bindings, &[]
-    ).unwrap()).unwrap();
+    let actual: Value = serde_json::from_slice(
+        &engine
+            .query_bound(query, View::Closure, &BTreeMap::new(), &bindings, &[])
+            .unwrap(),
+    )
+    .unwrap();
     let expected = ontokiln::full::execute(json!({
         "operation":"query","dataset":paths["database"],"query":query,
         "view":"closure","rdf_bindings":bindings,"parameters":{},"values":[],
         "max_rows":10000,"max_bytes":1048576u64,"query_seconds":null
-    })).unwrap();
+    }))
+    .unwrap();
     assert_eq!(actual["head"]["vars"], json!(["s"]));
     assert_eq!(actual["results"]["bindings"], expected["items"]);
 
-    let values_query="SELECT ?s WHERE { VALUES (?s) {} ?s <urn:p> <urn:o> } ORDER BY ?s";
-    let values=vec![ValuesTable{
-        variables:vec!["s".into()],
-        rows:vec![
-            vec![Some(Parameter::Iri{value:"urn:a".into()})],
-            vec![Some(Parameter::Iri{value:"urn:a".into()})],
+    let values_query = "SELECT ?s WHERE { VALUES (?s) {} ?s <urn:p> <urn:o> } ORDER BY ?s";
+    let values = vec![ValuesTable {
+        variables: vec!["s".into()],
+        rows: vec![
+            vec![Some(Parameter::Iri {
+                value: "urn:a".into(),
+            })],
+            vec![Some(Parameter::Iri {
+                value: "urn:a".into(),
+            })],
         ],
     }];
-    let actual:Value=serde_json::from_slice(&engine.query_bound(
-        values_query,View::Closure,&BTreeMap::new(),&BTreeMap::new(),&values
-    ).unwrap()).unwrap();
-    let expected=ontokiln::full::execute(json!({
+    let actual: Value = serde_json::from_slice(
+        &engine
+            .query_bound(
+                values_query,
+                View::Closure,
+                &BTreeMap::new(),
+                &BTreeMap::new(),
+                &values,
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let expected = ontokiln::full::execute(json!({
         "operation":"query","dataset":paths["database"],"query":values_query,
         "view":"closure","values":values,"parameters":{},"rdf_bindings":{},
         "max_rows":10000,"max_bytes":1048576u64,"query_seconds":null
-    })).unwrap();
-    assert_eq!(actual["results"]["bindings"],expected["items"]);
-    assert_eq!(actual["results"]["bindings"].as_array().unwrap().len(),2);
+    }))
+    .unwrap();
+    assert_eq!(actual["results"]["bindings"], expected["items"]);
+    assert_eq!(actual["results"]["bindings"].as_array().unwrap().len(), 2);
 
-    let templated="SELECT ?s WHERE { ?s <urn:p> <urn:ontokiln:param:target> }";
-    let parameters=BTreeMap::from([(
-        "target".into(),Parameter::Iri{value:"urn:o".into()}
+    let templated = "SELECT ?s WHERE { ?s <urn:p> <urn:ontokiln:param:target> }";
+    let parameters = BTreeMap::from([(
+        "target".into(),
+        Parameter::Iri {
+            value: "urn:o".into(),
+        },
     )]);
-    let actual:Value=serde_json::from_slice(&engine.query_bound(
-        templated, View::Closure,&parameters,&BTreeMap::new(),&[]
-    ).unwrap()).unwrap();
-    let expected=ontokiln::full::execute(json!({
+    let actual: Value = serde_json::from_slice(
+        &engine
+            .query_bound(templated, View::Closure, &parameters, &BTreeMap::new(), &[])
+            .unwrap(),
+    )
+    .unwrap();
+    let expected = ontokiln::full::execute(json!({
         "operation":"query","dataset":paths["database"],"query":templated,
         "view":"closure","parameters":parameters,"values":[],"rdf_bindings":{},
         "max_rows":10000,"max_bytes":1048576u64,"query_seconds":null
-    })).unwrap();
-    assert_eq!(actual["results"]["bindings"],expected["items"]);
+    }))
+    .unwrap();
+    assert_eq!(actual["results"]["bindings"], expected["items"]);
 }
