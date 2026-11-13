@@ -367,6 +367,12 @@ mod tests {
         }
     }
     #[test]
+    fn resident_engine_is_send_and_sync() {
+        fn assert_thread_safe<T: Send + Sync>() {}
+        assert_thread_safe::<OntologyEngine>();
+    }
+
+    #[test]
     fn build_save_reload_and_query_completed_rdfs() {
         let dir = tempdir().unwrap();
         let rdf = concat!(
