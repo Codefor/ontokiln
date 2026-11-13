@@ -8,9 +8,9 @@ use std::fs::File;
 use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 use tempfile::NamedTempFile;
-pub mod v4;
 mod index;
 pub mod proof;
+pub mod v4;
 pub use index::{Candidates, Order};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

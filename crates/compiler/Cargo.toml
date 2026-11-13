@@ -21,3 +21,6 @@ serde.workspace = true
 
 [features]
 ascent-engine = ["dep:ascent"]
+
+[dev-dependencies]
+tempfile.workspace = true
