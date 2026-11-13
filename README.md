@@ -43,3 +43,9 @@ cargo test --test v4_scale --locked -- --ignored --nocapture
 ```
 
 最后一项对 100 万条显式 RDF 事实执行内存编译、Pack v4 保存与加载、SPARQL COUNT 验证。旧 Pack v3、SQLite Full、HTTP/Worker/Session API 不构成公开兼容范围。
+
+## 基线与适配
+
+- [功能/性能回归基线](docs/v4-baseline.md)：冻结 golden 语料、Release 单进程常驻推理、冷热查询、编译物化、SHACL 及指标回归。
+- [FaaS 适配开发 Prompt](docs/adapters/faas-codex-prompt.md)：应用侧 Abase Bundle、每 Pod 加载/就绪/切换与进程模型。
+- [本地模式开发 Prompt](docs/adapters/local-codex-prompt.md)：macOS/Linux 单实例 CLI 和 Rust 常驻开发工具。
