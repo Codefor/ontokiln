@@ -11,6 +11,8 @@ on:
       - tests/v4_parity.rs
       - tests/v4_api.rs
       - tests/v4_scale.rs
+      - src/main.rs
+      - src/identity.rs
       - src/api.rs
       - src/engine.rs
       - src/lib.rs
@@ -28,13 +30,16 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
-      - name: Format workspace and collect Pack v4 API
+      - name: Format Pack v4 CLI
         run: cargo fmt --all
-      - name: Show formatted Pack v4 API
+      - name: Collect formatted CLI source
         run: |
-          echo BEGIN_FORMATTED_V4_API
-          cat src/api.rs
-          echo END_FORMATTED_V4_API
+          echo BEGIN_FORMATTED_V4_MAIN
+          cat src/main.rs
+          echo END_FORMATTED_V4_MAIN
+          echo BEGIN_FORMATTED_V4_IDENTITY
+          cat src/identity.rs
+          echo END_FORMATTED_V4_IDENTITY
       - name: Focused v4 package tests
         run: |
           cargo test -p ontokiln-pack v4::tests --locked
