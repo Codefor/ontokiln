@@ -9,7 +9,7 @@ use ontokiln_pack::v4::{DEFAULT_GRAPH, Metadata, PackV4, Quad, Statement};
 use oxrdf::Term;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -416,6 +416,77 @@ pub fn profile_rules(profile: &str) -> Result<Vec<Rule>> {
     Ok(rules)
 }
 
+/// Extract executable OWL propertyChainAxiom lists using the same scope and
+/// inverse-property guards as the prior Full compiler. Lists are read from
+/// asserted quads; only the physical default graph is eligible.
+fn property_chain_rules(pack: &PackV4) -> Result<Vec<Rule>> {
+    use ontokiln_pack::v4::View;
+    let chain_iri = "<http://www.w3.org/2002/07/owl#propertyChainAxiom>";
+    let Some(chain_id) = pack.term_id(chain_iri) else { return Ok(vec![]); };
+    let nil = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#nil>";
+    let first = pack.term_id("<http://www.w3.org/1999/02/22-rdf-syntax-ns#first>");
+    let rest = pack.term_id("<http://www.w3.org/1999/02/22-rdf-syntax-ns#rest>");
+    let inverse = pack.term_id("<http://www.w3.org/2002/07/owl#inverseOf>");
+    let single = |subject: u32, predicate: Option<u32>| -> Result<u32> {
+        let predicate = predicate.context("RULE_INVALID: missing RDF list predicate")?;
+        let values: Vec<u32> = pack.matching(Some(subject), Some(predicate), None,
+            Some(DEFAULT_GRAPH), View::Asserted).take(2)
+            .map(|(_,quad)| quad[3]).collect();
+        ensure!(values.len()==1,
+            "RULE_INVALID: property chain requires exactly one asserted RDF list edge");
+        Ok(values[0])
+    };
+    let mut generated = BTreeMap::new();
+    for (_, quad) in pack.matching(None, Some(chain_id), None, None, View::Asserted) {
+        ensure!(quad[0]==DEFAULT_GRAPH,
+            "UNSUPPORTED_RULE_PROFILE: property chains require the physical default graph");
+        let predicate=pack.term(quad[1]).context("invalid property-chain predicate ID")?;
+        ensure!(predicate.starts_with('<'),
+            "RULE_INVALID: property-chain subject must be a named property");
+        let mut cursor=quad[3];
+        let mut seen=HashSet::new();
+        let mut chain=Vec::<(String,bool)>::new();
+        while pack.term(cursor)!=Some(nil) {
+            ensure!(pack.term(cursor).is_some_and(|term| term.starts_with("_:"))
+                && seen.insert(cursor) && chain.len()<16,
+                "RULE_INVALID: property-chain RDF list is cyclic or oversized");
+            let item=single(cursor,first)?;
+            let successor=single(cursor,rest)?;
+            let member=pack.term(item).context("invalid property-chain member ID")?;
+            let (property,reversed) = if member.starts_with('<') {
+                (member.to_owned(),false)
+            } else if member.starts_with("_:") {
+                let target=single(item,inverse).map_err(|_| anyhow::anyhow!(
+                    "UNSUPPORTED_RULE_PROFILE: inverse property-chain member needs one inverseOf"))?;
+                let property=pack.term(target).context("inverse property target ID")?;
+                ensure!(property.starts_with('<'),
+                    "UNSUPPORTED_RULE_PROFILE: inverse property-chain member must name a property");
+                (property.to_owned(),true)
+            } else {
+                bail!("UNSUPPORTED_RULE_PROFILE: chain member must be a named property or inverse");
+            };
+            chain.push((property,reversed));
+            cursor=successor;
+        }
+        ensure!(!chain.is_empty(), "RULE_INVALID: empty property chain");
+        let body=chain.iter().enumerate().map(|(i,(property,reversed))| {
+            let (s,o)=if *reversed {(i+1,i)} else {(i,i+1)};
+            vec![format!("?v{s}"),property.clone(),format!("?v{o}")]
+        }).collect();
+        let filters=chain.iter().enumerate().filter(|(_,(_,reversed))| *reversed)
+            .map(|(i,_)| Filter{op:"isResource".into(),var:format!("?v{i}")}).collect();
+        let rule_id=format!("owl-chain:{:x}",
+            Sha256::digest(serde_json::to_vec(&(predicate.to_owned(),chain))?));
+        generated.insert(rule_id.clone(),Rule {
+            rule_id,head:vec!["?v0".into(),predicate.to_owned(),
+                format!("?v{}",body_length(&body))],
+            body,filters
+        });
+    }
+    Ok(generated.into_values().collect())
+}
+fn body_length(body: &[Vec<String>]) -> usize { body.len() }
+
 /// Compute a complete, immutable closure without an SQLite file or external
 /// process. A failed rule or incomplete fixpoint publishes no Pack.
 pub fn materialize(
@@ -428,24 +499,8 @@ pub fn materialize(
         profile != "no-rules-v1" || user_rules.is_empty(),
         "UNSUPPORTED_RULE_PROFILE: no-rules does not accept rules"
     );
-    // Explicitly reject unimplemented property-chain lists, rather than return
-    // a false successful closure for the requested profile.
     if profile == "rdfs-property-chain-v1" {
-        let p = "<http://www.w3.org/2002/07/owl#propertyChainAxiom>";
-        if let Some(id) = pack.term_id(p) {
-            ensure!(
-                pack.matching(
-                    None,
-                    Some(id),
-                    None,
-                    Some(DEFAULT_GRAPH),
-                    ontokiln_pack::v4::View::Asserted
-                )
-                .next()
-                .is_none(),
-                "UNSUPPORTED_RULE_PROFILE: Pack v4 propertyChainAxiom extraction pending"
-            );
-        }
+        rules.extend(property_chain_rules(&pack)?);
     }
     rules.extend(user_rules.iter().cloned());
     let rules = normalize_rules(&rules)?;
@@ -742,4 +797,48 @@ mod tests {
             1
         );
     }
+    #[test]
+    fn property_chain_axioms_materialize_multi_hop_closure() {
+        let rdf = "<http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+        let owl = "<http://www.w3.org/2002/07/owl#propertyChainAxiom>";
+        let input = fixture(&[
+            ("<urn:ancestor>",owl,"_:list1"),
+            ("_:list1",&format!("{rdf}first>"),"<urn:parent>"),
+            ("_:list1",&format!("{rdf}rest>"),"_:list2"),
+            ("_:list2",&format!("{rdf}first>"),"<urn:parent>"),
+            ("_:list2",&format!("{rdf}rest>"),&format!("{rdf}nil>")),
+            ("<urn:a>","<urn:parent>","<urn:b>"),
+            ("<urn:b>","<urn:parent>","<urn:c>"),
+        ],false);
+        let (pack,_) = materialize(input,"rdfs-property-chain-v1",&[]).unwrap();
+        let predicate=pack.term_id("<urn:ancestor>").unwrap();
+        assert_eq!(pack.union_triples(
+            pack.term_id("<urn:a>"),Some(predicate),pack.term_id("<urn:c>"),
+            View::Inferred).count(),1);
+    }
+    #[test]
+    fn inverse_property_chain_member_preserves_orientation() {
+        let rdf="<http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+        let chain="<http://www.w3.org/2002/07/owl#propertyChainAxiom>";
+        let inverse="<http://www.w3.org/2002/07/owl#inverseOf>";
+        let input=fixture(&[
+            ("<urn:childOf>",chain,"_:list"),
+            ("_:list",&format!("{rdf}first>"),"_:inverse"),
+            ("_:list",&format!("{rdf}rest>"),&format!("{rdf}nil>")),
+            ("_:inverse",inverse,"<urn:parentOf>"),
+            ("<urn:alice>","<urn:parentOf>","<urn:bob>"),
+        ],false);
+        let (pack,_) = materialize(input,"rdfs-property-chain-v1",&[]).unwrap();
+        assert_eq!(pack.union_triples(pack.term_id("<urn:bob>"),
+            pack.term_id("<urn:childOf>"),pack.term_id("<urn:alice>"),
+            View::Inferred).count(),1);
+    }
+    #[test]
+    fn rejects_named_graph_property_chain_axioms() {
+        let pack=fixture(&[
+            ("<urn:prop>","<http://www.w3.org/2002/07/owl#propertyChainAxiom>","_:list"),
+        ],true);
+        assert!(materialize(pack,"rdfs-property-chain-v1",&[]).is_err());
+    }
+
 }
