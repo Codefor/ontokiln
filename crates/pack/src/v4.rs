@@ -510,7 +510,7 @@ impl PackV4 {
             self.asserted.len() == self.quads.len().div_ceil(8),
             "invalid Pack v4 assertion bitmap"
         );
-        if self.quads.len() % 8 != 0 && !self.asserted.is_empty() {
+        if !self.quads.len().is_multiple_of(8) && !self.asserted.is_empty() {
             let used = self.quads.len() % 8;
             ensure!(
                 self.asserted.last().is_some_and(|v| v >> used == 0),
