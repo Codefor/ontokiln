@@ -328,9 +328,8 @@ impl OntologyEngine {
                 .map(|t| t[0].clone())
                 .collect()
         });
-        let report = crate::shacl::validate_with_depth(
-            data, shapes, &selected, focus_node, max_depth,
-        )?;
+        let report =
+            crate::shacl::validate_with_depth(data, shapes, &selected, focus_node, max_depth)?;
         Ok(json!({
             "conforms":report["conforms"],
             "checked_shapes":selected.len(),

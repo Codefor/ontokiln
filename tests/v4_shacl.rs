@@ -55,8 +55,12 @@ fn shacl_sparql_constraint_and_sequence_path_consume_closure() {
     assert_eq!(report["checked_shapes"], 1);
     let violations = report["report"]["violations"].as_array().unwrap();
     assert_eq!(violations.len(), 1);
-    assert!(violations[0]["source_constraint_component"]
-        .as_str().unwrap().ends_with("SPARQLConstraintComponent"));
+    assert!(
+        violations[0]["source_constraint_component"]
+            .as_str()
+            .unwrap()
+            .ends_with("SPARQLConstraintComponent")
+    );
 }
 
 #[test]
@@ -78,8 +82,13 @@ fn shacl_target_class_uses_materialized_rdfs_subclasses() {
     assert_eq!(report["checked_shapes"], 1);
     assert!(report["violations"].as_u64().unwrap() > 0);
     let covered = report["report"]["coverage"].as_array().unwrap();
-    assert!(covered[0]["focus_nodes"].as_array().unwrap()
-        .iter().any(|node| node == "urn:Fido" || node == "<urn:Fido>"));
+    assert!(
+        covered[0]["focus_nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|node| node == "urn:Fido" || node == "<urn:Fido>")
+    );
 }
 
 #[test]
