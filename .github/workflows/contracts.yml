@@ -17,6 +17,8 @@ jobs:
         run: |
           python3 -B tests/fixtures/contract-v1/generate.py --check
           cargo fmt --all --check
+      - name: Benchmark oracles and comparison rules
+        run: python3 -B -m unittest discover -s tests/benchmarks -v
       - name: Lint
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Consumer and legacy contracts
