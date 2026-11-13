@@ -1,5 +1,12 @@
 # Kernel baseline harness
 
+For an existing business dataset and API v1 compile/query/validate requests,
+use the [one-command business baseline guide](../../benchmarks/business-baseline.md).
+Its file-API measurements keep protocol completion separate from business
+correctness, which remains `MANUAL_REVIEW_REQUIRED`.
+Detailed diagnostics remain in the local run directory; the ZIP uses a sharing
+summary while retaining paths, case names, hashes and environment metadata.
+
 `benchmarks/kernel_baseline.py` measures one already built binary. It never
 builds Rust or starts the historical 100 million fact suites. Keep compilation,
 tests and other heavy processes out of the timed run.

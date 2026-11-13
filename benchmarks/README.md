@@ -1,5 +1,7 @@
 # OntoKiln 本地性能实测
 
+**真实业务库：** [一条命令运行编译、物化及业务 SPARQL / SHACL 基线](business-baseline.md)。直接使用现有 API v1 请求，保留本地原始记录，并生成去除原始诊断的分享摘要包；业务正确性单独标记为待人工核对。
+
 **编译与推理规模基线（2026-11-13）：** [1M / 10M 实测与 100M 条件推演](kernel-baseline/46e0fb5-scaling.md)。固定 `46e0fb5` release 内核、单线程、4 GiB RSS / 8 GiB scratch；每阶段三次独立测量，附原始数据、计算模型和计时后事实审计。编译 8.77 / 94.22 s，物化 11.05 / 128.96 s；亿级为条件估算，未声称已实测通过。
 
 **Full 优化前基线（2026-11-13）：** [API 契约复核与 10K / 100K / 1M 编译、规则物化、SPARQL、SHACL 实测](kernel-baseline/README.md)，附逐样本 JSON、release 构建记录和 SQLite 执行计划。被测提交为 `46e0fb5`；百万级两项全图统计触及 60 秒预算，五项 SHACL 触及 512 MiB RSS 预算，均保留失败记录。
