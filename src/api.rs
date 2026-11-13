@@ -402,9 +402,7 @@ fn dataset(path: &Path) -> Result<Dataset> {
         // V3 and V4 share magic but are different physical layouts.
         let mut header = [0_u8; 12];
         fs::File::open(path)?.read_exact(&mut header)?;
-        if &header[..8] == b"ONTOKILN"
-            && u32::from_le_bytes(header[8..12].try_into()?) == 4
-        {
+        if &header[..8] == b"ONTOKILN" && u32::from_le_bytes(header[8..12].try_into()?) == 4 {
             let pack = ontokiln_pack::v4::PackV4::load(path)
                 .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
             let metadata = json!({
@@ -418,7 +416,9 @@ fn dataset(path: &Path) -> Result<Dataset> {
                 "facts":pack.quad_count()
             });
             return Ok(Dataset {
-                meta: metadata, pack: None, pack_v4: Some(pack),
+                meta: metadata,
+                pack: None,
+                pack_v4: Some(pack),
                 manifest_sha256: None,
             });
         }
@@ -427,14 +427,17 @@ fn dataset(path: &Path) -> Result<Dataset> {
         Ok(Dataset {
             meta: json!({"semantics":"pack-rdfs-hierarchy/v1","capabilities":["select-ask/v1","views/v1","document-graphs/v1","revision/v1"],
             "default_graph":"union","views":["asserted","inferred","closure"],"profile":"rdfs-hierarchy-v1","facts":pack.triple_count()}),
-            pack: Some(pack), pack_v4: None, manifest_sha256: None,
+            pack: Some(pack),
+            pack_v4: None,
+            manifest_sha256: None,
         })
     } else {
         let (manifest, manifest_sha256) = crate::full_artifact::verify_read_manifest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Ok(Dataset {
             meta: full_metadata(manifest)?,
-            pack: None, pack_v4: None,
+            pack: None,
+            pack_v4: None,
             manifest_sha256: Some(manifest_sha256),
         })
     }
@@ -720,7 +723,8 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     View::Inferred => ontokiln_pack::v4::View::Inferred,
                     View::Closure => ontokiln_pack::v4::View::Closure,
                 };
-                let result = engine.query_bound(query, view, parameters, rdf_bindings, values)
+                let result = engine
+                    .query_bound(query, view, parameters, rdf_bindings, values)
                     .map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
                 let reply: Value = serde_json::from_slice(&result)?;
                 json!({
@@ -826,19 +830,28 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             if let Some(pack) = pack_v4 {
                 let engine = crate::engine::OntologyEngine::from_pack(pack)
                     .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
-                let selected: Option<std::collections::BTreeSet<String>> =
-                    selected_shapes.as_ref().map(|shapes| shapes.iter().cloned().collect());
+                let selected: Option<std::collections::BTreeSet<String>> = selected_shapes
+                    .as_ref()
+                    .map(|shapes| shapes.iter().cloned().collect());
                 let selected = selected.as_ref();
                 let report = if *shapes_from_dataset {
-                    engine.validate(None, selected, focus_node.as_deref(), limits.max_validation_depth)
+                    engine.validate(
+                        None,
+                        selected,
+                        focus_node.as_deref(),
+                        limits.max_validation_depth,
+                    )
                 } else {
                     let temp = tempfile::tempdir()?;
                     let mut frozen = Vec::new();
                     for (index, shape) in shapes.iter().enumerate() {
                         let destination = temp.path().join(format!("shape-{index}.rdf"));
                         crate::full_artifact::freeze(
-                            &shape.path, &destination, &shape.expected_sha256
-                        ).map_err(invalid)?;
+                            &shape.path,
+                            &destination,
+                            &shape.expected_sha256,
+                        )
+                        .map_err(invalid)?;
                         frozen.push(ontokiln_compiler::v4::Source {
                             path: destination,
                             document_id: shape.document_id.clone(),
@@ -848,9 +861,13 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                         });
                     }
                     engine.validate_shape_sources(
-                        &frozen, selected, focus_node.as_deref(), limits.max_validation_depth
+                        &frozen,
+                        selected,
+                        focus_node.as_deref(),
+                        limits.max_validation_depth,
                     )
-                }.map_err(|e| anyhow::anyhow!("EXECUTION_FAILED|{e}"))?;
+                }
+                .map_err(|e| anyhow::anyhow!("EXECUTION_FAILED|{e}"))?;
                 json!({
                     "conforms":report["conforms"],
                     "checked_shapes":report["checked_shapes"],
@@ -858,42 +875,43 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     "report":report["report"]
                 })
             } else {
-            ensure!(
-                pack.is_none(),
-                "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
-            );
-            let copy = tempfile::tempdir()?;
-            let snapshot = read_snapshot(
-                path,
-                &meta,
-                manifest_sha256.as_deref(),
-                &value,
-                limits.scratch_bytes.unwrap_or(u64::MAX),
-            )?;
-            let mut frozen = Vec::new();
-            for (i, source) in shapes.iter().enumerate() {
-                let dest = copy.path().join(format!("shape-{i}.rdf"));
-                crate::full_artifact::freeze(&source.path, &dest, &source.expected_sha256)
-                    .map_err(invalid)?;
-                let mut s = json!({"file":dest,"format":source.format});
-                if let Some(base) = &source.base_iri {
-                    s["base_iri"] = json!(base);
+                ensure!(
+                    pack.is_none(),
+                    "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
+                );
+                let copy = tempfile::tempdir()?;
+                let snapshot = read_snapshot(
+                    path,
+                    &meta,
+                    manifest_sha256.as_deref(),
+                    &value,
+                    limits.scratch_bytes.unwrap_or(u64::MAX),
+                )?;
+                let mut frozen = Vec::new();
+                for (i, source) in shapes.iter().enumerate() {
+                    let dest = copy.path().join(format!("shape-{i}.rdf"));
+                    crate::full_artifact::freeze(&source.path, &dest, &source.expected_sha256)
+                        .map_err(invalid)?;
+                    let mut s = json!({"file":dest,"format":source.format});
+                    if let Some(base) = &source.base_iri {
+                        s["base_iri"] = json!(base);
+                    }
+                    frozen.push(s);
                 }
-                frozen.push(s);
-            }
-            let mut input = json!({"operation":"validate","dataset":path,"_snapshot_database":snapshot.database,"shapes":frozen,
+                let mut input = json!({"operation":"validate","dataset":path,"_snapshot_database":snapshot.database,"shapes":frozen,
                 "_strict_dataset_terms":snapshot.strict_terms,
                 "shapes_from_dataset":shapes_from_dataset,"max_validation_depth":limits.max_validation_depth});
-            if let Some(selected) = selected_shapes {
-                input["selected_shapes"] = json!(selected);
-            }
-            if let Some(focus) = focus_node {
-                input["focus_node"] = json!(focus);
-            }
-            let reply = crate::full::validate_api(input).map_err(anyhow::Error::msg)?;
-            json!({"conforms":reply["conforms"],"checked_shapes":reply["checked_shapes"],
+                if let Some(selected) = selected_shapes {
+                    input["selected_shapes"] = json!(selected);
+                }
+                if let Some(focus) = focus_node {
+                    input["focus_node"] = json!(focus);
+                }
+                let reply = crate::full::validate_api(input).map_err(anyhow::Error::msg)?;
+                json!({"conforms":reply["conforms"],"checked_shapes":reply["checked_shapes"],
                 "violations":reply["violations"],"report":serde_json::from_str::<Value>(reply["report"].as_str().context("SHACL report")?)?})
-        }            }
+            }
+        }
     };
     let mut reply = json!({"api_result":result,"metrics":{}});
     if let Some(mounted) = value.get("_mounted_snapshot") {
