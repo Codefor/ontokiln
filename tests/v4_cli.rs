@@ -61,6 +61,9 @@ fn legacy_pack_format_is_rejected_without_fallback() {
     let mut bytes = b"ONTOKILN".to_vec();
     bytes.extend_from_slice(&3_u32.to_le_bytes());
     bytes.extend_from_slice(&0_u64.to_le_bytes());
+    // A complete-sized obsolete header must be rejected by the version check,
+    // not merely by the truncated-header guard.
+    bytes.resize(128, 0);
     fs::write(&path,bytes).unwrap();
     let inspect = cli(&["inspect","--pack",path.to_str().unwrap()]);
     assert!(!inspect.status.success());
