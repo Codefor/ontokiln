@@ -322,6 +322,151 @@ class Contract(unittest.TestCase):
         self.call(op, "INVALID_REQUEST", limits={"max_term_bytes": 16*1024**2})
         self.assertFalse((self.root/"options").exists())
 
+    def test_local_query_assets_compile_without_execution(self):
+        for index, prefix in enumerate(("urn:query-assets:first:", "urn:query-assets:renamed:")):
+            with self.subTest(prefix=prefix):
+                data = self.root / f"query-assets-{index}.ttl"
+                data.write_text(f'<{prefix}a> <{prefix}SERVICE> <{prefix}b> .\n'
+                                f'<{prefix}c> <{prefix}SERVICE> <{prefix}d> .\n')
+                prologue = f"PREFIX ex: <{prefix}> "
+                queries = [
+                    prologue + 'SELECT ?SERVICE ?FROM WHERE { ?SERVICE ex:SERVICE ?FROM . '
+                    'BIND("SERVICE FROM" AS ?text) BIND(<urn:SERVICE> AS ?iri) } # SERVICE FROM\n',
+                    prologue + 'ASK { ex:a ex:SERVICE ex:b }',
+                    prologue + 'CONSTRUCT { ?SERVICE ex:FROM ?FROM } '
+                    'WHERE { ?SERVICE ex:SERVICE ?FROM }',
+                ]
+                files = []
+                for number, query in enumerate(queries):
+                    path = self.root / f"query-assets-{index}-{number}.rq"
+                    path.write_text(query)
+                    files.append({"path": str(path), "expected_sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+                    self.assertTrue(self.call({"kind": "prepare_query", "query": query})["result"]["valid"])
+                for profile in ("datalog-v1", "rdfs-supported-v1", "rdfs-property-chain-v1"):
+                    empty = self.call({"kind": "rules", "profile": profile, "files": []})["result"]
+                    self.assertEqual(self.call({"kind": "rules", "profile": profile, "files": files})["result"], empty)
+                self.call({"kind": "rules", "profile": "no-rules-v1", "files": files}, "INVALID_REQUEST")
+                self.call({"kind": "rules", "profile": "unknown-v1", "files": files}, "UNSUPPORTED_CAPABILITY")
+                invalid_digest = [{**files[2], "expected_sha256": "0" * 64}]
+                self.call({"kind": "rules", "profile": "datalog-v1", "files": invalid_digest}, "INVALID_REQUEST")
+
+                baseline = self.root / f"query-assets-baseline-{index}"
+                operation = {"kind": "compile", "sources": [source(data)], "profile": "datalog-v1"}
+                plain = self.call({**operation, "output": str(baseline)})["result"]
+                plain_manifest = json.loads((baseline / "manifest.json").read_bytes())
+                output = self.root / f"query-assets-full-{index}"
+                compiled = self.call({**operation, "output": str(output), "rules": files,
+                                      "expected_source_tree_digest": plain_manifest["source_tree_digest"]})
+                self.assertTrue(compiled["execution"]["integrity_checked"])
+                self.assertEqual(compiled["result"]["stats"], {"explicit_facts": 2, "inferred_facts": 0})
+                self.assertEqual(compiled["result"]["stats"], plain["stats"])
+                manifest = json.loads((output / "manifest.json").read_bytes())
+                frozen = json.loads((output / "input_manifest.json").read_bytes())
+                self.assertEqual(manifest["profile_id"], "datalog-v1")
+                self.assertEqual(manifest["source_tree_digest"], plain_manifest["source_tree_digest"])
+                self.assertNotEqual(manifest["semantic_fingerprint"], plain_manifest["semantic_fingerprint"])
+                self.assertEqual(len(frozen["rules"]), len(files))
+                for asset, original in zip(frozen["rules"], files):
+                    self.assertEqual(asset["sha256"], original["expected_sha256"])
+                    self.assertEqual((output / asset["file"]).read_bytes(), Path(original["path"]).read_bytes())
+
+                query = {"kind": "query", "dataset": str(output),
+                         "expected_content_digest": compiled["result"]["artifact"]["content_digest"]}
+                selected = self.call({**query, "query": queries[0]})["result"]
+                self.assertEqual(selected["query_type"], "SELECT")
+                self.assertEqual({(row["SERVICE"]["value"], row["FROM"]["value"]) for row in selected["items"]},
+                                 {(prefix + "a", prefix + "b"), (prefix + "c", prefix + "d")})
+                asked = self.call({**query, "query": queries[1]})["result"]
+                self.assertEqual((asked["query_type"], asked["variables"], asked["items"], asked["boolean"]),
+                                 ("ASK", [], [], True))
+                derived = prologue + 'ASK { ex:a ex:FROM ex:b }'
+                self.assertFalse(self.call({**query, "query": derived})["result"]["boolean"])
+                self.assertTrue(self.call({**query, "query": derived,
+                                          "derived_queries": [Path(files[2]["path"]).read_text()]})["result"]["boolean"])
+                self.assertFalse(self.call({**query, "query": derived})["result"]["boolean"])
+
+    def test_construct_asset_preserves_rdf_semantics_and_snapshot_isolation(self):
+        prologue = "PREFIX ex: <urn:construct-asset:> "
+        data = self.root / "construct-semantics.ttl"
+        data.write_text('@prefix ex: <urn:construct-asset:> .\n'
+                        'ex:a ex:input ex:b . ex:c ex:input ex:d . _:created ex:tag "original" .\n')
+        asset = self.root / "construct-semantics.rq"
+        asset.write_text(prologue + '''CONSTRUCT {
+            ?s ex:output ?o . ?s ex:unbound ?missing .
+            _:created ex:subject ?s ; ex:object ?o ; ex:self _:created .
+        } WHERE {
+            ?s ex:input ?o . VALUES ?duplicate { 1 1 }
+            OPTIONAL { ?s ex:missing ?missing }
+        }''')
+        output = self.root / "construct-semantics-full"
+        self.call({"kind": "compile", "sources": [source(data)], "output": str(output), "profile": "datalog-v1",
+                   "rules": [{"path": str(asset), "expected_sha256": hashlib.sha256(asset.read_bytes()).hexdigest()}]})
+        before = {str(path.relative_to(output)): hashlib.sha256(path.read_bytes()).hexdigest()
+                  for path in output.rglob("*") if path.is_file()}
+        query = {"kind": "query", "dataset": str(output), "query": prologue + "SELECT ?s ?p ?o WHERE { ?s ?p ?o }"}
+        original = self.call(query)["result"]["items"]
+        self.assertEqual(len(original), 3)
+        original_blank = next(row["s"]["value"] for row in original if row["s"]["type"] == "bnode")
+        derived = {**query, "derived_queries": [asset.read_text()]}
+        # Two repeated solutions per source edge yield two unique ordinary
+        # triples and four fresh template blank nodes with three triples each.
+        rows = self.call(derived, limits={"max_derived_facts": 14, "max_intermediate_rows": 14})["result"]["items"]
+        self.assertEqual(len(rows), 17)
+        outputs = [row for row in rows if row["p"]["value"] == "urn:construct-asset:output"]
+        self.assertEqual(Counter((row["s"]["value"], row["o"]["value"]) for row in outputs),
+                         {("urn:construct-asset:a", "urn:construct-asset:b"): 1,
+                          ("urn:construct-asset:c", "urn:construct-asset:d"): 1})
+        self.assertFalse(any(row["p"]["value"] == "urn:construct-asset:unbound" for row in rows))
+        nodes = {}
+        for row in rows:
+            if row["p"]["value"] in {"urn:construct-asset:subject", "urn:construct-asset:object", "urn:construct-asset:self"}:
+                self.assertEqual(row["s"]["type"], "bnode")
+                nodes.setdefault(row["s"]["value"], {})[row["p"]["value"].rsplit(":", 1)[1]] = row["o"]
+        self.assertEqual(len(nodes), 4)
+        self.assertNotIn(original_blank, nodes)
+        for label, terms in nodes.items():
+            self.assertEqual(set(terms), {"subject", "object", "self"})
+            self.assertEqual(terms["self"], {"type": "bnode", "value": label})
+        self.assertEqual(Counter((terms["subject"]["value"], terms["object"]["value"]) for terms in nodes.values()),
+                         {("urn:construct-asset:a", "urn:construct-asset:b"): 2,
+                          ("urn:construct-asset:c", "urn:construct-asset:d"): 2})
+        self.assertFalse(self.call({**derived, "query": prologue +
+                                   "SELECT ?g WHERE { GRAPH ?g { ?s ex:output ?o } }"})["result"]["items"])
+        self.call({**query, "query": asset.read_text()}, "INVALID_QUERY")
+        self.call(derived, "RESOURCE_EXHAUSTED", limits={"max_derived_facts": 13})
+        self.assertCountEqual(self.call(query)["result"]["items"], original)
+        self.assertEqual(before, {str(path.relative_to(output)): hashlib.sha256(path.read_bytes()).hexdigest()
+                                  for path in output.rglob("*") if path.is_file()})
+
+    def test_query_asset_rejections_match_local_query_validation(self):
+        data = self.root / "rejected-query-assets.ttl"
+        data.write_text("<urn:local:s> <urn:local:p> <urn:local:o> .")
+        cases = [
+            ("syntax", "CONSTRUCT { ?s ?p ?o } WHERE {", "INVALID_REQUEST", "RULE_INVALID"),
+            ("update", "INSERT DATA { <urn:s> <urn:p> <urn:o> }", "INVALID_REQUEST", "RULE_INVALID"),
+            ("describe", "DESCRIBE <urn:s>", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("select-service", "SELECT * WHERE { SERVICE <urn:remote> { ?s ?p ?o } }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("ask-service", "ASK { sErViCe SILENT <urn:remote> { ?s ?p ?o } }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("construct-service", "CONSTRUCT { ?s ?p ?o } WHERE { FILTER EXISTS { SERVICE <urn:remote> { ?s ?p ?o } } }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("select-from", "SELECT * FROM <urn:remote> WHERE { ?s ?p ?o }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("ask-from", "ASK FROM <urn:remote> WHERE { ?s ?p ?o }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+            ("construct-from", "CONSTRUCT { ?s ?p ?o } FROM NAMED <urn:remote> WHERE { GRAPH ?g { ?s ?p ?o } }", "UNSUPPORTED_CAPABILITY", "UNSUPPORTED_RULE_PROFILE"),
+        ]
+        for name, text, code, reason in cases:
+            with self.subTest(case=name):
+                path = self.root / f"rejected-{name}.rq"
+                path.write_text(text)
+                files = [{"path": str(path), "expected_sha256": hashlib.sha256(path.read_bytes()).hexdigest()}]
+                self.call({"kind": "prepare_query", "query": text}, "INVALID_QUERY")
+                rejected = self.call({"kind": "rules", "profile": "datalog-v1", "files": files}, code)
+                self.assertEqual(rejected["error"]["reason"], reason)
+                output = self.root / f"rejected-{name}"
+                rejected = self.call({"kind": "compile", "sources": [source(data)], "output": str(output),
+                                      "profile": "datalog-v1", "rules": files}, code)
+                self.assertEqual(rejected["error"]["reason"], reason)
+                self.assertFalse(output.exists())
+                self.assertFalse(list(self.root.glob(f".{output.name}.staging-*")))
+
     def test_shared_golden_queries(self):
         for case in json.loads((ROOT / "cases.json").read_text()):
             outputs = []

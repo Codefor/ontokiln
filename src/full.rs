@@ -1046,15 +1046,19 @@ fn admitted_rules(v: Value) -> Result<Value> {
                 let query = spargebra::SparqlParser::new()
                     .parse_query(&text)
                     .map_err(|e| err("RULE_INVALID", e))?;
-                if !matches!(
-                    query,
-                    spargebra::Query::Select { .. } | spargebra::Query::Ask { .. }
-                ) {
-                    return Err(err(
-                        "UNSUPPORTED_RULE_PROFILE",
-                        "only SELECT/ASK query assets are allowed",
-                    ));
+                match query {
+                    spargebra::Query::Select { .. } | spargebra::Query::Ask { .. } => {
+                        crate::query::local_query(&text)
+                    }
+                    spargebra::Query::Construct { .. } => crate::query::local_derived_query(&text),
+                    _ => {
+                        return Err(err(
+                            "UNSUPPORTED_RULE_PROFILE",
+                            "only SELECT/ASK/CONSTRUCT query assets are allowed",
+                        ));
+                    }
                 }
+                .map_err(|e| err("UNSUPPORTED_RULE_PROFILE", e))?;
             }
             _ => {
                 let payload: Value = serde_json::from_slice(

@@ -57,6 +57,8 @@ flowchart TB
 
 规则使用 `ontology-rule-ir/v1` 的正向安全三元组/四元组程序。profile 包括 `no-rules-v1`、`datalog-v1`、`rdfs-supported-v1`、`rdfs-property-chain-v1`，不代表完整 OWL 2 RL。未知 profile、未绑定头变量和不支持的过滤器均失败。
 
+规则文件中的 `.rq` 查询资产接受本地 SELECT、ASK、CONSTRUCT，复用查询执行层的校验并拒绝 SERVICE、FROM 及不支持的查询形式。准入只校验与冻结资产，不执行查询，也不把 CONSTRUCT 加入规则 IR 或将其结果写入编译快照。调用方仍可通过 [API v1](api-v1.md) 的 `derived_queries` 显式执行原 CONSTRUCT 查询；派生数据只对本次查询可见，顶层 `query` 的 SELECT / ASK 返回合同不变。`no-rules-v1` 仍不接受规则文件。
+
 `query` 请求指定 `dataset`（`facts.sqlite` 路径）、`query`、`view`（`asserted`、`inferred`、`closure`），可设 `query_seconds`、`max_rows`、`max_bytes`。返回 `items`/`boolean` 及读取指标。参数使用 `parameters`，在查询中以 `<urn:ontokiln:param:name>` 声明类型化槽；不会按变量名改写子查询作用域。旧 `params` 不被静默接受。禁止远程 SERVICE 和数据集 FROM。Full 查询的预算与 pack HTTP 预算分别生效，见各请求合同。
 
 ## SHACL
