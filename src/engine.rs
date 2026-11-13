@@ -329,7 +329,7 @@ impl OntologyEngine {
                 .collect()
         });
         let report = crate::shacl::validate_with_depth(
-            data, shapes, &selected, focus_node, max_depth, true,
+            data, shapes, &selected, focus_node, max_depth,
         )?;
         Ok(json!({
             "conforms":report["conforms"],

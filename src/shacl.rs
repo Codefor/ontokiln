@@ -19,7 +19,6 @@ pub fn validate_with_depth(
     selected: &BTreeSet<String>,
     focus: Option<&str>,
     max_depth: usize,
-    full: bool,
 ) -> Result<Value> {
     validate_data(
         ValidationData::Memory(data.indexed()),
@@ -27,7 +26,6 @@ pub fn validate_with_depth(
         selected,
         focus,
         max_depth,
-        full,
     )
 }
 
@@ -37,14 +35,9 @@ fn validate_data(
     selected: &BTreeSet<String>,
     focus: Option<&str>,
     max_depth: usize,
-    full: bool,
 ) -> Result<Value> {
-    let work_budget = if full { usize::MAX } else { 4096 };
+    let work_budget = usize::MAX;
     ensure!(max_depth > 0, "invalid SHACL validation depth");
-    ensure!(
-        full || shapes.triples.len() <= 100_000,
-        ShaclBudgetExceeded("SHACL shape budget exceeded")
-    );
     let supported = "targetClass targetNode targetSubjectsOf targetObjectsOf target targetType path inversePath alternativePath zeroOrMorePath oneOrMorePath zeroOrOnePath property node class datatype nodeKind minCount maxCount minExclusive minInclusive maxExclusive maxInclusive minLength maxLength pattern flags languageIn uniqueLang equals disjoint lessThan lessThanOrEquals not and or xone in hasValue closed ignoredProperties qualifiedValueShape qualifiedMinCount qualifiedMaxCount qualifiedValueShapesDisjoint deactivated severity message name description order group defaultValue select ask prefixes declare prefix namespace parameter optional returnType validator sparql labelTemplate";
     for t in &shapes.triples {
         if let Some(local) = value(&t[1]).strip_prefix(SH) {
@@ -560,30 +553,18 @@ impl Composed<'_, '_, '_> {
             }
             let focus = focus.parse::<oxrdf::Term>()?;
             let runner = runner.as_mut().expect("prepared engine");
-            let report = match self.data {
-                ValidationData::Memory(data) => {
-                    if self.native.is_none() {
-                        self.native = Some(native_graph(data)?);
-                    }
-                    let targets = FocusNodes::single(focus);
-                    compiled.validate(
-                        self.native.as_ref().expect("prepared native graph"),
-                        runner,
-                        Some(&targets),
-                        Some(compiled),
-                        schema,
-                    )
-                }
-                ValidationData::Sqlite(data) => {
-                    let targets = FocusNodes::single(focus);
-                    let report =
-                        compiled.validate(*data, runner, Some(&targets), Some(compiled), schema);
-                    // Some pinned Core validators turn store errors into empty
-                    // matches. Never publish a report after a failed read.
-                    data.check_error()?;
-                    report
-                }
+            let ValidationData::Memory(data) = self.data;
+            if self.native.is_none() {
+                self.native = Some(native_graph(data)?);
             }
+            let targets = FocusNodes::single(focus);
+            let report = compiled.validate(
+                self.native.as_ref().expect("prepared native graph"),
+                runner,
+                Some(&targets),
+                Some(compiled),
+                schema,
+            )
             .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
             violations.extend(report.iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})));
         }
