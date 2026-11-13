@@ -1,3 +1,5 @@
+> **历史测试档案：** 本目录中的 Full/API-v1、SQLite 与旧业务 harness 测试只保留审计价值，不能直接在现行 Pack v4 CLI 执行。现行功能/性能回归详见 [docs/v4-baseline.md](../../docs/v4-baseline.md) 和 [benchmarks/v4_resident_baseline.py](../../benchmarks/v4_resident_baseline.py)。不要恢复历史兼容 API 以运行这里的用例。
+
 # Benchmark harnesses
 
 ## Directory workloads: the shared integration entry point

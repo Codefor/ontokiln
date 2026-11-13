@@ -23,7 +23,7 @@ use std::fs;
 use std::path::Path;
 use std::sync::OnceLock;
 
-/// Request-scoped derived data, with the API v1 intermediate and closure bounds.
+/// Request-scoped derived data and intermediate/fact budget configuration.
 #[derive(Clone, Copy)]
 pub struct DerivedOptions<'a> {
     pub queries: &'a [String],
@@ -74,7 +74,7 @@ impl OntologyEngine {
         self.reasoner.select_or_ask(query, view)
     }
     /// Apply typed query parameters, VALUES tables and RDF initial bindings.
-    /// Uses the same parser/algebra binding machinery as API v1 Full.
+    /// Uses the common SPARQL parser/algebra binding machinery.
     /// Binding-only variables are never added to public SELECT columns.
     pub fn query_bound(
         &self,

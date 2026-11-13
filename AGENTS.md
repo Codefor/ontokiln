@@ -1,87 +1,48 @@
-# OntoKiln 开发指南
+# OntoKiln 开发与评审约束
 
-## 仓库定位与边界
+## 当前定位
 
-`Codefor/ontokiln` 是通用 RDF 编译与推理引擎。负责解析、编译 Turtle 等受支持的 RDF 格式，并根据显式输入执行规则推理、SPARQL 查询和 SHACL 校验；不负责设计本体或解释业务建模合同。输入格式、支持子集和执行限制以 [Full 合同](docs/full.md) 及当前实现为准。
+OntoKiln 是可嵌入的 **Rust 全内存 RDF 编译与推理内核**。当前且唯一支持的持久化格式是 **Pack v4**。无独立 Full/SQLite 引擎，无 Pack v3 兼容，无 HTTP、API-v1、Worker、Session、FaaS/Pod/Abase 治理。不要恢复已删除的历史接口或分支。
 
-| 所有者 | 职责 |
+应用通过 `OntologyEngine::build(&[Source], profile, &[Rule])` 编译并物化规则，直接得到可查询 Engine；通过 `save_pack` 持久化；通过 `load_pack` 恢复；`query`、`query_bound`、`query_with_derived`、`validate`、`validate_shape_sources` 使用同一只读闭包。构建成功意味着不动点已完成，推导失败不能发布部分闭包。
+
+## 源码职责
+
+| 模块 | 唯一职责 |
 |---|---|
-| 本仓库 | RDF 解析、快照与索引、通用查询和推理、标准约束校验、来源与证明、引擎身份、产物校验、执行预算与取消、通用构建入口 |
-| 应用与知识资产仓库 | 本体建模、业务词汇与实体身份、优先级及选择策略、规则/Shapes/查询内容、私有数据转换、业务工作流、鉴权与租户、业务 API 和结果解释 |
-| 环境适配与发行仓库 | 固定公开源码、内部源码镜像、工具链与构建平台适配、制品安装和分发；不维护另一套引擎或业务模型 |
+| `crates/compiler/src/v4.rs` | 冻结摘要核验，RDF 解析，规范词典、事实和来源 |
+| `crates/compiler/src/v4_materialize.rs` | RDFS / Datalog / OWL 属性链等支持的正向规则闭包 |
+| `crates/pack/src/v4.rs` | 四元组、SPO/POS/OSP、位图/来源、原子 Pack 保存与完整性校验 |
+| `crates/reasoner/src/v4.rs` | 索引查询、SPARQL Dataset 适配及请求级派生 Overlay |
+| `src/engine.rs` | 统一内存对象、Pack 生命周期、查询与 SHACL 缓存 |
+| `src/rdf_graph.rs` / `src/shacl.rs` | 共享只读数据图、SHACL Core/Property Path/SPARQL |
+| `src/main.rs` | `build` / `query` / `validate` / `inspect` 四个本地薄 CLI |
 
-### 核心不得感知业务建模
+- 不按业务类/属性名/IRI 命名空间进行优化或分支；只实现可解释、通用的 RDF/规则/SHACL 语义。
+- RDF 具名图与文档来源分离；默认 SPARQL 图按所选视图做 SPO 去重并集；推导事实不改写显式来源；请求级 derived Overlay 不写回 Pack。
+- 确保数据摘要、Pack SHA-256、长度/索引完整性及异常输入检查；不得用输入声明的容量分配未验证的巨大数组。
+- 同一 Engine 可以被多线程共享；SHACL 缓存必须只存不可变数据，运行时 focus、规则临时状态和派生事实均请求级隔离。
+- 仅在确有业务需求时新增 Rust API；禁止引入数据库或服务端口。部署与分片见 [FaaS 适配任务](docs/adapters/faas-codex-prompt.md)。
 
-- `crates/*`、库与 CLI/HTTP 入口不得按业务类名、谓词、IRI 命名空间、字段名或业务 profile 执行专用分支。RDF/RDFS/SHACL 标准语义和已公开的通用规则 profile 不属于业务特判。
-- 业务实体的 identity、优先级、字段赋值、实现选择和场景状态由调用方建模；核心只执行显式传入的事实、规则、查询与约束。不得在通用求值器中硬编码某个领域的答案或策略。
-- 私有 JSON、源码结构或历史业务格式的解析与修复留在调用方。RDF 字面量不会因内容像 JSON 而被核心隐式解释；标准数据类型求值仍按支持的 RDF/SPARQL 语义执行。
-- 引擎源码指纹、能力、格式版本和产物摘要属于通用引擎身份，由 [identity](src/identity.rs) 提供；它们与业务实体身份不同。按语义职责审查模块，不按 `identity.rs` 等文件名整体搬迁逻辑。
-- 核心不依赖内部应用、构建平台或业务服务，不引入私有仓库路径、凭据和私有业务数据。通用缺陷在本仓库修复；环境适配留在发行仓库。
+## 功能与性能门禁
 
-### 示例与变更评审
-
-`examples/` 可保留公开、合成的领域数据及独立实验程序，用于演示显式 RDF/规则/查询的效果。示例中的建模和选择策略不成为核心默认行为，生产库、CLI 和 HTTP 不得依赖示例模块或自动加载示例规则；真实业务模型由调用方维护。
-
-编辑前确认变更属于上表中的本仓库职责。若消费者需求缺少底层能力，应提炼为通用 RDF、查询、规则或执行合同，补齐核心能力及测试；不能以禁止业务逻辑为由遗漏必需的通用实现。可声明的领域差异通过调用方输入表达，不增加面向单个业务的配置开关。
-
-涉及语义或扩展入口的变更，至少用合成输入证明：更换非标准业务词汇并同步更换规则/查询后结果仍按相同机制产生；未知业务名称或私有字面量不会触发额外行为。不支持的输入明确失败，不静默回退旧引擎。预算、取消、来源与实际证明覆盖仍是验收要求，不能因移除业务逻辑而放松。
-
-## 模块与行为约束
-
-OntoKiln 将指定目录的 Turtle / N-Triples 编译成不可变 RDF 快照，部署可只带 pack。当前仅接受 **pack v3**；升级 v1/v2 必须从源数据重编。v3 已验证一亿条去重显式三元组。[CLI 和 HTTP](README.md) · [查询、来源与证明](docs/query-service.md) · [早期设计与目标](docs/rust-design-v1.md)。
-
-| 工作 | 入口 | 需要保持的行为 |
-|---|---|---|
-| 编译、源码版本 | [compiler](crates/compiler/src/lib.rs) | 顺序稳定地扫描文件；文档内隔离空白节点；排序、去重但保留所有断言来源。核对 sources.json 中的源码和 TTL 摘要。相同输入重建相同 pack |
-| 离线索引 | [pack](crates/pack/src/lib.rs)、[候选区间](crates/pack/src/index.rs) | SPO 是规范行；POS/OSP 保存行号。所有 S/P/O 组合选最长前缀。写入临时文件后原子替换；加载时验证摘要、边界、排序及来源。词项 ID 不跨快照 |
-| 视图与证据 | [reasoner](crates/reasoner/src/lib.rs)、[proofs](crates/reasoner/src/proofs.rs)、[离线规则](crates/compiler/src/rules.rs) | 版本先于推导；每个前提都需在所选版本可见。区分 asserted/inferred/closure；优先显式事实，一条确定性的有根证明。RDFS 规则版本 rdfs-hierarchy-v1；自定义规则版本含程序摘要 |
-| SPARQL | [参数](crates/reasoner/src/parameters.rs)、[dataset](crates/reasoner/src/sparql.rs)、[spareval 补丁说明](vendor/spareval/ONTOKILN.md) | 显式参数槽绑定到 RDF 词项，保留变量作用域和解的重数。文件是具名图，默认图去重。不要将一般值相等改写为词项相等。算子剖析是可选项 |
-| 在线生命周期 | [HTTP](src/queries.rs)、[调度](src/execution.rs)、[工作进程](src/worker.rs)、[堆计量](src/allocation.rs) | TTL / pack 共用已验证的私有只读快照；启动时预留一份 pack 的临时磁盘。工作进程继承服务快照 FD，不按原始路径重开文件。先终止并 wait，再释放槽。JSONL 以 end 记录标志完整结果 |
-| Full 与 SHACL | [full](src/full.rs)、[full_rules](src/full_rules.rs)、[disk](src/disk.rs)、[shacl](src/shacl.rs)、[rdf_graph](src/rdf_graph.rs) | SQLite 编译、规则物化和查询；约束按显式 Shapes 求值。调用方选择输入、Shapes 与 focus，核心不按业务词汇分派 |
-| Full 执行与身份 | [full_artifact](src/full_artifact.rs)、[full_execution](src/full_execution.rs)、[identity](src/identity.rs)、[构建入口](scripts/build.py) | 冻结输入、摘要核验、原子产物、进程预算、取消与回收；区分引擎与发行来源。Full 的 closure 与执行摘要不冒充逐事实 Proof |
-| Full 常驻实例 | [session](src/session.rs)、[full_snapshot](src/full_snapshot.rs)、[会话协议](docs/session-v1.md) | 启动时核验并固定匿名只读数据库；worker 继承 FD，不重新打开源路径。单次 API 保持兼容；挂载磁盘与请求 scratch 分开；每请求仍先终止并 wait，取消后结束实例 |
-| 独立领域示例 | [版本化赋值链](examples/assignment/queries/assignment.rq)、[业务选择实验](examples/scenarios/README.md) | 仅验证显式建模，不定义核心隐式语义。来源为已有 RDF 声明，源码用于摘要核对。两个版本故意复用相同 IRI；结果不能跨版本。实验另有 14 个[独立预期](examples/scenarios/cases.json)，核对确定、候选、被排除的路径 |
-
-服务目标平台为小端 macOS / Linux，测试还需 Python 3.9+。当前构建工具链固定为 Rust 1.95.0（历史基准保留原工具链记录），依赖由 Cargo.lock 固定。单 pack 默认 256 MiB，扩大前核算磁盘与内存，亿级基准设置 `ONTOKILN_MAX_PACK_MIB=4096`。规则引擎分工见[说明](docs/engines.md)。
-
-## 构建与验证
-
-纯文档改动核对职责、模块链接及命令，并执行 `git diff --check`；无需重跑 Rust 构建或容量基准。实现改动按影响执行以下检查及相关 [Full 边界测试](tests/full.py)，不能用文档自查代替行为验证。
-
-```sh
+```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked
-cargo test --workspace --all-features --locked
-cargo run --locked --example scenario_lab -- --compare
+cargo build --release --locked --bin ontokiln
+cargo build --release --locked --example v4_resident_bench
+python3 -B benchmarks/v4_resident_baseline.py \
+  --binary target/release/examples/v4_resident_bench \
+  --facts 100000 --samples 3 --warmups 1 --output target/v4-baselines/100k.json
 ```
 
-[引擎回归](tests/engines.rs)覆盖 mmap、并行确定性、视图、证明导出重载及 Datafrog/Ascent 差分。[集成测试](tests/demo.rs)覆盖删除 TTL 后独立加载、循环、空白节点及损坏包。[真实 HTTP 回归](tests/query_service.py)由 Cargo 集成测试启动，验证版本、参数、算子统计、输出和堆上限、超时，以及首行前和流式传输中断连。不能用仅检查取消标志的模拟测试替代。修改独立示例中的选择策略或其依赖的通用引擎行为，可先重放 `scenario_lab -- --case V4 --trace`，再比较全部用例。
+CI 的冻结语料 100K/1M：固定 100000/1000000 显式事实，RDFS + 3 条自定义规则，独立期望 86240/862490 推导事实。必须精确核对 SPARQL 解的类型、词法形式、重复行与顺序及 SHACL targets/违规，再发布性能结论。
 
-## 预算与基准
+性能必须区分 compile、materialize、Reasoner init、save、load、first-query 和 resident-hot query/SHACL，单独记录完整 target 与指定 Shape/focus 两种 SHACL。公共 GitHub Runner 性能只是观测，不能与历史不同机器/不同配置数字直接计算“倍速”；固定宿主上三次以上同机 A/B 才允许强性能判断。
 
-### 集成性能回归的统一入口
+[基线合同](docs/v4-baseline.md) · [本地适配](docs/adapters/local-codex-prompt.md) · [核心 API](docs/core-v4.md)。
 
-真实与合成本体目录工作负载的集成性能回归统一使用 [business_baseline.py](benchmarks/business_baseline.py)，通过 `--ontology-repo` 自动生成请求；需要精确控制时使用同一入口的显式请求模式。使用方式与结果边界见[业务基线指南](benchmarks/business-baseline.md)。不要另建一套隐含不同输入选择、计时或预算口径的目录基准入口。
+## 历史证据
 
-默认 `--jobs auto` 按 CPU 和内存/scratch 准入预算并发独立读取用例；编译、物化仍串行，同一用例的预热与正式重复仍顺序执行。单请求延迟回归固定 `--jobs 1`。`--threads` 只设置 Rayon，不代表 Full 单查询自动多核。`--total-memory-mib` / `--total-scratch-mib` 是调度准入上限，不改每请求 API 预算，也不构成操作系统硬隔离。
-
-比较版本时保持输入、profile/view、实际准入 jobs、threads、总准入预算、每请求预算、计时边界与机器条件一致，核对 `parallelism.effective_jobs`，保留实际活动请求峰值、读取阶段总墙钟时间和逐样本延迟。读取完成率包含成功预热以及调度、检查和失败所用时间；并发批次完成时间的缩短不能作为单查询优化倍数。失败、跳过和覆盖缺口不能当作成功加速。业务正确性需要独立预期，不能从本次性能输出生成答案。新配置只用于新进程，不原地升级正在运行的任务，不合并独立或中断运行的样本。
-
-单元测试、API/Full 契约回归与冻结消费者用例继续承担语义、兼容和生命周期验证；固定生成器的 `kernel_baseline.py` / `kernel_scaling.py` 保留规模控制、独立 oracle 与 1M/10M 历史可比性。它们不被真实目录性能运行替代，也不免除上面的构建与验证要求。详细职责见 [tests/benchmarks](tests/benchmarks/README.md)。
-
-CI 在既有 Rust suites 后运行 [business_native_smoke.py](tests/benchmarks/business_native_smoke.py)，由它一次调用统一 business 入口执行[静态合成目录](tests/fixtures/business-baseline/README.md)。smoke 仅准备调用并核对写死的独立事实数、词项、顺序和 SHACL targets，不另写引擎执行循环，不从当次输出学习答案，也不设置 CI 性能阈值；结果目录和核验记录保留供审计。
-
-### 既有 CLI/HTTP 与容量基准
-
-CLI 和 HTTP 共用 SPARQL 核心。默认一次请求总共最多查看 **200,000,000 条候选索引行**；再次检查同一行再次计数，第 200,000,001 次触发 422。二分定位的键比较和中间解数量不计入扫描数。5 秒超时为 408，主动取消为 409，槽满为 429。流已经开始时，错误在末行。改预算时同步更新测试、README 和接口文档。堆增量、累计分配、共享 mmap、进程 RSS 分开报告。
-
-```sh
-cargo build --release --locked --features ascent-engine --bin ontokiln --example scenario_lab
-python3 -B benchmarks/indexed_queries.py --output data/indexed-queries-v3.json
-python3 -B benchmarks/worker_memory.py --output data/worker-memory-v3.json
-```
-
-[亿级 v3 报告](benchmarks/indexed-queries-v3.md)使用同一生成器：1,113,595 / 11,126,095 / 100,000,000 条显式事实。亿级双类型 COUNT 和 FILTER EXISTS 都得到 1,123,584；当前固定模板各读 6,741,500 条候选行。修改优化器后重测两种模板及小图对照；答案不能变化，扫描量应解释。每种模板预热一次、串行测九次，按状态分别报告成功、超时和拒绝。另一次 counters 请求用于记录扫描和堆；完整 profile 单列，避免计入延迟。内存测试区分父进程就绪、运行峰值、请求结束以及每个子进程的峰值；共享页不可简单相加。
-
-常规编译、启动和层级实验运行 `benchmarks/run.py --output data/pack-v3.json`；批量、类型集合、SPARQL、离线规则运行 `benchmarks/capabilities.py --output data/pack-v3-capabilities.json`；均用 Python 3、按顺序跑，`--subjects 25000` 可快速检查。全量历史能力套件使用 `benchmarks/hundred_million.py`。v3 在线查询为每次请求新建工作进程，HTTP 类型位图不跨请求留存，不能把 v2 的热缓存成绩当作 v3。大型测试生成的 pack 不入库；正式报告应将实测 JSON 一起提交，记录引擎提交、构建特性、机器、预热和并发。[历史对照](benchmarks/README.md)
+`benchmarks/kernel-baseline/` 及旧 Full/SQLite/Pack v3 历史报告作为**只读审计证据**保留，旧脚本不支持当前 Pack v4 CLI，不得当作现行测试入口。当前可执行基线为 `v4_baseline_regression.py` 与 `v4_resident_baseline.py`。评审应同时检查所有新用例的独立 expected oracle，而不能只依赖 CI 绿色状态。

@@ -49,4 +49,4 @@ cargo test --workspace --locked
 cargo test --test v4_scale --locked -- --ignored --nocapture
 ```
 
-百万级合成 N-Triples 验收样本：1,000,000 个显式 RDF 事实、规则 profile 为 `no-rules-v1`、Pack 63,127,217 字节。一次 GitHub Actions Runner 实测：构建 34.344 秒、保存 2.535 秒、重载 4.485 秒。该结果仅是固定合成负载的功能与容量基线，不应外推到真实业务本体或多规则工作负载。
+百万级合成 N-Triples 验收样本：1,000,000 个显式 RDF 事实，规则 profile 为 `no-rules-v1`，Pack 63,127,217 字节。Release + 无规则快速路径一次观测约为编译 **2.55 秒**、保存 0.55 秒、重载 0.34 秒；更接近实际规则负载的历史冻结语料包含 1,000,000 显式事实与 **862,490** 推导事实，构建含保存约 6.95–9.91 秒（不同 Runner）。它们是 GitHub Runner 上的功能/容量与趋势基线，非真实业务 SLO；分阶段实测和精确 oracle 见 [功能与性能基线](v4-baseline.md)。
