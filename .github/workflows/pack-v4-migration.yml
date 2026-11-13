@@ -11,6 +11,7 @@ on:
       - tests/v4_parity.rs
       - tests/v4_api.rs
       - tests/v4_scale.rs
+      - tests/v4_cli.rs
       - src/main.rs
       - src/identity.rs
       - src/api.rs
@@ -49,4 +50,5 @@ jobs:
           cargo test -p ontokiln engine::tests --locked
           cargo test --test v4_parity --locked
           cargo test --test v4_api --locked
+          cargo test --test v4_cli --locked
           cargo test --test v4_scale --locked -- --ignored --nocapture
