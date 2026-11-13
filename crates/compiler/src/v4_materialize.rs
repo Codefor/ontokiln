@@ -735,10 +735,13 @@ mod tests {
     }
     #[test]
     fn no_rules_returns_already_indexed_pack_without_rebuilding() {
-        let original = fixture(&[
-            ("<urn:alice>", "<urn:knows>", "<urn:bob>"),
-            ("<urn:bob>", "<urn:knows>", "<urn:alice>"),
-        ], false);
+        let original = fixture(
+            &[
+                ("<urn:alice>", "<urn:knows>", "<urn:bob>"),
+                ("<urn:bob>", "<urn:knows>", "<urn:alice>"),
+            ],
+            false,
+        );
         let root = tempfile::tempdir().unwrap();
         let before = root.path().join("before.pack");
         original.save(&before).unwrap();
@@ -748,7 +751,10 @@ mod tests {
         assert_eq!(stats.fixpoint_iterations, 0);
         let completed = root.path().join("after.pack");
         after.save(&completed).unwrap();
-        assert_eq!(std::fs::read(before).unwrap(), std::fs::read(completed).unwrap());
+        assert_eq!(
+            std::fs::read(before).unwrap(),
+            std::fs::read(completed).unwrap()
+        );
     }
 
     #[test]
