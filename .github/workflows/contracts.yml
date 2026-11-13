@@ -7,7 +7,10 @@ permissions:
   contents: read
 jobs:
   contracts:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -17,6 +20,8 @@ jobs:
         run: cargo fmt --all --check
       - name: Lint current memory engine
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Resident baseline comparison contract
+        run: python3 -B tests/benchmarks/test_v4_resident_baseline.py
       - name: Pack v4 library and integration regression
         run: cargo test --workspace --locked
       - name: Million-fact memory capacity and Pack integrity (release)

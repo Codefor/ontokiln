@@ -31,7 +31,7 @@ Rust example: examples/v4_resident_bench.rs。
 - `cold_after_load_ms`：首次读取该 Query 或首次 SHACL 校验（可能构建数据图/缓存）。
 - `shacl_focused`：固定 ProbeShape + 单个 focus，衡量局部校验的首次与常驻热耗时；不得与全目标 SHACL 的规模线性扫描相混淆。
 - `hot.{query,shacl}.median_ms`：同一 Engine 对象预热后进行的 N 次实际请求；不重新 load_pack。
-- `memory.*`：Linux /proc/self/status 中的当前 RSS 和进程高水位 RSS；跨进程和 mmap 共享页不能简单相加，也不等于 PSS。
+- `memory.*`：Linux `/proc/self/status` 的阶段 RSS / 高水位；macOS 阶段字段为 null，Python 使用 `/usr/bin/time -l` 记录整个 Rust 进程高水位到 `process_peak_rss_kib`。它们不等于 PSS。
 
 **不要将 CLI 每请求 Pack 加载的查询时间与 resident 热查询时间相比较。不要将 Debug 与 Release 结果直接除法宣称优化收益。**
 
@@ -66,6 +66,12 @@ python3 -B benchmarks/v4_resident_baseline.py \
 ```
 
 可选使用 `--max-regression-ratio 1.25` 在控制宿主上拒绝超过 25% 的耗时回退；GitHub 公共 Runner 默认只报告性能数字，不按绝对时延硬拒绝。CI 运行结果存放于 GitHub Actions `v4-resident-benchmark` 工件，含完整 JSON，包括各样本、基线身份、内核阶段时间、冷/热时延、目标数量和 RSS。
+
+## 同机比较检查
+
+Rust 基准拒绝 Debug 或未优化的构建，记录 Cargo profile / 优化等级、真实编译器、target、代码 SHA 和内核摘要。Python 报告另记录二进制 SHA-256、宿主身份摘要（不保存主机名）、OS/架构/CPU 数量、线程数、采样和预热次数。
+
+`--compare` 要求以上环境、生成器、源摘要（包含 SPARQL 文本、查询 View 和 SHACL Shapes 内容）、规模、规则数和查询集一致；代码 SHA / 二进制摘要允许变化，用于比较不同实现。缺少环境字段的报告必须重新生成。比较 JSON 同时保存编译、物化、保存、加载、每项首次/热查询、SHACL 首次/热校验的比值；不只检查热查询。低于毫秒的单次计时更容易受噪声影响，默认不设置速度门槛。CI 的同二进制重复运行只验证比较合同，并非不同引擎提交间的性能回归证明。启用回归门槛时，如有指标超限，输出报告标记为 FAIL，进程以非零状态退出。
 
 ## 固化观测样本
 

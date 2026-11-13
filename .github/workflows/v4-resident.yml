@@ -4,6 +4,9 @@ on:
     paths:
       - examples/v4_resident_bench.rs
       - benchmarks/v4_resident_baseline.py
+      - benchmarks/kernel_baseline.py
+      - build.rs
+      - tests/benchmarks/test_v4_resident_baseline.py
       - crates/pack/src/v4.rs
       - crates/compiler/src/v4.rs
       - crates/compiler/src/v4_materialize.rs
@@ -33,6 +36,12 @@ jobs:
           python3 -B benchmarks/v4_resident_baseline.py --facts 100000 --warmups 1 --samples 3 \
             --binary target/release/examples/v4_resident_bench \
             --output target/v4-baselines/100k.json
+      - name: Same-machine comparison (same Release binary and sampling)
+        run: |
+          python3 -B benchmarks/v4_resident_baseline.py --facts 100000 --warmups 1 --samples 3 \
+            --binary target/release/examples/v4_resident_bench \
+            --compare target/v4-baselines/100k.json \
+            --output target/v4-baselines/100k-compare.json
       - name: Golden 1M corpus (one hot sample)
         run: |
           python3 -B benchmarks/v4_resident_baseline.py --facts 1000000 --warmups 1 --samples 1 \
