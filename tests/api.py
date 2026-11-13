@@ -261,10 +261,11 @@ class Contract(unittest.TestCase):
         try:
             deadline = time.monotonic()+5
             while time.monotonic()<deadline:
-                listing = subprocess.check_output(['ps','-eo','pid,ppid'],text=True)
-                for line in listing.splitlines()[1:]:
-                    parts=line.split()
-                    if len(parts)==2 and int(parts[1])==process.pid:
+                listing = subprocess.check_output(['ps','-eo','pid=,ppid=,args='],text=True)
+                for line in listing.splitlines():
+                    parts=line.split(None,2)
+                    if (len(parts)==3 and int(parts[1])==process.pid
+                            and parts[2].startswith(BINARY + ' full-worker ')):
                         worker=int(parts[0]);break
                 if worker:break
                 self.assertIsNone(process.poll())

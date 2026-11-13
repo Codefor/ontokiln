@@ -406,7 +406,7 @@ fn dataset(path: &Path) -> Result<Dataset> {
             manifest_sha256: None,
         })
     } else {
-        let (manifest, manifest_sha256) = crate::full_artifact::verify_with_manifest_digest(path)
+        let (manifest, manifest_sha256) = crate::full_artifact::verify_read_manifest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Ok(Dataset {
             meta: full_metadata(manifest)?,

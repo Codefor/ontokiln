@@ -81,7 +81,7 @@ class Sessions(unittest.TestCase):
         ready = receive(process)
         self.assertEqual((ready["contract"], ready["status"]), ("ontokiln-session/v1", "READY"))
         self.assertEqual(ready["content_digest"], self.manifest["content_digest"])
-        self.assertEqual(ready["manifest_sha256"], hashlib.sha256((self.dataset / "manifest.json").read_bytes()).hexdigest())
+        self.assertEqual(ready["manifest_sha256"], hashlib.sha256((Path(dataset or self.dataset) / "manifest.json").read_bytes()).hexdigest())
         self.assertGreater(ready["mount"]["copied_bytes"], 0)
         self.assertEqual(ready["mount"]["copied_bytes"], ready["mount"]["snapshot_bytes"])
         return process, ready
@@ -223,9 +223,10 @@ class Sessions(unittest.TestCase):
         while worker is None:
             self.assertLess(time.monotonic(), deadline)
             self.assertIsNone(process.poll())
-            for row in subprocess.check_output(["ps", "-eo", "pid,ppid"], text=True).splitlines()[1:]:
-                fields = row.split()
-                if len(fields) == 2 and int(fields[1]) == process.pid:
+            for row in subprocess.check_output(["ps", "-eo", "pid=,ppid=,args="], text=True).splitlines():
+                fields = row.split(None, 2)
+                if (len(fields) == 3 and int(fields[1]) == process.pid
+                        and fields[2].startswith(BINARY + " full-worker ")):
                     worker = int(fields[0])
                     break
             time.sleep(0.01)
@@ -235,6 +236,44 @@ class Sessions(unittest.TestCase):
         self.assertEqual(reply["execution"]["worker_pid"], worker)
         reaped(reply)
         self.assertEqual(process.wait(timeout=5), 0)
+
+    def test_native_read_retains_compatible_original_producer_identity(self):
+        directory = self.root / "previous-producer"
+        shutil.copytree(self.dataset, directory)
+        manifest_path = directory / "manifest.json"
+        manifest = json.loads(manifest_path.read_bytes())
+        kernel = self.call_file({"kind": "capabilities"})["kernel"]
+        manifest.update(schema_version="kernel-manifest-v2", kernel={
+            **kernel, "source_revision": "1" * 40, "kernel_sha256": "2" * 64},
+            proof_coverage={"mode": "closure-only", "per_fact_proof": "not_recorded"})
+        manifest_path.write_text(json.dumps(manifest))
+        original = manifest_path.read_bytes()
+        expected = self.call_file(self.query())["result"]
+        self.assertEqual(self.call_file(self.query(directory))["result"], expected)
+        process, ready = self.session(directory)
+        self.assertEqual(ready["manifest_sha256"], hashlib.sha256(original).hexdigest())
+        reply = self.send(process, self.query(directory))
+        self.complete(reply)
+        self.assertEqual(reply["result"], expected)
+        self.assertEqual(manifest_path.read_bytes(), original)
+        process.stdin.close()
+        self.assertEqual(process.wait(timeout=5), 0)
+        for field, value in [("contract_version", "ontokiln-core/v4"),
+                             ("source_revision", "invalid"), ("kernel_sha256", "invalid")]:
+            with self.subTest(field=field):
+                changed = {**manifest, "kernel": {**manifest["kernel"], field: value}}
+                manifest_path.write_text(json.dumps(changed))
+                rejected = subprocess.run([BINARY, "api-session", "--dataset", directory],
+                                          capture_output=True, timeout=5)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertEqual(rejected.stdout, b"")
+        manifest_path.write_bytes(original)
+        with (directory / "facts.sqlite").open("ab") as stream:
+            stream.write(b"corrupt")
+        rejected = subprocess.run([BINARY, "api-session", "--dataset", directory],
+                                  capture_output=True, timeout=5)
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertEqual(rejected.stdout, b"")
 
     def test_mount_rejects_insufficient_disk_before_ready(self):
         result = subprocess.run([BINARY, "api-session", "--dataset", self.dataset, "--snapshot-bytes", "1"],
