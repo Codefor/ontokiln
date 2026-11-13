@@ -10,6 +10,7 @@ on:
       - crates/compiler/Cargo.toml
       - tests/v4_parity.rs
       - tests/v4_api.rs
+      - tests/v4_scale.rs
       - src/api.rs
       - src/engine.rs
       - src/lib.rs
@@ -38,3 +39,4 @@ jobs:
           cargo test -p ontokiln engine::tests --locked
           cargo test --test v4_parity --locked
           cargo test --test v4_api --locked
+          cargo test --test v4_scale --locked -- --ignored --nocapture
