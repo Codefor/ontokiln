@@ -1,5 +1,6 @@
 //! Compile a directory snapshot. This crate is not needed to open a pack.
 pub mod rules;
+pub mod v4;
 use anyhow::{Context, Result, ensure};
 use ontokiln_pack::{Id, Pack, Source};
 use oxrdf::{BlankNode, NamedOrBlankNode, Term};

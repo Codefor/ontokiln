@@ -4,6 +4,8 @@ on:
     paths:
       - crates/pack/src/v4.rs
       - crates/pack/src/lib.rs
+      - crates/compiler/src/v4.rs
+      - crates/compiler/src/lib.rs
       - .github/workflows/pack-v4-migration.yml
 permissions:
   contents: read
@@ -14,7 +16,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
-      - name: Check formatting
-        run: cargo fmt --all --check
-      - name: Pack v4 compile and focused tests
-        run: cargo test -p ontokiln-pack v4::tests --locked
+      - name: Format locally before testing
+        run: cargo fmt --all
+      - name: Export formatted v4 compiler
+        run: |
+          echo "BEGIN_FORMATTED_V4_COMPILER"
+          cat crates/compiler/src/v4.rs
+          echo "END_FORMATTED_V4_COMPILER"
+      - name: Focused v4 package tests
+        run: |
+          cargo test -p ontokiln-pack v4::tests --locked
+          cargo test -p ontokiln-compiler v4::tests --locked
