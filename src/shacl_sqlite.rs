@@ -24,6 +24,7 @@ use std::{fmt, io};
 
 const FROM_FACTS: &str = " FROM facts AS f JOIN terms AS s ON s.id=f.s \
     JOIN terms AS p ON p.id=f.p JOIN terms AS o ON o.id=f.o";
+const QUERY_INDEXES: [&str; 3] = ["facts_spo", "facts_pos", "facts_osp"];
 const CACHE_ENTRIES: usize = 4096;
 const CACHE_BYTES: usize = 4 * 1024 * 1024;
 const NEIGHBORHOOD_OBJECTS: usize = 4096;
@@ -176,6 +177,7 @@ pub(crate) struct SqliteGraph {
     ids: RefCell<TermCache<Option<i64>>>,
     terms: RefCell<TermCache<Term>>,
     query_terms: RefCell<QueryTermCache>,
+    query_indexes: [bool; 3],
     neighborhood: RefCell<Option<Neighborhood>>,
     /// Pinned Rudof validators and SPARQL expressions swallow some store errors.
     /// Never let those failures become empty matches or successful reports.
@@ -212,12 +214,52 @@ impl SqliteGraph {
             db.prepare_cached(&format!("SELECT DISTINCT s.n,p.n,o.n{FROM_FACTS} LIMIT 0"))
                 .map_err(sqlite_error)?,
         );
+        // Older compatible artifacts can lack SPO. Only require an index by
+        // name when the snapshot has that full, correctly ordered facts index.
+        let query_indexes = {
+            let mut statement = db
+                .prepare("SELECT name FROM pragma_index_list('facts') WHERE partial=0")
+                .map_err(sqlite_error)?;
+            let mut rows = statement.query([]).map_err(sqlite_error)?;
+            let mut indexes = [false; 3];
+            while let Some(row) = rows.next().map_err(sqlite_error)? {
+                let name: String = row.get(0).map_err(sqlite_error)?;
+                if let Some(index) = QUERY_INDEXES
+                    .iter()
+                    .position(|candidate| *candidate == name)
+                {
+                    let mut definition = db
+                        .prepare(
+                            "SELECT name,desc,coll FROM pragma_index_xinfo(?) \
+                             WHERE key=1 ORDER BY seqno LIMIT 3",
+                        )
+                        .map_err(sqlite_error)?;
+                    let mut columns = definition.query([name]).map_err(sqlite_error)?;
+                    let mut matches = true;
+                    for column in [index, (index + 1) % 3, (index + 2) % 3] {
+                        let Some(row) = columns.next().map_err(sqlite_error)? else {
+                            matches = false;
+                            break;
+                        };
+                        let name: Option<String> = row.get(0).map_err(sqlite_error)?;
+                        let descending: bool = row.get(1).map_err(sqlite_error)?;
+                        let collation: Option<String> = row.get(2).map_err(sqlite_error)?;
+                        matches &= name.as_deref() == Some(["s", "p", "o"][column])
+                            && !descending
+                            && collation.is_some_and(|name| name.eq_ignore_ascii_case("BINARY"));
+                    }
+                    indexes[index] = matches;
+                }
+            }
+            indexes
+        };
         Ok(Self {
             db,
             display: InMemoryGraph::new(),
             ids: RefCell::new(TermCache::new()),
             terms: RefCell::new(TermCache::new()),
             query_terms: RefCell::new(QueryTermCache::new()),
+            query_indexes,
             neighborhood: RefCell::new(None),
             failure: RefCell::new(None),
         })
@@ -526,16 +568,54 @@ impl SqliteGraph {
         }
         let ordered = order.map(|column| columns[column]).join(",");
         if let Some(after) = after {
-            filters.push(format!("({ordered})>(?,?,?)"));
-            bindings.extend(order.map(|column| after[column]));
+            // The equality prefix is already constrained above. Including it
+            // again in the row comparison prevents SQLite from seeking to the
+            // remaining suffix (e.g. p=? AND o=? AND s>?) on later pages.
+            let mut suffix = order
+                .into_iter()
+                .filter(|&column| fixed[column].is_none())
+                .collect::<Vec<_>>();
+            if suffix.is_empty() {
+                suffix.extend(order);
+            }
+            let cursor_columns = suffix
+                .iter()
+                .map(|&column| columns[column])
+                .collect::<Vec<_>>()
+                .join(",");
+            let placeholders = vec!["?"; suffix.len()].join(",");
+            filters.push(format!("({cursor_columns})>({placeholders})"));
+            bindings.extend(suffix.into_iter().map(|column| after[column]));
         }
-        let filter = if filters.is_empty() {
-            String::new()
+        // Fixed dictionary references are single-row lookups. Keep them before
+        // facts so SQLite does not build a dictionary-wide Bloom filter for a
+        // constant join. Remaining references follow the bounded facts range;
+        // all three joins still discard dangling IDs before DISTINCT/LIMIT.
+        let aliases = ["s", "p", "o"];
+        let mut tables = aliases
+            .iter()
+            .enumerate()
+            .filter(|(column, _)| fixed[*column].is_some())
+            .map(|(_, alias)| format!("terms AS {alias}"))
+            .collect::<Vec<_>>();
+        let facts = if self.query_indexes[order[0]] {
+            format!("facts AS f INDEXED BY {}", QUERY_INDEXES[order[0]])
         } else {
-            format!(" WHERE {}", filters.join(" AND "))
+            "facts AS f".to_owned()
         };
+        tables.push(facts);
+        tables.extend(
+            aliases
+                .iter()
+                .enumerate()
+                .filter(|(column, _)| fixed[*column].is_none())
+                .map(|(_, alias)| format!("terms AS {alias}")),
+        );
+        filters.extend(aliases.map(|alias| format!("{alias}.id=f.{alias}")));
         let query = format!(
-            "SELECT DISTINCT f.s,f.p,f.o{FROM_FACTS}{filter} ORDER BY {ordered} LIMIT {QUERY_PAGE_ROWS}"
+            "SELECT DISTINCT f.s,f.p,f.o FROM {} WHERE {} ORDER BY {ordered} LIMIT {QUERY_PAGE_ROWS}",
+            tables.join(" CROSS JOIN "),
+            filters.join(" AND "),
         );
         let mut statement = self.sql(self.db.prepare_cached(&query))?;
         let mut rows = self.sql(statement.query(params_from_iter(bindings)))?;

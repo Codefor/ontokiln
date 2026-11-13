@@ -544,17 +544,20 @@ fn query_rows(
     fixed: [Option<&QueryTerm>; 3],
     graph_name: Option<Option<&QueryTerm>>,
 ) -> BTreeSet<[String; 3]> {
-    QueryableDataset::internal_quads_for_pattern(&graph, fixed[0], fixed[1], fixed[2], graph_name)
-        .map(|row| {
-            let row = row.expect("query row");
-            assert!(row.graph_name.is_none());
-            [row.subject, row.predicate, row.object].map(|term| {
-                QueryableDataset::externalize_term(&graph, term)
-                    .expect("RDF term")
-                    .to_string()
-            })
-        })
-        .collect()
+    let mut rows = BTreeSet::new();
+    for row in QueryableDataset::internal_quads_for_pattern(
+        &graph, fixed[0], fixed[1], fixed[2], graph_name,
+    ) {
+        let row = row.expect("query row");
+        assert!(row.graph_name.is_none());
+        let row = [row.subject, row.predicate, row.object].map(|term| {
+            QueryableDataset::externalize_term(&graph, term)
+                .expect("RDF term")
+                .to_string()
+        });
+        assert!(rows.insert(row), "union iterator repeated an SPO row");
+    }
+    rows
 }
 
 #[test]
@@ -617,6 +620,149 @@ fn query_adapter_pages_all_index_orders_without_duplicate_or_missing_union_rows(
             );
         }
         assert_eq!(query_rows(&graph, [None; 3], Some(None)).len(), 1201);
+    }
+}
+
+#[test]
+fn query_pages_seek_past_fixed_prefixes_without_scanning_or_sorting_the_remaining_graph() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    const FANOUT: i64 = 12_000;
+    const SUBJECT: i64 = 20_001;
+    const PREDICATE: i64 = 20_002;
+    const OBJECT: i64 = 20_003;
+    let db = database(&[]);
+    db.execute_batch(
+        "BEGIN;
+         WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<12000)
+         INSERT INTO terms(id,n) SELECT id,'<urn:item:' || id || '>' FROM ids;
+         INSERT INTO terms(id,n) VALUES (20001,'<urn:hub>'),(20002,'<urn:predicate>'),
+             (20003,'<urn:object>');
+         INSERT INTO facts SELECT 0,id,20002,20003,1 FROM terms WHERE id<=12000;
+         INSERT INTO facts SELECT 0,20001,id,20003,1 FROM terms WHERE id<=12000;
+         INSERT INTO facts SELECT 0,20001,20002,id,1 FROM terms WHERE id<=12000;
+         INSERT INTO facts VALUES (0,20001,20002,20003,1);
+         INSERT INTO facts SELECT 1,s,p,o,0 FROM facts;
+         ANALYZE; COMMIT;",
+    )
+    .expect("analyzed fanout with duplicate physical-graph rows");
+    let mut graph = SqliteGraph::new(db).expect("SQLite graph");
+    let progress = Arc::new(AtomicUsize::new(0));
+    let handler_progress = Arc::clone(&progress);
+    graph
+        .db
+        .progress_handler(
+            1000,
+            Some(move || {
+                handler_progress.fetch_add(1, Ordering::Relaxed);
+                false
+            }),
+        )
+        .expect("deterministic VM work counter");
+
+    let mut union = vec![[SUBJECT, PREDICATE, OBJECT]];
+    for id in 1..=FANOUT {
+        union.extend([
+            [id, PREDICATE, OBJECT],
+            [SUBJECT, id, OBJECT],
+            [SUBJECT, PREDICATE, id],
+        ]);
+    }
+    for mask in 0..8 {
+        let values = [SUBJECT, PREDICATE, OBJECT];
+        let fixed = [0, 1, 2].map(|column| (mask & (1 << column) != 0).then_some(values[column]));
+        let order = SqliteGraph::query_order(&fixed);
+        let mut expected = union
+            .iter()
+            .copied()
+            .filter(|row| {
+                (0..3).all(|column| fixed[column].is_none_or(|value| row[column] == value))
+            })
+            .collect::<Vec<_>>();
+        expected.sort_unstable_by_key(|row| order.map(|column| row[column]));
+        // The late page catches p/o equality prefixes that otherwise start
+        // scanning from the first matching subject again on every page.
+        for offset in [0, QUERY_PAGE_ROWS, 10_240] {
+            if offset >= expected.len() {
+                continue;
+            }
+            let after = offset.checked_sub(1).map(|previous| expected[previous]);
+            let before = progress.load(Ordering::Relaxed);
+            let actual = graph.query_page(fixed, order, after).expect("bounded page");
+            let vm_thousands = progress.load(Ordering::Relaxed) - before;
+            assert_eq!(
+                actual,
+                expected[offset..expected.len().min(offset + QUERY_PAGE_ROWS)],
+                "pattern {mask}, offset {offset}"
+            );
+            assert!(
+                vm_thousands < 64,
+                "pattern {mask}, offset {offset} took at least {} VM steps for one page",
+                vm_thousands * 1000
+            );
+        }
+    }
+}
+
+#[test]
+fn query_pages_preserve_minimum_ids_and_dangling_filters_with_optional_indexes() {
+    for index in [
+        "full",
+        "absent",
+        "partial",
+        "other_table",
+        "wrong_columns",
+        "descending",
+        "collation",
+        "expression",
+    ] {
+        let db = database(&[]);
+        db.execute_batch(
+            "BEGIN;
+             INSERT INTO terms(id,n) VALUES (-9223372036854775808,'<urn:min>'),(0,'<urn:zero>');
+             WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<300)
+             INSERT INTO terms(id,n) SELECT id,'<urn:item:' || id || '>' FROM ids;
+             INSERT INTO facts VALUES
+               (0,-9223372036854775808,-9223372036854775808,-9223372036854775808,1),
+               (0,0,-9223372036854775808,0,1);
+             INSERT INTO facts SELECT 0,-9223372036854775808,-9223372036854775808,id,1
+               FROM terms WHERE id>0;
+             INSERT INTO facts SELECT 1,s,p,o,0 FROM facts;
+             WITH RECURSIVE ids(id) AS (SELECT -1000 UNION ALL SELECT id+1 FROM ids WHERE id<-400)
+             INSERT INTO facts SELECT 0,-9223372036854775808,-9223372036854775808,id,1 FROM ids;
+             INSERT INTO facts VALUES (0,-1,0,0,1),(0,0,-1,0,1);
+             ANALYZE; COMMIT;",
+        )
+        .expect("minimum ID and dangling references around page boundaries");
+        if index != "full" {
+            db.execute_batch("DROP INDEX facts_spo;")
+                .expect("compatible artifact without the newer SPO index");
+        }
+        let replacement = match index {
+            "partial" => "CREATE INDEX facts_spo ON facts(s,p,o,g) WHERE explicit=1;",
+            "other_table" => "CREATE INDEX facts_spo ON terms(n);",
+            "wrong_columns" => "CREATE INDEX facts_spo ON facts(p,s,o,g);",
+            "descending" => "CREATE INDEX facts_spo ON facts(s DESC,p,o,g);",
+            "collation" => "CREATE INDEX facts_spo ON facts(s COLLATE NOCASE,p,o,g);",
+            "expression" => "CREATE INDEX facts_spo ON facts(s,p,o+0,g);",
+            _ => "",
+        };
+        if !replacement.is_empty() {
+            db.execute_batch(replacement)
+                .expect("a same-named index need not satisfy the ordered facts contract");
+        }
+        let graph = SqliteGraph::new(db).expect("SQLite graph");
+        assert_eq!(graph.query_indexes, [index == "full", true, true]);
+        let expected = graph
+            .load_graph()
+            .expect("original union semantics")
+            .triples;
+        assert_eq!(expected.len(), 302);
+        assert_eq!(query_rows(&graph, [None; 3], Some(None)), expected);
+        assert!(graph.check_error().is_ok());
     }
 }
 
