@@ -83,6 +83,8 @@ flowchart TB
 
 编译、物化和 Full 查询使用 SQLite。API v1 的 Full SHACL 在已核验的输入 manifest 确认严格 RDF 解析时，通过 SQLite 邻域读取执行原有 Rudof Core 约束；复杂路径、SHACL-SPARQL 约束、自定义 target 和 validator 也直接查询该只读快照，无需先建立完整内存查询图。读取视图仍是所有图、显式和推导事实的去重 SPO union，只表现为默认图，不暴露原始具名图，不把 focus 当成数据范围。SQLite 按索引分页读取，词项缓存有条目和估算字节上限；这些缓存只属于单次 worker，会话不保留上一次校验的结果。`shapes_from_dataset` 仍需读取完整 Shapes 图；历史宽松解析或策略不明的产物保留原有全图词项校验路线。首次挂载、全量目标和全局查询仍有相应成本，排序、聚合、连接及路径求值的中间状态仍可能随工作量增长。超时、取消、内存或磁盘超限必须回收 worker，不发布部分结果；底层读取或解码失败不会作为空结果或 conforms=true 返回。
 
+复杂路径和基本图模式的连接可将左侧产生的新绑定逐行传入右侧索引读取。该物理执行方式仅用于右侧是单个三元组模式、左侧保证提供共享绑定的情况；共享变量已全部由外层绑定时保留原单次扫描。它保留重复解、子查询作用域和原始输入绑定的兼容性，不启用会在 SHACL 预绑定应用前折叠 FILTER / BOUND 的逻辑优化。没有 ORDER BY 的查询仍按 API v1 的结果多重集规则解释，不承诺内部遍历顺序或读取错误出现的相同时刻。
+
 ## 身份与发行
 
 `identity` 返回 `ontokiln-core/v3`、源码提交、源码与特性指纹、pack 版本和通用能力。`inspect --pack FILE` 校验并报告 pack v3 的摘要、来源与引擎身份；`check --pack FILE --expected identity.json` 要求完全一致。HTTP `GET /v1/identity` 使用服务已验证的私有快照，不重开可能被替换的源文件。旧 pack 必须从输入重编；业务历史格式的适配属于消费者。

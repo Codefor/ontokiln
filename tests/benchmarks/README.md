@@ -14,9 +14,10 @@ builds Rust or starts the historical 100 million fact suites. Keep compilation,
 tests and other heavy processes out of the timed run.
 
 The default `--suite kernel` keeps the existing pack/Full workload and input
-bytes. `--suite focused-shacl` uses the same runner for fixed explicit-focus
-validation with a growing background graph; its smaller stage plan is described
-below. Select the same suite on both sides of a comparison.
+bytes. `--suite focused-shacl` uses the same runner for fixed-focus and multiple
+explicit-target validation, with growing background and fanout controls; its
+smaller stage plan is described below. Select the same suite on both sides of a
+comparison.
 
 Run the harness tests without the engine:
 
@@ -182,14 +183,16 @@ and checks the available semantic fields without inventing a response field.
 
 `--suite focused-shacl` generates the same facts and frozen rule inputs as the
 kernel suite, independently compiles a Full artifact, optionally mounts one
-session, and runs five validation workloads. It does not schedule pack builds,
+session, and runs seven validation workloads. It does not schedule pack builds,
 materialization or query stages; these absent stages are not skipped successes.
 Only this suite appends its extra named Shapes to the Shapes document. The
 default kernel suite's input hashes and workloads remain unchanged.
 
-Every request explicitly sets `focus_node` to order `000000008`. Its customer,
+Six workloads explicitly set `focus_node` to order `000000008`. Its customer,
 amount and region remain fixed across 10K / 100K / 1M facts; this focus also
-exists in the 100-fact smoke. The first two workloads reuse the existing Shapes.
+exists in the 100-fact smoke. The multiple-target workload omits `focus_node`
+and checks the deduplicated explicit target set: orders 7, 8 and the last order.
+The first two workloads reuse the existing Shapes.
 
 | Stage | Independent expected result |
 |---|---|
@@ -198,6 +201,8 @@ exists in the 100-fact smoke. The first two workloads reuse the existing Shapes.
 | `shacl/focus_nonlocal_fail` | Select `FocusedScopeShape`; the two-hop `customer/region` path must reach region 0 and satisfy its `hasValue`. A SELECT constraint finds the unrelated `"Order 0"@en` label and yields exactly one SPARQL violation on order 8. |
 | `shacl/focus_path_fail` | Select `FocusedPathShape`; two properties traverse the same `customer/region` path. Region 0 satisfies the positive `hasValue`; region 1 is absent, producing exactly one HasValue violation on `FocusedPathMissing`. This isolates complex-path execution without a SPARQL constraint. |
 | `shacl/focus_full_scan_fail` | Select `FocusedScanShape`; a subquery computes `COUNT(*)` and `SUM(STRLEN(STR(?s)))` over `?s ?p ?o`. The aggregate must match the generator's independently calculated union count and subject-character total, yielding exactly one SPARQL violation. This scans every triple while returning one aggregate row. |
+| `shacl/multi_target_path_fail` | Select `MultiTargetPathShape` without overriding its targets. Traverse `customer/region` for orders 7, 8 and the last order, checking each focus against the region 0 and region 1 `hasValue` properties. Coverage and each property's violations are independently calculated. The 100-fact smoke deduplicates the last order (8), giving two targets and three violations; the standard 10K/100K/1M scales have three targets and five violations. |
+| `shacl/focus_fanout_join_fail` | Select `FocusedFanoutJoinShape`. Join all region 0 customers to their orders and amounts, then join `VALUES ?copy { 1 1 }`. An aggregate checks both the exact bag count and numeric amount sum; a match yields exactly one SPARQL violation on order 8. The growing left input exercises a cost that single-focus point probes do not reveal, while duplicate VALUES make accidental deduplication observable. |
 
 The nonlocal control requires full data visibility even with an explicit focus.
 Its fixed predicate and object can use an index; it does not require a full scan.
@@ -206,12 +211,24 @@ an incorrect two-hop-path violation; checking only a violation count would miss
 that error. The oracle instead compares the complete coverage and structured
 violation records, including component and shape. It also checks report identity
 and engine metadata, while diagnostic prose is excluded from the semantic report
-digest. A zero-target success, wrong focus, extra target, missing violation or
+digest. Violation ordering is normalized after removing prose, retaining all
+duplicates and exact semantic field sets. A zero-target success, wrong focus, extra target, missing violation or
 different violation cannot pass. The separate path control also rejects a single
 violation on the wrong property. The full-scan control keeps the final result
 small while measuring work that must grow with input size; it must not be used
 to claim arbitrary global queries have constant latency or bounded intermediate
 state. Its oracle reads neither engine statistics nor the produced database.
+The multiple-target control checks different outcomes on different subjects,
+including one near the end of the index; keeping the first focus's bindings for
+later targets cannot pass its oracle. For the fanout control, region 0 selects
+indices 0, 8, 16, ...; the selected amount sequence repeats every 25 customers
+with a sum of 1,200. The duplicate VALUES double both row count and sum. At
+10K / 100K / 1M facts, the expected pairs are `(250, 12000)`,
+`(2500, 120000)` and `(25000, 1200000)`. These answers are calculated from the
+generator definition and checked independently against joined small-fixture
+rows in the harness tests. A bind join can improve selective paths while making
+this larger-left-input workload slower; preserve either outcome. Neither this
+fanout workload nor the full-scan workload has fixed work as the graph grows.
 These workloads retain full-graph loading costs in versions that only optimize
 Core navigation. Record actual failed warm-ups and subsequent skipped samples;
 never count a skipped sample as a completed validation or compute a speedup from

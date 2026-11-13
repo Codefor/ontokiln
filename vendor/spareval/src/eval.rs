@@ -1237,8 +1237,7 @@ impl<'a, D: QueryableDataset<'a>> SimpleEvaluator<'a, D> {
                 right,
                 algorithm,
             } => {
-                let index_probe = matches!(right.as_ref(), GraphPattern::QuadPattern { .. })
-                    && matches!(algorithm, JoinAlgorithm::HashBuildLeftProbeRight{keys} if !keys.is_empty());
+                let index_probe = quad_pattern_join_probe(left, right, algorithm);
                 let (left, left_stats) = self.graph_pattern_evaluator(left, encoded_variables);
                 stat_children.push(left_stats);
                 let (right, right_stats) = self.graph_pattern_evaluator(right, encoded_variables);
@@ -1246,7 +1245,7 @@ impl<'a, D: QueryableDataset<'a>> SimpleEvaluator<'a, D> {
                 let left = left?;
                 let right = right?;
 
-                if index_probe {
+                if matches!(index_probe, Some(QuadPatternJoinProbe::Always)) {
                     return Ok(Rc::new(move |from| {
                         let probe = Rc::clone(&right);
                         Box::new(left(from).flat_map(move |row| match row {
@@ -1260,8 +1259,33 @@ impl<'a, D: QueryableDataset<'a>> SimpleEvaluator<'a, D> {
                         let build = left;
                         let probe = right;
                         if keys.is_empty() {
-                            // Cartesian product
+                            let probe_keys = match index_probe {
+                                Some(QuadPatternJoinProbe::WhenUnbound(variables)) => variables
+                                    .iter()
+                                    .map(|v| encode_variable(encoded_variables, v))
+                                    .collect::<Vec<_>>(),
+                                _ => Vec::new(),
+                            };
                             Rc::new(move |from| {
+                                // A new binding narrows the right quad pattern. If all
+                                // shared variables are already bound by an outer scope,
+                                // keep the upstream single scan instead of repeating it.
+                                if probe_keys.iter().any(|key| !from.contains(*key)) {
+                                    let probe = Rc::clone(&probe);
+                                    let input = from.clone();
+                                    return Box::new(build(from).flat_map(move |row| match row {
+                                        // The independently evaluated right quad keeps
+                                        // the original input bindings. Retain that
+                                        // compatibility check if a left expression
+                                        // overwrites or omits one of those bindings.
+                                        Ok(row) => match row.combine_with(&input) {
+                                            Some(row) => probe(row),
+                                            None => Box::new(empty()),
+                                        },
+                                        Err(e) => Box::new(once(Err(e))),
+                                    }));
+                                }
+                                // Cartesian product with compatibility checks.
                                 let mut errors = Vec::default();
                                 let built_values = build(from.clone())
                                     .filter_map(|result| match result {
@@ -4581,6 +4605,88 @@ impl fmt::Debug for EvalNodeWithStats {
     }
 }
 
+enum QuadPatternJoinProbe {
+    Always,
+    WhenUnbound(Vec<Variable>),
+}
+
+/// Selects only the physical join algorithm; it does not rewrite expressions or
+/// move graph patterns across scopes. Keep execution and plan labels in sync.
+fn quad_pattern_join_probe(
+    left: &GraphPattern,
+    right: &GraphPattern,
+    algorithm: &JoinAlgorithm,
+) -> Option<QuadPatternJoinProbe> {
+    if !matches!(right, GraphPattern::QuadPattern { .. }) {
+        return None;
+    }
+    let JoinAlgorithm::HashBuildLeftProbeRight { keys } = algorithm;
+    if !keys.is_empty() {
+        return Some(QuadPatternJoinProbe::Always);
+    }
+    // Without the logical optimizer, BGP joins have no declared keys. Only use
+    // variables that every successful left solution actually binds, not names
+    // that merely occur in a FILTER, optional branch, or hidden projection.
+    let mut variables = Vec::new();
+    right.lookup_used_variables(&mut |variable| {
+        if !variables.contains(variable) && graph_pattern_guarantees_binding(left, variable) {
+            variables.push(variable.clone());
+        }
+    });
+    (!variables.is_empty()).then_some(QuadPatternJoinProbe::WhenUnbound(variables))
+}
+
+fn graph_pattern_guarantees_binding(pattern: &GraphPattern, variable: &Variable) -> bool {
+    match pattern {
+        GraphPattern::QuadPattern { .. }
+        | GraphPattern::Path { .. }
+        | GraphPattern::Graph { .. } => {
+            let mut found = false;
+            pattern.lookup_used_variables(&mut |candidate| found |= candidate == variable);
+            found
+        }
+        GraphPattern::Join { left, right, .. } => {
+            graph_pattern_guarantees_binding(left, variable)
+                || graph_pattern_guarantees_binding(right, variable)
+        }
+        GraphPattern::LeftJoin { left, .. } | GraphPattern::Minus { left, .. } => {
+            graph_pattern_guarantees_binding(left, variable)
+        }
+        GraphPattern::Union { inner } => {
+            !inner.is_empty()
+                && inner
+                    .iter()
+                    .all(|branch| graph_pattern_guarantees_binding(branch, variable))
+        }
+        GraphPattern::Filter { inner, .. }
+        | GraphPattern::Extend { inner, .. }
+        | GraphPattern::OrderBy { inner, .. }
+        | GraphPattern::Distinct { inner }
+        | GraphPattern::Reduced { inner }
+        | GraphPattern::Slice { inner, .. } => graph_pattern_guarantees_binding(inner, variable),
+        GraphPattern::Project { inner, variables } => {
+            variables.contains(variable) && graph_pattern_guarantees_binding(inner, variable)
+        }
+        GraphPattern::Values {
+            variables,
+            bindings,
+        } => variables
+            .iter()
+            .position(|candidate| candidate == variable)
+            .is_some_and(|position| {
+                bindings
+                    .iter()
+                    .all(|row| row.get(position).is_some_and(Option::is_some))
+            }),
+        // Aggregates may produce a row over empty input; SERVICE SILENT and
+        // lateral expressions have additional binding/error rules. Conservatively
+        // keep their existing algorithm rather than infer new guarantees here.
+        GraphPattern::Group { .. } | GraphPattern::Service { .. } => false,
+        #[cfg(feature = "sep-0006")]
+        GraphPattern::Lateral { .. } => false,
+    }
+}
+
 fn eval_node_label(node: &GraphPattern) -> String {
     match node {
         GraphPattern::Distinct { .. } => "Distinct(Hash)".to_owned(),
@@ -4612,17 +4718,21 @@ fn eval_node_label(node: &GraphPattern) -> String {
             )
         }
         GraphPattern::Join {
+            left,
             right,
-            algorithm: JoinAlgorithm::HashBuildLeftProbeRight { keys },
-            ..
-        } if !keys.is_empty() && matches!(right.as_ref(), GraphPattern::QuadPattern { .. }) => {
-            "IndexBindJoin".into()
-        }
-        GraphPattern::Join { algorithm, .. } => match algorithm {
-            JoinAlgorithm::HashBuildLeftProbeRight { keys } => format!(
-                "Join(HashBuildLeftProbeRight, keys = {})",
-                format_list(keys)
+            algorithm,
+        } => match quad_pattern_join_probe(left, right, algorithm) {
+            Some(QuadPatternJoinProbe::Always) => "IndexBindJoin".into(),
+            Some(QuadPatternJoinProbe::WhenUnbound(variables)) => format!(
+                "AdaptiveIndexBindJoin(new bindings = {}; fallback = CartesianProductJoin)",
+                format_list(variables)
             ),
+            None => match algorithm {
+                JoinAlgorithm::HashBuildLeftProbeRight { keys } => format!(
+                    "Join(HashBuildLeftProbeRight, keys = {})",
+                    format_list(keys)
+                ),
+            },
         },
         #[cfg(feature = "sep-0006")]
         GraphPattern::Lateral { right, .. } => {

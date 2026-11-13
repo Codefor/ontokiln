@@ -43,7 +43,9 @@ def focused_validation_result(name):
     focus = bench.NS + "order/000000008"
     shape = {"focus_core_pass": "OrderShape", "focus_core_fail": "MinCountProperty",
              "focus_nonlocal_fail": "FocusedScopeShape", "focus_path_fail": "FocusedPathShape",
-             "focus_full_scan_fail": "FocusedScanShape"}[name]
+             "focus_full_scan_fail": "FocusedScanShape", "multi_target_path_fail": "MultiTargetPathShape",
+             "focus_fanout_join_fail": "FocusedFanoutJoinShape"}[name]
+    focus_nodes = ["<" + focus + ">"]
     violations = []
     if name == "focus_core_fail":
         violations = [{"focus_node": focus, "path": bench.NS + "amount",
@@ -63,11 +65,27 @@ def focused_validation_result(name):
                        "source_shape": bench.NS + "FocusedScanShape",
                        "source_constraint_component": bench.SH + "SPARQLConstraintComponent",
                        "shape_ref": bench.NS + "FocusedScanShape", "message": "complete union aggregates matched"}]
+    elif name == "multi_target_path_fail":
+        # The 100-fact fixture ends at order 8: repeated target 8 is one focus.
+        # Order 7 has region 7 (both properties fail), order 8 has region 0
+        # (only the missing-region property fails).
+        focus_nodes = [f"<{bench.NS}order/00000000{i}>" for i in [7, 8]]
+        violations = [{"focus_node": bench.NS + f"order/00000000{i}",
+                       "path": f"(<{bench.NS}customer>/<{bench.NS}region>)",
+                       "source_shape": bench.NS + "FocusedPath" + suffix,
+                       "source_constraint_component": bench.SH + "HasValueConstraintComponent",
+                       "shape_ref": bench.NS + "FocusedPath" + suffix, "message": "required region is absent"}
+                      for i, suffix in [(7, "Present"), (7, "Missing"), (8, "Missing")]]
+    elif name == "focus_fanout_join_fail":
+        violations = [{"focus_node": focus, "path": None,
+                       "source_shape": bench.NS + "FocusedFanoutJoinShape",
+                       "source_constraint_component": bench.SH + "SPARQLConstraintComponent",
+                       "shape_ref": bench.NS + "FocusedFanoutJoinShape", "message": "duplicate-preserving join aggregates matched"}]
     conforms = not violations
     return {"conforms": conforms, "checked_shapes": 1, "violations": len(violations),
-            "report": {"conforms": conforms, "violations": violations, "target_count": 1,
-                       "coverage": [{"shape": bench.NS + shape, "target_count": 1,
-                                     "focus_nodes": ["<" + focus + ">"]}],
+            "report": {"conforms": conforms, "violations": violations, "target_count": len(focus_nodes),
+                       "coverage": [{"shape": bench.NS + shape, "target_count": len(focus_nodes),
+                                     "focus_nodes": focus_nodes}],
                        "engine": {"name": "ontokiln-rust-shacl", "version": "test-build"},
                        "kernel": dict(FOCUSED_KERNEL)}}
 
@@ -223,7 +241,7 @@ class FocusedWorkloadTests(unittest.TestCase):
 
     def test_fixed_focus_and_nonlocal_facts_exist_from_smoke_to_large_backgrounds(self):
         for facts in [100, 10000, 100000, 1000000]:
-            self.assertEqual({case["focus_node"] for case in bench.focused_validation_cases(facts)},
+            self.assertEqual({case["focus_node"] for case in bench.focused_validation_cases(facts) if "focus_node" in case},
                              {"<" + bench.NS + "order/000000008>"})
             n = bench.records_for(facts)
             local = bench.record_triples(8, n)
@@ -268,12 +286,65 @@ class FocusedWorkloadTests(unittest.TestCase):
         self.assertIn('b:FocusedPathMissing sh:path (b:customer b:region); sh:hasValue '
                       + bench.iri('region/1'), path_shapes)
 
+    def test_multiple_targets_and_path_violations_match_an_independent_graph_walk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for facts in [100, 200, 1000]:
+                with self.subTest(facts=facts):
+                    directory = Path(tmp) / str(facts)
+                    bench.generate(directory, facts, "focused-shacl")
+                    rows = [row.removesuffix(" .").split(" ", 2)
+                            for row in (directory / "input/data.nt").read_text().splitlines()]
+                    adjacency = {}
+                    for subject, predicate, obj in rows:
+                        adjacency.setdefault((subject, predicate), set()).add(obj)
+                    orders = sorted({s for s, p, _ in rows if p == bench.iri("customer")})
+                    targets = sorted({bench.order(7), bench.order(8), orders[-1]})
+                    case = next(c for c in bench.focused_validation_cases(facts) if c["name"] == "multi_target_path_fail")
+                    self.assertNotIn("focus_node", case)
+                    self.assertEqual(case["expected_focus_nodes"], targets)
+                    self.assertEqual(len(targets), 2 if facts == 100 else 3)
+                    expected = []
+                    for focus in targets:
+                        regions = {region for c in adjacency[(focus, bench.iri("customer"))]
+                                   for region in adjacency[(c, bench.iri("region"))]}
+                        for shape, required in [("FocusedPathPresent", "region/0"), ("FocusedPathMissing", "region/1")]:
+                            if bench.iri(required) not in regions:
+                                expected.append((focus[1:-1], bench.NS + shape))
+                    self.assertEqual(sorted((v["focus_node"], v["source_shape"]) for v in case["expected_violations"]),
+                                     sorted(expected))
+                    self.assertIn("sh:targetNode " + ", ".join(targets) + ";", bench.focused_shapes_text(facts))
+
+    def test_fanout_aggregate_matches_independent_join_rows_and_duplicate_values(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for facts in [100, 200, 1000, 10000]:
+                with self.subTest(facts=facts):
+                    directory = Path(tmp) / str(facts)
+                    bench.generate(directory, facts, "focused-shacl")
+                    triples = [row.removesuffix(" .").split(" ", 2)
+                               for row in (directory / "input/data.nt").read_text().splitlines()]
+                    selected = {s for s, p, o in triples if p == bench.iri("region") and o == bench.iri("region/0")}
+                    orders = [s for s, p, o in triples if p == bench.iri("customer") and o in selected]
+                    amounts = {s: int(o.split('"')[1]) for s, p, o in triples if p == bench.iri("amount")}
+                    joined = [(subject, amounts[subject], copy) for subject in orders for copy in [1, 1]]
+                    expected = {"distinct_customers": len(selected), "row_count": len(joined),
+                                "amount_sum": sum(row[1] for row in joined)}
+                    self.assertEqual(bench.fanout_join_expected(facts), expected)
+                    case = next(c for c in bench.focused_validation_cases(facts) if c["name"] == "focus_fanout_join_fail")
+                    self.assertEqual(case["expected_aggregate"], expected)
+                    shapes = bench.focused_shapes_text(facts)
+                    self.assertIn("VALUES ?copy { 1 1 }", shapes)
+                    self.assertIn("(COUNT(*) AS ?matchedRows) (SUM(?amount) AS ?amountSum)", shapes)
+                    self.assertIn(f'FILTER (?matchedRows = {expected["row_count"]} && ?amountSum = {expected["amount_sum"]})', shapes)
+        self.assertEqual(bench.fanout_join_expected(100), {"distinct_customers": 2, "row_count": 4, "amount_sum": 16})
+        self.assertEqual(bench.fanout_join_expected(1_000_000),
+                         {"distinct_customers": 12500, "row_count": 25000, "amount_sum": 1200000})
+
     def test_focused_oracles_accept_complete_independent_reports(self):
         for case in bench.focused_validation_cases(100):
             with self.subTest(case=case["name"]):
                 checked = bench.check_focused_validation(focused_validation_result(case["name"]), case, FOCUSED_KERNEL)
                 self.assertTrue(checked["checked"])
-                self.assertEqual(checked["target_count"], 1)
+                self.assertEqual(checked["target_count"], 2 if case["name"] == "multi_target_path_fail" else 1)
                 self.assertEqual(checked["conforms"], case["name"] == "focus_core_pass")
                 self.assertEqual(len(checked["semantic_report_sha256"]), 64)
 
@@ -328,6 +399,27 @@ class FocusedWorkloadTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             bench.check_focused_validation(result, case, FOCUSED_KERNEL)
 
+    def test_multiple_target_oracle_rejects_reused_focus_and_duplicate_substitution(self):
+        case = next(c for c in bench.focused_validation_cases(100) if c["name"] == "multi_target_path_fail")
+        for mutation in ["reuse-first-focus", "replace-with-duplicate"]:
+            with self.subTest(mutation=mutation):
+                result = focused_validation_result(case["name"])
+                if mutation == "reuse-first-focus":
+                    result["report"]["violations"][-1]["focus_node"] = bench.NS + "order/000000007"
+                else:
+                    result["report"]["violations"][-1] = copy.deepcopy(result["report"]["violations"][0])
+                with self.assertRaises(ValueError):
+                    bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+
+    def test_multiple_target_violation_order_and_messages_do_not_change_semantic_digest(self):
+        case = next(c for c in bench.focused_validation_cases(100) if c["name"] == "multi_target_path_fail")
+        result = focused_validation_result(case["name"])
+        before = bench.check_focused_validation(result, case, FOCUSED_KERNEL)
+        result["report"]["violations"].reverse()
+        for index, row in enumerate(result["report"]["violations"]):
+            row["message"] = f"changed diagnostic {index}"
+        self.assertEqual(before, bench.check_focused_validation(result, case, FOCUSED_KERNEL))
+
     def test_diagnostic_prose_does_not_change_the_semantic_report_digest(self):
         for case in bench.focused_validation_cases(100)[1:]:
             result = focused_validation_result(case["name"])
@@ -348,7 +440,7 @@ class FocusedWorkloadTests(unittest.TestCase):
         self.assertEqual(bench.parse_args(common).suite, "kernel")
         self.assertEqual(bench.parse_args(common + ["--suite", "focused-shacl"]).suite, "focused-shacl")
 
-    def test_focused_suite_only_compiles_mounts_and_runs_its_five_focus_cases(self):
+    def test_focused_suite_only_compiles_mounts_and_runs_its_seven_validation_cases(self):
         for transport in ["file", "session"]:
             with self.subTest(transport=transport), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
@@ -373,11 +465,16 @@ class FocusedWorkloadTests(unittest.TestCase):
                                                "manifest_sha256": bench.digest_file(output / "manifest.json")}}
                     else:
                         self.assertEqual(operation["kind"], "validate")
-                        self.assertEqual(operation["focus_node"], bench.order(8))
                         name = {bench.iri("OrderShape"): "focus_core_pass", bench.iri("MinCountProperty"): "focus_core_fail",
                                 bench.iri("FocusedScopeShape"): "focus_nonlocal_fail",
                                 bench.iri("FocusedPathShape"): "focus_path_fail",
-                                bench.iri("FocusedScanShape"): "focus_full_scan_fail"}[operation["selected_shapes"][0]]
+                                bench.iri("FocusedScanShape"): "focus_full_scan_fail",
+                                bench.iri("MultiTargetPathShape"): "multi_target_path_fail",
+                                bench.iri("FocusedFanoutJoinShape"): "focus_fanout_join_fail"}[operation["selected_shapes"][0]]
+                        if name == "multi_target_path_fail":
+                            self.assertNotIn("focus_node", operation)
+                        else:
+                            self.assertEqual(operation["focus_node"], bench.order(8))
                         result = focused_validation_result(name)
                     return {"status": "COMPLETE", "end_to_end_seconds": .01, "oracle": oracle(result)}
 
@@ -394,9 +491,10 @@ class FocusedWorkloadTests(unittest.TestCase):
                 names = [stage["name"] for stage in report["scales"][0]["stages"]]
                 self.assertEqual(names, ["full_compile"] + (["compiled/session_mount"] if transport == "session" else [])
                                  + ["shacl/focus_core_pass", "shacl/focus_core_fail", "shacl/focus_nonlocal_fail",
-                                    "shacl/focus_path_fail", "shacl/focus_full_scan_fail"])
+                                    "shacl/focus_path_fail", "shacl/focus_full_scan_fail", "shacl/multi_target_path_fail",
+                                    "shacl/focus_fanout_join_fail"])
                 self.assertEqual(mounted, ["compiled"] if transport == "session" else [])
-                self.assertEqual([operation["kind"] for operation in operations], ["compile"] + ["validate"] * 10)
+                self.assertEqual([operation["kind"] for operation in operations], ["compile"] + ["validate"] * 14)
                 self.assertTrue(all(sample["status"] == "COMPLETE" for stage in report["scales"][0]["stages"]
                                     for sample in stage["samples"]))
 

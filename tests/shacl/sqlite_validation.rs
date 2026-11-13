@@ -1,4 +1,4 @@
-//! Differential checks against the unchanged in-memory RDF implementation.
+//! Independent semantic expectations plus memory/SQLite differential checks.
 use super::*;
 use crate::shacl_sqlite::SqliteGraph;
 use oxigraph::io::{RdfFormat, RdfParser};
@@ -619,4 +619,201 @@ fn prepared_queries_preserve_rdf_term_identity_and_document_blank_labels() {
         &[],
     );
     assert_eq!(result.0, Some(true));
+}
+
+#[test]
+fn prepared_joins_preserve_duplicate_inputs_diamond_paths_and_right_matches() {
+    let data = graph(
+        "ex:root ex:edge ex:left, ex:right .
+         ex:left ex:next ex:leaf . ex:right ex:next ex:leaf .
+         ex:leaf ex:echo ex:leaf, ex:other; ex:label \"one\", \"two\" .",
+    );
+    let sqlite = store(&data);
+    let view = ValidationData::Sqlite(&sqlite);
+    let memory_queries = data.prepare_queries().unwrap();
+    let sqlite_queries = view.prepare_queries().unwrap();
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?mid WHERE {
+            VALUES ?root { <urn:example:root> <urn:example:root> }
+            ?root <urn:example:edge> ?mid
+        } ORDER BY ?mid",
+        &[],
+    );
+    assert_eq!(
+        query_column(&result, "mid"),
+        [
+            "<urn:example:left>",
+            "<urn:example:left>",
+            "<urn:example:right>",
+            "<urn:example:right>"
+        ]
+    );
+
+    // Two VALUES rows times two distinct intermediate paths times two labels.
+    // The repeated ?value position rejects the non-self echo, while physical
+    // graph/provenance duplicates in store() must not add any solutions.
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?value ?label WHERE {
+            VALUES ?copy { 1 1 }
+            $this <urn:example:edge>/<urn:example:next> ?value .
+            ?value <urn:example:echo> ?value .
+            ?value <urn:example:label> ?label
+            FILTER(BOUND($this))
+        } ORDER BY ?label",
+        &[("this", "<urn:example:root>")],
+    );
+    assert_eq!(query_column(&result, "value"), ["<urn:example:leaf>"; 8]);
+    assert_eq!(query_column(&result, "this"), ["<urn:example:root>"; 8]);
+    assert_eq!(
+        query_column(&result, "label"),
+        [
+            "\"one\"", "\"one\"", "\"one\"", "\"one\"", "\"two\"", "\"two\"", "\"two\"", "\"two\""
+        ]
+    );
+}
+
+#[test]
+fn prepared_joins_preserve_undef_optional_and_union_compatibility() {
+    let data = graph(
+        "ex:a ex:p ex:x, ex:y; ex:label \"A\"; ex:optional \"found\" .
+         ex:b ex:p ex:z; ex:label \"B\" .",
+    );
+    let sqlite = store(&data);
+    let view = ValidationData::Sqlite(&sqlite);
+    let memory_queries = data.prepare_queries().unwrap();
+    let sqlite_queries = view.prepare_queries().unwrap();
+    for text in [
+        "SELECT ?tag ?s ?o ?label WHERE {
+            VALUES (?s ?tag) {
+                (<urn:example:a> \"bound\")
+                (UNDEF \"wild\")
+                (<urn:example:unrecorded> \"missing\")
+            }
+            ?s <urn:example:p> ?o . ?s <urn:example:label> ?label
+        } ORDER BY ?tag ?s ?o",
+        "SELECT ?tag ?s ?o ?label WHERE {
+            { { VALUES (?s ?tag) { (<urn:example:a> \"bound\") } }
+              UNION { VALUES ?tag { \"wild\" } }
+              UNION { VALUES (?s ?tag) { (<urn:example:unrecorded> \"missing\") } } }
+            ?s <urn:example:p> ?o . ?s <urn:example:label> ?label
+        } ORDER BY ?tag ?s ?o",
+    ] {
+        let result = compare_prepared_query(&memory_queries, &sqlite_queries, text, &[]);
+        // An absent dictionary term is bound and matches no row. UNDEF and a
+        // missing UNION variable are compatible with every matching subject.
+        let rows = result
+            .1
+            .iter()
+            .map(|row| {
+                (
+                    row["tag"].as_str(),
+                    row["s"].as_str(),
+                    row["o"].as_str(),
+                    row["label"].as_str(),
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            rows,
+            [
+                ("\"bound\"", "<urn:example:a>", "<urn:example:x>", "\"A\""),
+                ("\"bound\"", "<urn:example:a>", "<urn:example:y>", "\"A\""),
+                ("\"wild\"", "<urn:example:a>", "<urn:example:x>", "\"A\""),
+                ("\"wild\"", "<urn:example:a>", "<urn:example:y>", "\"A\""),
+                ("\"wild\"", "<urn:example:b>", "<urn:example:z>", "\"B\"")
+            ],
+            "{text}"
+        );
+    }
+
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?s ?o ?extra WHERE {
+            VALUES ?s { <urn:example:a> <urn:example:b> }
+            OPTIONAL { ?s <urn:example:optional> ?extra }
+            ?s <urn:example:p> ?o
+        } ORDER BY ?s ?o",
+        &[],
+    );
+    assert_eq!(
+        query_column(&result, "o"),
+        ["<urn:example:x>", "<urn:example:y>", "<urn:example:z>"]
+    );
+    assert_eq!(result.1[0]["extra"], "\"found\"");
+    assert_eq!(result.1[1]["extra"], "\"found\"");
+    assert!(!result.1[2].contains_key("extra"));
+    assert_eq!(result.1[2]["s"], "<urn:example:b>");
+}
+
+#[test]
+fn prepared_joins_keep_subquery_slices_global_and_private_variables_local() {
+    let data = graph(
+        "ex:a ex:p ex:x; ex:label \"A\" .
+         ex:b ex:p ex:y; ex:label \"B\" .",
+    );
+    let sqlite = store(&data);
+    let view = ValidationData::Sqlite(&sqlite);
+    let memory_queries = data.prepare_queries().unwrap();
+    let sqlite_queries = view.prepare_queries().unwrap();
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?s ?o ?label WHERE {
+            VALUES ?s { <urn:example:a> <urn:example:b> }
+            { SELECT ?s ?o WHERE { ?s <urn:example:p> ?o } ORDER BY ?s LIMIT 1 }
+            ?s <urn:example:label> ?label
+        } ORDER BY ?s",
+        &[],
+    );
+    // Re-evaluating the sliced subquery for each outer ?s would incorrectly
+    // return b/y/B too. Only a direct right-hand quad is eligible for probing.
+    assert_eq!(query_column(&result, "s"), ["<urn:example:a>"]);
+    assert_eq!(query_column(&result, "o"), ["<urn:example:x>"]);
+    assert_eq!(query_column(&result, "label"), ["\"A\""]);
+
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?private ?out ?label WHERE {
+            VALUES ?private { <urn:example:a> }
+            { SELECT (?private AS ?out) WHERE { VALUES ?private { <urn:example:b> } } }
+            ?out <urn:example:label> ?label
+        }",
+        &[],
+    );
+    assert_eq!(query_column(&result, "private"), ["<urn:example:a>"]);
+    assert_eq!(query_column(&result, "out"), ["<urn:example:b>"]);
+    assert_eq!(query_column(&result, "label"), ["\"B\""]);
+}
+
+#[test]
+fn prepared_joins_keep_original_input_compatibility_when_bind_rewrites_it() {
+    let data = graph("ex:a ex:present true . ex:b ex:q ex:c . ex:d ex:r ex:c .");
+    let sqlite = store(&data);
+    let view = ValidationData::Sqlite(&sqlite);
+    let memory_queries = data.prepare_queries().unwrap();
+    let sqlite_queries = view.prepare_queries().unwrap();
+    let result = compare_prepared_query(
+        &memory_queries,
+        &sqlite_queries,
+        "SELECT ?x WHERE {
+            VALUES ?x { <urn:example:a> <urn:example:d> }
+            FILTER EXISTS {
+                <urn:example:b> <urn:example:q> ?y .
+                BIND(<urn:example:d> AS ?x)
+                ?x <urn:example:r> ?y
+            }
+        } ORDER BY ?x",
+        &[],
+    );
+    // ?x is not defined by the preceding EXISTS-local quad, so this BIND is
+    // legal. Its left row overwrites the correlated input a with d. The old
+    // independent right scan retains input a and cannot join that row; passing
+    // only the overwritten row to a probe would incorrectly admit a as well.
+    assert_eq!(query_column(&result, "x"), ["<urn:example:d>"]);
 }

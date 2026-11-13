@@ -1054,3 +1054,167 @@ fn prepared_queries_restore_decode_failures_swallowed_by_expressions() {
         assert!(QueryableDataset::contains_internal_graph_name(&&graph, &absent).is_err());
     }
 }
+
+fn path_join_database(background: usize) -> Connection {
+    let db = database(&[
+        ("<urn:root>", "<urn:link>", "_:middleA", None, true),
+        ("<urn:root>", "<urn:link>", "_:middleB", None, true),
+        ("_:middleA", "<urn:next>", "<urn:tailA>", None, true),
+        ("_:middleA", "<urn:next>", "<urn:tailB>", None, true),
+        ("_:middleB", "<urn:next>", "<urn:tailB>", None, false),
+        (
+            "_:middleA",
+            "<urn:next>",
+            "<urn:tailB>",
+            Some("<urn:g>"),
+            false,
+        ),
+        ("<urn:tailA>", "<urn:label>", "\"alpha\"", None, true),
+        ("<urn:tailB>", "<urn:label>", "\"beta\"", None, true),
+    ]);
+    let link = term_id(&db, "<urn:link>");
+    let next = term_id(&db, "<urn:next>");
+    let label = term_id(&db, "<urn:label>");
+    let noise = term_id(&db, "\"noise\"");
+    db.execute_batch(&format!(
+        "BEGIN;
+         WITH RECURSIVE ids(id) AS (SELECT 1 UNION ALL SELECT id+1 FROM ids WHERE id<{background})
+         INSERT INTO terms(id,n) SELECT 100000+id,'<urn:background:source:' || id || '>' FROM ids;
+         INSERT INTO terms(id,n) SELECT id+100000,'<urn:background:middle:' || (id-100000) || '>'
+             FROM terms WHERE id>100000 AND id<=100000+{background};
+         INSERT INTO terms(id,n) SELECT id+200000,'<urn:background:tail:' || (id-100000) || '>'
+             FROM terms WHERE id>100000 AND id<=100000+{background};
+         INSERT INTO facts SELECT 0,id,{link},id+100000,1
+             FROM terms WHERE id>100000 AND id<=100000+{background};
+         INSERT INTO facts SELECT 0,id+100000,{next},id+200000,1
+             FROM terms WHERE id>100000 AND id<=100000+{background};
+         INSERT INTO facts SELECT 0,id+200000,{label},{noise},1
+             FROM terms WHERE id>100000 AND id<=100000+{background};
+         ANALYZE; COMMIT;"
+    ))
+    .expect("unrelated paths sharing every queried predicate");
+    db
+}
+
+#[test]
+fn bound_path_joins_do_not_scan_unrelated_predicate_branches() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    for background in [32, 8192] {
+        for (name, text, focus, expected) in [
+            (
+                "three-quad BGP",
+                "SELECT ?v WHERE { $this <urn:link> ?middle . ?middle <urn:next> ?tail .
+                    ?tail <urn:label> ?v } ORDER BY ?v",
+                "<urn:root>",
+                vec!["\"alpha\"", "\"beta\"", "\"beta\""],
+            ),
+            (
+                "three-hop path",
+                "SELECT ?v WHERE { $this <urn:link>/<urn:next>/<urn:label> ?v } ORDER BY ?v",
+                "<urn:root>",
+                vec!["\"alpha\"", "\"beta\"", "\"beta\""],
+            ),
+            (
+                "inverse two-hop path",
+                "SELECT ?v WHERE { $this ^<urn:next>/^<urn:link> ?v } ORDER BY ?v",
+                "<urn:tailB>",
+                vec!["<urn:root>", "<urn:root>"],
+            ),
+        ] {
+            let mut graph = SqliteGraph::new(path_join_database(background)).expect("SQLite graph");
+            let callbacks = Arc::new(AtomicUsize::new(0));
+            let observed = Arc::clone(&callbacks);
+            graph
+                .db
+                .progress_handler(
+                    100,
+                    Some(move || {
+                        observed.fetch_add(1, Ordering::Relaxed);
+                        false
+                    }),
+                )
+                .expect("count SQLite VM progress");
+            let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+            let queries = data.prepare_queries().expect("query adapter");
+            let (_, rows) = queries
+                .query_bindings(text, &BTreeMap::from([("this".into(), focus.into())]))
+                .expect("complete path query");
+            assert_eq!(
+                rows.iter()
+                    .map(|row| row["v"].to_string())
+                    .collect::<Vec<_>>(),
+                expected
+            );
+            let steps = callbacks.load(Ordering::Relaxed) * 100;
+            eprintln!("path join: {name}, background={background}, progress_steps={steps}");
+            assert!(
+                steps < 20_000,
+                "{name} traversed unrelated predicate rows: background={background}, progress_steps={steps}"
+            );
+            graph.check_error().expect("no store error");
+        }
+    }
+}
+
+#[test]
+fn joins_with_only_outer_bound_keys_keep_a_single_right_scan() {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    let objects = (0..64)
+        .map(|i| format!("<urn:item:{i}>"))
+        .collect::<Vec<_>>();
+    let mut facts = objects
+        .iter()
+        .map(|object| ("<urn:root>", "<urn:left>", object.as_str(), None, true))
+        .collect::<Vec<_>>();
+    facts.extend(
+        objects[..32]
+            .iter()
+            .map(|object| ("<urn:root>", "<urn:right>", object.as_str(), None, true)),
+    );
+    let mut graph = SqliteGraph::new(database(&facts)).expect("SQLite graph");
+    let callbacks = Arc::new(AtomicUsize::new(0));
+    let observed = Arc::clone(&callbacks);
+    graph
+        .db
+        .progress_handler(
+            100,
+            Some(move || {
+                observed.fetch_add(1, Ordering::Relaxed);
+                false
+            }),
+        )
+        .expect("count SQLite VM progress");
+    let data = crate::rdf_graph::ValidationData::Sqlite(&graph);
+    let queries = data.prepare_queries().expect("query adapter");
+    let (_, rows) = queries
+        .query_bindings(
+            "SELECT ?a ?b WHERE { $this <urn:left> ?a . $this <urn:right> ?b }",
+            &BTreeMap::from([("this".into(), "<urn:root>".into())]),
+        )
+        .expect("compatible Cartesian product with a bound common subject");
+    let pairs = rows
+        .iter()
+        .map(|row| (row["a"].to_string(), row["b"].to_string()))
+        .collect::<BTreeSet<_>>();
+    let expected = objects
+        .iter()
+        .flat_map(|a| objects[..32].iter().map(move |b| (a.clone(), b.clone())))
+        .collect::<BTreeSet<_>>();
+    assert_eq!(rows.len(), 64 * 32);
+    assert_eq!(pairs, expected);
+    let steps = callbacks.load(Ordering::Relaxed) * 100;
+    eprintln!("outer-bound join: left=64, right=32, progress_steps={steps}");
+    assert!(
+        steps < 20_000,
+        "the same right range was reread for each left row: {steps}"
+    );
+    graph.check_error().expect("no store error");
+}

@@ -390,6 +390,8 @@ impl PreparedQueries<'_> {
         }
         // SHACL prebindings can appear only in FILTER/BOUND expressions.
         // Optimizing before applying them would fold such variables as unbound.
+        // Binding-safe quad joins remain available as a physical execution
+        // choice without enabling those logical expression rewrites.
         let mut query = SparqlEvaluator::new()
             .without_optimizations()
             .for_query(parsed);

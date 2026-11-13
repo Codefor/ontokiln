@@ -177,10 +177,29 @@ def full_scan_expected(facts):
     return {"fact_count": 10 * n + 10, "subject_characters": subject_chars}
 
 
+def multi_target_indices(facts):
+    # Include different regions and a distant subject. The 100-fact smoke input
+    # ends at order 8, so explicit targets must be deduplicated there.
+    return sorted({7, FOCUS_INDEX, records_for(facts) - 1})
+
+
+def fanout_join_expected(facts):
+    """Independent bag COUNT/SUM for region 0 customers and duplicate VALUES."""
+    selected = (records_for(facts) + 7) // 8
+    # Amounts are index % 100. The selected indices 0, 8, 16, ... repeat their
+    # amounts every 25 customers; each complete period sums to 1,200.
+    periods, tail = divmod(selected, 25)
+    amount_sum = 1200 * periods + sum((8 * i) % 100 for i in range(tail))
+    return {"distinct_customers": selected, "row_count": 2 * selected,
+            "amount_sum": 2 * amount_sum}
+
+
 def focused_shapes_text(facts):
     # Keep the kernel suite's existing Shapes bytes unchanged. These additional
     # constraints separate selective paths/visibility from full-union scanning.
     aggregate = full_scan_expected(facts)
+    fanout = fanout_join_expected(facts)
+    targets = ", ".join(order(i) for i in multi_target_indices(facts))
     return f'''b:FocusedScopeShape a sh:NodeShape; sh:targetNode {order(0)};
     sh:property b:FocusedRegionProperty; sh:sparql b:FocusedOutsideConstraint .
 b:FocusedRegionProperty sh:path (b:customer b:region); sh:hasValue {iri("region/0")} .
@@ -198,11 +217,33 @@ b:FocusedScanConstraint sh:select """SELECT $this WHERE {{
        WHERE {{ ?s ?p ?o }} }}
     FILTER (?factCount = {aggregate["fact_count"]} && ?subjectChars = {aggregate["subject_characters"]})
 }}""" .
+b:MultiTargetPathShape a sh:NodeShape; sh:targetNode {targets};
+    sh:property b:FocusedPathPresent, b:FocusedPathMissing .
+b:FocusedFanoutJoinShape a sh:NodeShape; sh:targetNode {order(0)};
+    sh:sparql b:FocusedFanoutJoinConstraint .
+b:FocusedFanoutJoinConstraint sh:select """SELECT $this WHERE {{
+    {{ SELECT (COUNT(*) AS ?matchedRows) (SUM(?amount) AS ?amountSum) WHERE {{
+        ?customer {iri("region")} {iri("region/0")} .
+        ?order {iri("customer")} ?customer .
+        ?order {iri("amount")} ?amount .
+        VALUES ?copy {{ 1 1 }}
+    }} }}
+    FILTER (?matchedRows = {fanout["row_count"]} && ?amountSum = {fanout["amount_sum"]})
+}}""" .
 '''
 
 
 def focused_validation_cases(facts):
     focus = order(FOCUS_INDEX)
+    multi_violations = []
+    for i in multi_target_indices(facts):
+        for shape, required_region in [("FocusedPathPresent", 0), ("FocusedPathMissing", 1)]:
+            if i % 8 != required_region:
+                multi_violations.append({"focus_node": uri(order(i))["value"],
+                                         "path": f"({iri('customer')}/{iri('region')})",
+                                         "source_shape": NS + shape,
+                                         "source_constraint_component": SH + "HasValueConstraintComponent",
+                                         "shape_ref": NS + shape})
     return [
         {"name": "focus_core_pass", "selected_shapes": [iri("OrderShape")], "focus_node": focus,
          "expected_conforms": True, "expected_violations": [], "requires_nonlocal_graph": False},
@@ -230,6 +271,17 @@ def focused_validation_cases(facts):
                                   "source_shape": NS + "FocusedScanShape",
                                   "source_constraint_component": SH + "SPARQLConstraintComponent",
                                   "shape_ref": NS + "FocusedScanShape"}]},
+        {"name": "multi_target_path_fail", "selected_shapes": [iri("MultiTargetPathShape")],
+         "expected_focus_nodes": sorted(order(i) for i in multi_target_indices(facts)),
+         "expected_conforms": False, "requires_nonlocal_graph": True, "requires_full_scan": False,
+         "expected_violations": multi_violations},
+        {"name": "focus_fanout_join_fail", "selected_shapes": [iri("FocusedFanoutJoinShape")], "focus_node": focus,
+         "expected_conforms": False, "requires_nonlocal_graph": True, "requires_full_scan": False,
+         "expected_aggregate": fanout_join_expected(facts),
+         "expected_violations": [{"focus_node": uri(focus)["value"], "path": None,
+                                  "source_shape": NS + "FocusedFanoutJoinShape",
+                                  "source_constraint_component": SH + "SPARQLConstraintComponent",
+                                  "shape_ref": NS + "FocusedFanoutJoinShape"}]},
     ]
 
 
@@ -386,6 +438,8 @@ def check_validation(result, name, n):
 
 def check_focused_validation(result, case, kernel):
     expected_violations = case["expected_violations"]
+    expected_foci = (case["expected_focus_nodes"] if "expected_focus_nodes" in case
+                     else [case["focus_node"]])
     if (result.get("conforms") is not case["expected_conforms"]
             or type(result.get("checked_shapes")) is not int or result["checked_shapes"] != 1
             or type(result.get("violations")) is not int or result["violations"] != len(expected_violations)):
@@ -403,16 +457,18 @@ def check_focused_validation(result, case, kernel):
     # remaining report fields, including each violation's exact field set, so a
     # missing background constraint cannot hide behind a different violation.
     semantic = {key: report[key] for key in ["conforms", "coverage", "target_count"]}
-    semantic["violations"] = [{key: value for key, value in row.items() if key != "message"}
-                              for row in violations]
-    expected = {"conforms": case["expected_conforms"], "target_count": 1,
-                "coverage": [{"shape": uri(case["selected_shapes"][0])["value"], "target_count": 1,
-                              "focus_nodes": [case["focus_node"]]}],
-                "violations": expected_violations}
+    # Engine ordering can depend on diagnostic prose. Normalize that ordering,
+    # retaining duplicates and every semantic field rather than comparing sets.
+    semantic["violations"] = sorted(
+        ({key: value for key, value in row.items() if key != "message"} for row in violations), key=canonical)
+    expected = {"conforms": case["expected_conforms"], "target_count": len(expected_foci),
+                "coverage": [{"shape": uri(case["selected_shapes"][0])["value"], "target_count": len(expected_foci),
+                              "focus_nodes": expected_foci}],
+                "violations": sorted(expected_violations, key=canonical)}
     if (report["conforms"] is not case["expected_conforms"]
             or type(report["target_count"]) is not int or semantic != expected):
         raise ValueError("focused SHACL report differs from the independently expected focus and violations")
-    return {"checked": True, "conforms": case["expected_conforms"], "target_count": 1,
+    return {"checked": True, "conforms": case["expected_conforms"], "target_count": len(expected_foci),
             "violations": len(expected_violations), "semantic_report_sha256": hashlib.sha256(canonical(semantic)).hexdigest()}
 
 
@@ -934,7 +990,8 @@ class Baseline:
                                      **guards["compiled"],
                                      "shapes": [{"path": str(shapes), "document_id": GENERATOR + "/shapes", "format": "turtle",
                                                  "expected_sha256": manifest["files"][2]["sha256"]}],
-                                     "selected_shapes": case["selected_shapes"], "focus_node": case["focus_node"]},
+                                     "selected_shapes": case["selected_shapes"],
+                                     **({"focus_node": case["focus_node"]} if "focus_node" in case else {})},
                                     lambda r: check_focused_validation(r, case, self.report["environment"]["kernel_identity"]))
                 self.series(scale, "shacl/" + case["name"], self.args.validation_samples, validate, warmup=True,
                             dependency="compiled" in selected, metadata={**case, "core_time_available": False})
@@ -952,7 +1009,7 @@ def parse_args(argv=None):
     parser.add_argument("--binary", type=Path, default=ROOT / "target/release/ontokiln")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--suite", choices=["kernel", "focused-shacl"], default="kernel",
-                        help="kernel runs the existing pack/Full workload; focused-shacl only compiles Full and validates five explicit-focus cases")
+                        help="kernel runs the existing pack/Full workload; focused-shacl only compiles Full and validates seven focused, multi-target and fanout cases")
     parser.add_argument("--sizes", type=int, nargs="+", default=[10_000, 100_000, 1_000_000])
     parser.add_argument("--build-samples", type=int, default=3)
     parser.add_argument("--query-samples", type=int, default=9)
@@ -1007,11 +1064,11 @@ def main(argv=None):
               "cache_policy": ("No OS cache flush. Generation, hashing and compilation precede queries. "
                                + ("Full reads share one mounted private snapshot per artifact; each read still has an isolated worker. One-time mounts are separate diagnostic stages. " if args.read_transport == "session" else "Each request starts fresh processes; subsequent requests are not a persistent hot engine. ")
                                + "Each read workload has one warm-up."
-                               + (" Pack reads always start fresh processes." if args.suite == "kernel" else " Focused SHACL uses the same fixed explicit focus at every scale.")),
+                               + (" Pack reads always start fresh processes." if args.suite == "kernel" else " Focused SHACL includes fixed-focus, multiple explicit targets and growing-join controls.")),
               "concurrency": 1, "statistics": "Raw samples, median and range of successful measured requests; warm-ups and failures excluded. No p95/p99 estimate from small sample counts.",
               "scope": ("Synthetic asserted default-graph workload, RDFS supported profile plus bounded positive recursion; not complete OWL, production data or a cold-disk/HTTP throughput benchmark."
                         if args.suite == "kernel" else
-                        "Synthetic explicit-focus SHACL over compiled asserted data with fixed local work and growing background; Core, selective path/nonlocal visibility and full-union aggregate controls, no materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark."),
+                        "Synthetic SHACL over compiled asserted data: fixed-focus Core/path/nonlocal work, multiple explicit targets, a growing fanout join with duplicate VALUES, and full-union aggregation. No materialization or pack/query stages. Not complete SHACL, production capacity or a cold-disk benchmark."),
               "environment": environment_info(args.binary, directory, args), "scales": []}
     runner = Baseline(args, directory, report)
     runner.checkpoint()
