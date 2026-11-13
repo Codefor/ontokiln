@@ -7,10 +7,8 @@ on:
       - .github/workflows/pack-v4-migration.yml
 permissions:
   contents: read
-  issues: write
 jobs:
   v4:
-    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -18,24 +16,10 @@ jobs:
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
       - name: Format locally before testing
         run: cargo fmt --all
+      - name: Export formatted Pack v4
+        run: |
+          echo "BEGIN_FORMATTED_PACK_V4"
+          cat crates/pack/src/v4.rs
+          echo "END_FORMATTED_PACK_V4"
       - name: Pack v4 compile and focused tests
-        id: check
-        run: |
-          cargo test -p ontokiln-pack v4::tests --locked > /tmp/pack-v4-check.log 2>&1 || {
-            cat /tmp/pack-v4-check.log
-            exit 1
-          }
-      - name: Publish diagnostic to PR
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ github.event.pull_request.number }}
-        run: |
-          {
-            printf "Pack v4 migration CI diagnostic for %s\n\n" "$GITHUB_SHA"
-            printf "~~~\n"
-            tail -c 15000 /tmp/pack-v4-check.log
-            printf "\n~~~\n"
-          } > /tmp/pack-v4-comment.txt
-          gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" \
-            -f "body=$(cat /tmp/pack-v4-comment.txt)"
+        run: cargo test -p ontokiln-pack v4::tests --locked

@@ -357,17 +357,12 @@ impl PackV4 {
             quads.push([input.u32()?, input.u32()?, input.u32()?, input.u32()?]);
         }
         let asserted = input.take(n_quads.div_ceil(8))?.to_vec();
-        let mut index = |count: usize| -> Result<Vec<u32>> {
-            let mut values = Vec::with_capacity(count);
-            for _ in 0..count { values.push(input.u32()?); }
-            Ok(values)
-        };
-        let spo = index(n_quads)?;
-        let pos = index(n_quads)?;
-        let osp = index(n_quads)?;
+        let spo = input.u32s(n_quads)?;
+        let pos = input.u32s(n_quads)?;
+        let osp = input.u32s(n_quads)?;
         let mut source_offsets = Vec::with_capacity(n_quads + 1);
         for _ in 0..=n_quads { source_offsets.push(input.u64()?); }
-        let source_ids = index(n_sources)?;
+        let source_ids = input.u32s(n_sources)?;
         let metadata: Metadata = serde_json::from_slice(input.take(metadata_bytes)?)?;
         ensure!(input.offset == body.len(), "Pack v4 trailing bytes");
         let pack = Self {
@@ -514,6 +509,11 @@ impl<'a> Input<'a> {
     }
     fn u32(&mut self) -> Result<u32> { Ok(u32::from_le_bytes(self.take(4)?.try_into()?)) }
     fn u64(&mut self) -> Result<u64> { Ok(u64::from_le_bytes(self.take(8)?.try_into()?)) }
+    fn u32s(&mut self, count: usize) -> Result<Vec<u32>> {
+        let mut values = Vec::with_capacity(count);
+        for _ in 0..count { values.push(self.u32()?); }
+        Ok(values)
+    }
 }
 
 #[cfg(test)]
