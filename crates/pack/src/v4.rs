@@ -453,13 +453,11 @@ impl PackV4 {
             Some(metadata_bytes),
         ]
         .into_iter()
-        .try_fold(0_usize, |total, part| {
-            total.checked_add(part.context("Pack v4 section size overflow")?)
-        })
+        .try_fold(0_usize, |total, part| total.checked_add(part?))
         .context("Pack v4 section size overflow")?;
         ensure!(
             expected_size == body.len(),
-            "Pack v4 section lengths do not match the signed body"
+            "Pack v4 section lengths do not match the checksummed body"
         );
         let mut term_offsets =
             Vec::with_capacity(n_terms.checked_add(1).context("term count overflow")?);
