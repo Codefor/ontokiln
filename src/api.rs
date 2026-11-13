@@ -722,8 +722,14 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 };
                 let result = engine
                     .query_with_derived(
-                        query, view, parameters, rdf_bindings, values, derived_queries,
-                        limits.max_derived_facts, limits.max_intermediate_rows,
+                        query,
+                        view,
+                        parameters,
+                        rdf_bindings,
+                        values,
+                        derived_queries,
+                        limits.max_derived_facts,
+                        limits.max_intermediate_rows,
                     )
                     .map_err(|e| {
                         if e.to_string().contains("BUDGET_EXHAUSTED") {

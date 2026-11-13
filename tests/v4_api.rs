@@ -117,8 +117,8 @@ fn v4_pack_read_api_preserves_query_and_shacl_contract() {
         }),
         "derived",
     );
-    assert_eq!(derived["status"],"COMPLETE");
-    assert_eq!(derived["result"]["boolean"],true);
+    assert_eq!(derived["status"], "COMPLETE");
+    assert_eq!(derived["result"]["boolean"], true);
 
     let unchanged = query(
         root.path(),
@@ -128,6 +128,6 @@ fn v4_pack_read_api_preserves_query_and_shacl_contract() {
         }),
         "immutable",
     );
-    assert_eq!(unchanged["status"],"COMPLETE");
-    assert_eq!(unchanged["result"]["boolean"],false);
+    assert_eq!(unchanged["status"], "COMPLETE");
+    assert_eq!(unchanged["result"]["boolean"], false);
 }

@@ -103,7 +103,9 @@ impl OntologyEngine {
             .iter()
             .map(|(name, value)| Ok((Variable::new(name)?, value.parse::<Term>()?)))
             .collect::<Result<Vec<_>>>()?;
-        let bytes = self.reasoner.execute_bound_overlay(&parsed, view, &bound_terms, overlay)?;
+        let bytes = self
+            .reasoner
+            .execute_bound_overlay(&parsed, view, &bound_terms, overlay)?;
         if let Some(columns) = public_columns {
             let mut reply: Value = serde_json::from_slice(&bytes)?;
             let keep: std::collections::BTreeSet<_> = columns.iter().cloned().collect();
@@ -138,35 +140,44 @@ impl OntologyEngine {
     ) -> Result<Vec<u8>> {
         use oxrdf::NamedOrBlankNode;
         use std::collections::HashSet;
-        ensure!(derived_queries.len() <= 32,
-            "INVALID_REQUEST|at most 32 derived queries are allowed");
+        ensure!(
+            derived_queries.len() <= 32,
+            "INVALID_REQUEST|at most 32 derived queries are allowed"
+        );
         let mut overlay = Vec::<[Term; 3]>::new();
         let mut unique = HashSet::<[Term; 3]>::new();
         let mut visited = 0_u64;
-        let bindings = rdf_bindings.iter().map(|(name, value)| {
-            Ok((Variable::new(name)?, value.parse::<Term>()?))
-        }).collect::<Result<Vec<_>>>()?;
+        let bindings = rdf_bindings
+            .iter()
+            .map(|(name, value)| Ok((Variable::new(name)?, value.parse::<Term>()?)))
+            .collect::<Result<Vec<_>>>()?;
         for text in derived_queries {
             crate::query::local_derived_query(text)?;
             let mut prepared = parameters::bind_tables(
                 spargebra::SparqlParser::new().parse_query(text)?,
-                parameters, values,
+                parameters,
+                values,
             )?;
             let is_select = matches!(prepared, spargebra::Query::Select { .. });
             if is_select && !rdf_bindings.is_empty() {
                 crate::query::expose_bindings(&mut prepared, rdf_bindings.keys().cloned())?;
             }
-            let output = self.reasoner.execute_bound_overlay(
-                &prepared, view, &bindings, &overlay,
-            )?;
+            let output = self
+                .reasoner
+                .execute_bound_overlay(&prepared, view, &bindings, &overlay)?;
             let mut add = |fact: [Term; 3]| -> Result<()> {
-                visited = visited.checked_add(1).ok_or_else(|| anyhow::anyhow!(
-                    "BUDGET_EXHAUSTED|derived intermediate counter overflow"))?;
-                ensure!(visited <= max_intermediate_rows,
-                    "BUDGET_EXHAUSTED|derived query intermediate row limit");
+                visited = visited.checked_add(1).ok_or_else(|| {
+                    anyhow::anyhow!("BUDGET_EXHAUSTED|derived intermediate counter overflow")
+                })?;
+                ensure!(
+                    visited <= max_intermediate_rows,
+                    "BUDGET_EXHAUSTED|derived query intermediate row limit"
+                );
                 if unique.insert(fact.clone()) {
-                    ensure!(unique.len() as u64 <= max_derived_facts,
-                        "BUDGET_EXHAUSTED|derived query fact limit");
+                    ensure!(
+                        unique.len() as u64 <= max_derived_facts,
+                        "BUDGET_EXHAUSTED|derived query fact limit"
+                    );
                     overlay.push(fact);
                 }
                 Ok(())
@@ -175,12 +186,14 @@ impl OntologyEngine {
                 let value: Value = serde_json::from_slice(&output)?;
                 for var in ["s", "p", "o"] {
                     ensure!(
-                        value["head"]["vars"].as_array().is_some_and(
-                            |vars| vars.contains(&json!(var))),
+                        value["head"]["vars"]
+                            .as_array()
+                            .is_some_and(|vars| vars.contains(&json!(var))),
                         "INVALID_QUERY|derived SELECT requires s, p and o columns"
                     );
                 }
-                for row in value["results"]["bindings"].as_array()
+                for row in value["results"]["bindings"]
+                    .as_array()
                     .ok_or_else(|| anyhow::anyhow!("INVALID_QUERY|missing derived result rows"))?
                 {
                     let terms = crate::query::rdf_triple(row)?;
@@ -193,19 +206,14 @@ impl OntologyEngine {
             } else {
                 // Fresh blank-node scope for each CONSTRUCT asset, including
                 // repeated template blank nodes across different assets.
-                let parser = RdfParser::from_format(RdfFormat::NTriples)
-                    .rename_blank_nodes();
+                let parser = RdfParser::from_format(RdfFormat::NTriples).rename_blank_nodes();
                 for triple in parser.for_reader(output.as_slice()) {
                     let quad = triple?;
                     let subject = match quad.subject {
                         NamedOrBlankNode::NamedNode(n) => Term::NamedNode(n),
                         NamedOrBlankNode::BlankNode(b) => Term::BlankNode(b),
                     };
-                    add([
-                        subject,
-                        Term::NamedNode(quad.predicate),
-                        quad.object,
-                    ])?;
+                    add([subject, Term::NamedNode(quad.predicate), quad.object])?;
                 }
             }
         }
@@ -387,44 +395,92 @@ mod tests {
     fn derived_chain_is_request_local_and_immutable() {
         let dir = tempdir().unwrap();
         let (engine, _) = OntologyEngine::build(
-            &[source(dir.path(),"input.ttl","<urn:s> <urn:p> <urn:o> .")],
-            "no-rules-v1", &[]
-        ).unwrap();
-        let before=engine.pack().quad_count();
-        let derived=vec![
+            &[source(dir.path(), "input.ttl", "<urn:s> <urn:p> <urn:o> .")],
+            "no-rules-v1",
+            &[],
+        )
+        .unwrap();
+        let before = engine.pack().quad_count();
+        let derived = vec![
             "CONSTRUCT { <urn:d> <urn:p> ?o } WHERE { <urn:s> <urn:p> ?o }".into(),
             "CONSTRUCT { <urn:e> <urn:p> ?o } WHERE { <urn:d> <urn:p> ?o }".into(),
         ];
-        let q="ASK { <urn:e> <urn:p> <urn:o> }";
-        let result=engine.query_with_derived(q,View::Closure,
-            &BTreeMap::new(),&BTreeMap::new(),&[],&derived,10,10).unwrap();
-        let answer: Value=serde_json::from_slice(&result).unwrap();
-        assert_eq!(answer["boolean"],true);
-        let unchanged:Value=serde_json::from_slice(
-            &engine.query(q,View::Closure).unwrap()).unwrap();
-        assert_eq!(unchanged["boolean"],false);
-        assert_eq!(engine.pack().quad_count(),before);
-        assert!(engine.query_with_derived(q,View::Closure,
-            &BTreeMap::new(),&BTreeMap::new(),&[],&derived,1,10).is_err());
+        let q = "ASK { <urn:e> <urn:p> <urn:o> }";
+        let result = engine
+            .query_with_derived(
+                q,
+                View::Closure,
+                &BTreeMap::new(),
+                &BTreeMap::new(),
+                &[],
+                &derived,
+                10,
+                10,
+            )
+            .unwrap();
+        let answer: Value = serde_json::from_slice(&result).unwrap();
+        assert_eq!(answer["boolean"], true);
+        let unchanged: Value =
+            serde_json::from_slice(&engine.query(q, View::Closure).unwrap()).unwrap();
+        assert_eq!(unchanged["boolean"], false);
+        assert_eq!(engine.pack().quad_count(), before);
+        assert!(
+            engine
+                .query_with_derived(
+                    q,
+                    View::Closure,
+                    &BTreeMap::new(),
+                    &BTreeMap::new(),
+                    &[],
+                    &derived,
+                    1,
+                    10
+                )
+                .is_err()
+        );
     }
 
     #[test]
     fn select_spo_overlay_supports_duplicate_rows_without_duplicate_facts() {
         let dir = tempdir().unwrap();
         let (engine, _) = OntologyEngine::build(
-            &[source(dir.path(),"input.ttl","<urn:s> <urn:p> <urn:o> .")],
-            "no-rules-v1", &[]
-        ).unwrap();
+            &[source(dir.path(), "input.ttl", "<urn:s> <urn:p> <urn:o> .")],
+            "no-rules-v1",
+            &[],
+        )
+        .unwrap();
         let queries=vec![
             "SELECT ?s ?p ?o WHERE { VALUES (?s ?p ?o) { (<urn:d> <urn:p> <urn:o>) (<urn:d> <urn:p> <urn:o>) } }".to_string()
         ];
-        let q="ASK { <urn:d> <urn:p> <urn:o> }";
-        assert!(engine.query_with_derived(q,View::Closure,
-            &BTreeMap::new(),&BTreeMap::new(),&[],&queries,1,1).is_err());
-        let value=engine.query_with_derived(q,View::Closure,
-            &BTreeMap::new(),&BTreeMap::new(),&[],&queries,1,2).unwrap();
-        let reply:Value=serde_json::from_slice(&value).unwrap();
-        assert_eq!(reply["boolean"],true);
+        let q = "ASK { <urn:d> <urn:p> <urn:o> }";
+        assert!(
+            engine
+                .query_with_derived(
+                    q,
+                    View::Closure,
+                    &BTreeMap::new(),
+                    &BTreeMap::new(),
+                    &[],
+                    &queries,
+                    1,
+                    1
+                )
+                .is_err()
+        );
+        let value = engine
+            .query_with_derived(
+                q,
+                View::Closure,
+                &BTreeMap::new(),
+                &BTreeMap::new(),
+                &[],
+                &queries,
+                1,
+                2,
+            )
+            .unwrap();
+        let reply: Value = serde_json::from_slice(&value).unwrap();
+        assert_eq!(reply["boolean"], true);
     }
 
     #[test]

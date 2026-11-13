@@ -97,11 +97,14 @@ impl EngineV4 {
             View::Closure => &self.named_closure,
         };
         let encode = |term: &Term| {
-            self.pack.term_id(&term.to_string())
+            self.pack
+                .term_id(&term.to_string())
                 .map_or_else(|| Encoded::External(term.clone()), Encoded::Stored)
         };
-        let overlay: HashSet<[Encoded; 3]> = added.iter()
-            .map(|[s,p,o]| [encode(s), encode(p), encode(o)]).collect();
+        let overlay: HashSet<[Encoded; 3]> = added
+            .iter()
+            .map(|[s, p, o]| [encode(s), encode(p), encode(o)])
+            .collect();
         let graph = Dataset {
             pack: &self.pack,
             view,
@@ -205,18 +208,21 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
         let predicate_bound = predicate.cloned();
         let object_bound = object.cloned();
         let overlay = self.overlay;
-        let overlay_rows = overlay.iter()
+        let overlay_rows = overlay
+            .iter()
             .filter(move |row| {
                 subject_bound.as_ref().is_none_or(|s| s == &row[0])
                     && predicate_bound.as_ref().is_none_or(|p| p == &row[1])
                     && object_bound.as_ref().is_none_or(|o| o == &row[2])
             })
-            .map(|row| Ok(InternalQuad {
-                subject: row[0].clone(),
-                predicate: row[1].clone(),
-                object: row[2].clone(),
-                graph_name: None,
-            }));
+            .map(|row| {
+                Ok(InternalQuad {
+                    subject: row[0].clone(),
+                    predicate: row[1].clone(),
+                    object: row[2].clone(),
+                    graph_name: None,
+                })
+            });
         let (Some(s), Some(p), Some(o)) = (bound(subject), bound(predicate), bound(object)) else {
             if graph == Some(None) {
                 return Box::new(overlay_rows) as Rows<'a>;
@@ -227,17 +233,23 @@ impl<'a> QueryableDataset<'a> for Dataset<'a> {
         let view = self.view;
         match graph {
             Some(None) => {
-                let base = pack.union_triples(s,p,o,view)
-                    .filter(move |row| !overlay.contains(&[
-                        Encoded::Stored(row[0]), Encoded::Stored(row[1]),
-                        Encoded::Stored(row[2]),
-                    ]))
-                    .map(|[s,p,o]| Ok(InternalQuad {
-                        subject: Encoded::Stored(s),
-                        predicate: Encoded::Stored(p),
-                        object: Encoded::Stored(o),
-                        graph_name: None,
-                    }));
+                let base = pack
+                    .union_triples(s, p, o, view)
+                    .filter(move |row| {
+                        !overlay.contains(&[
+                            Encoded::Stored(row[0]),
+                            Encoded::Stored(row[1]),
+                            Encoded::Stored(row[2]),
+                        ])
+                    })
+                    .map(|[s, p, o]| {
+                        Ok(InternalQuad {
+                            subject: Encoded::Stored(s),
+                            predicate: Encoded::Stored(p),
+                            object: Encoded::Stored(o),
+                            graph_name: None,
+                        })
+                    });
                 Box::new(base.chain(overlay_rows)) as Rows<'a>
             }
             Some(Some(Encoded::Stored(graph_id))) => {
@@ -324,24 +336,29 @@ mod tests {
             "<urn:p>".parse::<Term>().unwrap(),
             "<urn:o>".parse::<Term>().unwrap(),
         ]];
-        let q = SparqlParser::new().parse_query(
-            "ASK WHERE { <urn:derived> <urn:p> <urn:o> }"
-        ).unwrap();
+        let q = SparqlParser::new()
+            .parse_query("ASK WHERE { <urn:derived> <urn:p> <urn:o> }")
+            .unwrap();
         let inside: serde_json::Value = serde_json::from_slice(
-            &engine.execute_bound_overlay(&q,View::Closure,&[],&derived).unwrap()
-        ).unwrap();
-        let outside: serde_json::Value = serde_json::from_slice(
-            &engine.execute(&q,View::Closure).unwrap()
-        ).unwrap();
-        assert_eq!(inside["boolean"],true);
-        assert_eq!(outside["boolean"],false);
-        let named = SparqlParser::new().parse_query(
-            "ASK WHERE { GRAPH <urn:g> { <urn:derived> <urn:p> <urn:o> } }"
-        ).unwrap();
+            &engine
+                .execute_bound_overlay(&q, View::Closure, &[], &derived)
+                .unwrap(),
+        )
+        .unwrap();
+        let outside: serde_json::Value =
+            serde_json::from_slice(&engine.execute(&q, View::Closure).unwrap()).unwrap();
+        assert_eq!(inside["boolean"], true);
+        assert_eq!(outside["boolean"], false);
+        let named = SparqlParser::new()
+            .parse_query("ASK WHERE { GRAPH <urn:g> { <urn:derived> <urn:p> <urn:o> } }")
+            .unwrap();
         let response: serde_json::Value = serde_json::from_slice(
-            &engine.execute_bound_overlay(&named,View::Closure,&[],&derived).unwrap()
-        ).unwrap();
-        assert_eq!(response["boolean"],false);
+            &engine
+                .execute_bound_overlay(&named, View::Closure, &[], &derived)
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(response["boolean"], false);
     }
 
     #[test]
