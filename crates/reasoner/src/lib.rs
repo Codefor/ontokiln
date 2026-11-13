@@ -3,6 +3,7 @@ mod entities;
 pub mod parameters;
 mod proofs;
 pub mod sparql;
+pub mod v4;
 pub use entities::EntityMatches;
 use ontokiln_pack::Source;
 use ontokiln_pack::{Id, Pack, Triple};

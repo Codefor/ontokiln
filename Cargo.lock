@@ -1443,6 +1443,7 @@ dependencies = [
  "sparesults",
  "spareval",
  "spargebra",
+ "tempfile",
 ]
 
 [[package]]
