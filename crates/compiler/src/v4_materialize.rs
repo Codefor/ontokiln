@@ -237,20 +237,24 @@ fn resolve(cell: Cell, env: &[Option<u32>]) -> Option<u32> {
         Cell::Var(i) => env[i],
     }
 }
+struct Evaluation<'a> {
+    all: &'a Relation,
+    delta: &'a Relation,
+    kind: &'a [u8],
+}
+
 fn evaluate(
     rule: &Program,
     index: usize,
     pivot: usize,
     env: &mut [Option<u32>],
-    all: &Relation,
-    delta: &Relation,
-    kind: &[u8],
+    context: &Evaluation<'_>,
     output: &mut HashSet<Quad>,
 ) -> Result<()> {
     if index == rule.body.len() {
         for (check, variable) in &rule.filters {
             let id = env[*variable].context("unbound term-kind filter")?;
-            let tag = kind.get(id as usize).copied().unwrap_or(b'D');
+            let tag = context.kind.get(id as usize).copied().unwrap_or(b'D');
             if !match check {
                 Check::Iri => tag == b'I',
                 Check::Resource => tag == b'I' || tag == b'B',
@@ -278,7 +282,7 @@ fn evaluate(
     }
     let atom = &rule.body[index];
     let bound = atom.map(|cell| resolve(cell, env));
-    let relation = if index == pivot { delta } else { all };
+    let relation = if index == pivot { context.delta } else { context.all };
     for &quad in relation.candidates(bound) {
         let mut assigned = Vec::new();
         let mut compatible = true;
@@ -303,7 +307,7 @@ fn evaluate(
             }
         }
         if compatible {
-            evaluate(rule, index + 1, pivot, env, all, delta, kind, output)?;
+            evaluate(rule, index + 1, pivot, env, context, output)?;
         }
         for variable in assigned {
             env[variable] = None;
@@ -580,15 +584,10 @@ pub fn materialize(
             for rule in &program {
                 for pivot in 0..rule.body.len() {
                     stats.executed_rule_evaluations += 1;
+                    let context = Evaluation { all: &all, delta: &delta, kind: &kind };
                     evaluate(
-                        rule,
-                        0,
-                        pivot,
-                        &mut vec![None; rule.variables],
-                        &all,
-                        &delta,
-                        &kind,
-                        &mut next,
+                        rule, 0, pivot, &mut vec![None; rule.variables],
+                        &context, &mut next,
                     )?;
                 }
             }
@@ -618,7 +617,7 @@ pub fn materialize(
     let recipe = serde_json::to_vec(&(profile, &rules))?;
     metadata.semantic_fingerprint = format!(
         "{:x}",
-        Sha256::digest([&metadata.source_tree_digest.as_bytes()[..], &recipe].concat())
+        Sha256::digest([metadata.source_tree_digest.as_bytes(), &recipe].concat())
     );
     Ok((PackV4::from_statements(vocabulary, rows, metadata)?, stats))
 }
