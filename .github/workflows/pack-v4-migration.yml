@@ -4,6 +4,7 @@ on:
     paths:
       - crates/pack/src/v4.rs
       - crates/pack/src/lib.rs
+      - crates/compiler/src/v4_materialize.rs
       - crates/compiler/src/v4.rs
       - crates/compiler/src/lib.rs
       - crates/compiler/Cargo.toml
@@ -27,4 +28,5 @@ jobs:
         run: |
           cargo test -p ontokiln-pack v4::tests --locked
           cargo test -p ontokiln-compiler v4::tests --locked
+          cargo test -p ontokiln-compiler v4_materialize::tests --locked
           cargo test -p ontokiln-reasoner v4::tests --locked
