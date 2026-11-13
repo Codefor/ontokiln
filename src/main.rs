@@ -60,7 +60,6 @@ enum Command {
         #[arg(long)]
         pack: PathBuf,
     },
-
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -206,7 +205,6 @@ fn main() -> Result<()> {
                 })
             );
         }
-
     }
     Ok(())
 }

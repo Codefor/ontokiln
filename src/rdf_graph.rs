@@ -222,12 +222,18 @@ impl ValidationData<'_> {
 
     pub(crate) fn predicate_subjects(&self, predicate: &str) -> Result<BTreeSet<String>> {
         let Self::Memory(graph) = self;
-        Ok(graph.with_predicate(predicate).map(|t| t[0].clone()).collect())
+        Ok(graph
+            .with_predicate(predicate)
+            .map(|t| t[0].clone())
+            .collect())
     }
 
     pub(crate) fn predicate_objects(&self, predicate: &str) -> Result<BTreeSet<String>> {
         let Self::Memory(graph) = self;
-        Ok(graph.with_predicate(predicate).map(|t| t[2].clone()).collect())
+        Ok(graph
+            .with_predicate(predicate)
+            .map(|t| t[2].clone())
+            .collect())
     }
 
     pub(crate) fn instances_of(&self, class: &str) -> Result<BTreeSet<String>> {
@@ -346,7 +352,9 @@ impl PreparedQueries<'_> {
             *dataset = Some(self.source.query_dataset()?);
         }
         Self::collect_query_results(
-            query.on_queryable_dataset(dataset.as_ref().expect("SHACL dataset")).execute()?,
+            query
+                .on_queryable_dataset(dataset.as_ref().expect("SHACL dataset"))
+                .execute()?,
             was_ask,
         )
     }

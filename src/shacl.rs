@@ -558,14 +558,15 @@ impl Composed<'_, '_, '_> {
                 self.native = Some(native_graph(data)?);
             }
             let targets = FocusNodes::single(focus);
-            let report = compiled.validate(
-                self.native.as_ref().expect("prepared native graph"),
-                runner,
-                Some(&targets),
-                Some(compiled),
-                schema,
-            )
-            .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
+            let report = compiled
+                .validate(
+                    self.native.as_ref().expect("prepared native graph"),
+                    runner,
+                    Some(&targets),
+                    Some(compiled),
+                    schema,
+                )
+                .map_err(|e| anyhow::anyhow!("SHACL execution failed: {e}"))?;
             violations.extend(report.iter().map(|r|json!({"focus_node":r.focus_node().to_string(),"path":r.path().map(ToString::to_string).unwrap_or_default(),"message":r.message().unwrap_or("SHACL violation"),"shape_ref":r.source().map(ToString::to_string).unwrap_or_default()})));
         }
         let message = self
