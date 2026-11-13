@@ -102,7 +102,8 @@ fn rdfs_semantics_and_dataset_sourced_shacl_match_full() {
          _:property <{sh}minCount> 1 .\n"
     );
     let src = source(root.path(), "turtle", &ttl);
-    let (engine, stats) = OntologyEngine::build(std::slice::from_ref(&src), "rdfs-supported-v1", &[]).unwrap();
+    let (engine, stats) =
+        OntologyEngine::build(std::slice::from_ref(&src), "rdfs-supported-v1", &[]).unwrap();
     let (paths, legacy) = build_full(root.path(), &src, "rdfs-supported-v1");
     assert_eq!(legacy["stats"]["explicit_facts"], stats.explicit_facts);
     assert_eq!(legacy["stats"]["inferred_facts"], stats.inferred_facts);
