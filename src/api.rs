@@ -1,6 +1,6 @@
 //! Versioned consumer boundary; optional read artifacts have their own format contract.
 use anyhow::{Context, Result, bail, ensure};
-use ontokiln_reasoner::{Reasoner, parameters, sparql};
+use ontokiln_reasoner::parameters;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::{
@@ -391,54 +391,40 @@ fn envelope(mut response: Value, raw: &Value, bytes: &[u8], execution: &Value) -
 
 struct Dataset {
     meta: Value,
-    pack: Option<ontokiln_pack::Pack>,
-    pack_v4: Option<ontokiln_pack::v4::PackV4>,
+    pack: Option<ontokiln_pack::v4::PackV4>,
     manifest_sha256: Option<String>,
 }
 
 fn dataset(path: &Path) -> Result<Dataset> {
     if path.is_file() {
-        use std::io::Read;
-        // V3 and V4 share magic but are different physical layouts.
-        let mut header = [0_u8; 12];
-        fs::File::open(path)?.read_exact(&mut header)?;
-        if &header[..8] == b"ONTOKILN" && u32::from_le_bytes(header[8..12].try_into()?) == 4 {
-            let pack = ontokiln_pack::v4::PackV4::load(path)
-                .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
-            let metadata = json!({
-                "semantics":"rdf-dataset-union/v1",
-                "capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1",
-                    "shacl/v1","rdf-bindings/v1","values-bindings/v1",
-                    "derived-query-data/v1"],
-                "default_graph":"union",
-                "views":["asserted","inferred","closure"],
-                "profile":pack.metadata().profile_id,
-                "format":"ontokiln-pack/v4",
-                "facts":pack.quad_count()
-            });
-            return Ok(Dataset {
-                meta: metadata,
-                pack: None,
-                pack_v4: Some(pack),
-                manifest_sha256: None,
-            });
-        }
-        let pack =
-            ontokiln_pack::Pack::load(path).map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+        // Pack v4 is the only supported in-memory artifact format.
+        // There is deliberately no v3 decoder, upgrade path or fallback.
+        let pack = ontokiln_pack::v4::PackV4::load(path)
+            .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
+        let metadata = json!({
+            "semantics":"rdf-dataset-union/v1",
+            "capabilities":["select-ask/v1","views/v1","rdf-named-graphs/v1",
+                "shacl/v1","rdf-bindings/v1","values-bindings/v1",
+                "derived-query-data/v1"],
+            "default_graph":"union",
+            "views":["asserted","inferred","closure"],
+            "profile":pack.metadata().profile_id,
+            "format":"ontokiln-pack/v4",
+            "facts":pack.quad_count()
+        });
         Ok(Dataset {
-            meta: json!({"semantics":"pack-rdfs-hierarchy/v1","capabilities":["select-ask/v1","views/v1","document-graphs/v1","revision/v1"],
-            "default_graph":"union","views":["asserted","inferred","closure"],"profile":"rdfs-hierarchy-v1","facts":pack.triple_count()}),
+            meta: metadata,
             pack: Some(pack),
-            pack_v4: None,
             manifest_sha256: None,
         })
     } else {
+        // Temporary Full directory reader is retained only as an oracle while
+        // its remaining execution semantics migrate to the memory engine.
         let (manifest, manifest_sha256) = crate::full_artifact::verify_read_manifest(path)
             .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
         Ok(Dataset {
             meta: full_metadata(manifest)?,
             pack: None,
-            pack_v4: None,
             manifest_sha256: Some(manifest_sha256),
         })
     }
@@ -482,7 +468,6 @@ fn worker_dataset(path: &Path, request: &Value) -> Result<Dataset> {
         Ok(Dataset {
             meta: full_metadata(mounted["manifest"].clone())?,
             pack: None,
-            pack_v4: None,
             manifest_sha256: Some(
                 mounted["manifest_sha256"]
                     .as_str()
@@ -634,16 +619,9 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             require,
         } => {
             crate::query::local_query(query).map_err(|e| anyhow::anyhow!("INVALID_QUERY|{e}"))?;
-            let parsed = parameters::bind_tables(
-                sparql::SparqlParser::new().parse_query(query)?,
-                parameters,
-                values,
-            )
-            .map_err(invalid)?;
             let Dataset {
                 meta,
                 pack,
-                pack_v4,
                 manifest_sha256,
             } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
@@ -668,47 +646,6 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 );
             }
             let mut data = if let Some(pack) = pack {
-                ensure!(
-                    values.is_empty() && derived_queries.is_empty(),
-                    "UNSUPPORTED_CAPABILITY|derived query data requires a Full dataset"
-                );
-                ensure!(
-                    rdf_bindings.is_empty(),
-                    "UNSUPPORTED_CAPABILITY|pack does not support variable bindings"
-                );
-                ensure!(
-                    limits.max_rows <= sparql::MAX_ROWS && limits.max_bytes <= sparql::MAX_BYTES,
-                    "UNSUPPORTED_CAPABILITY|pack result limits exceed supported maximum"
-                );
-                let engine = Reasoner::new(pack);
-                let options = sparql::Options {
-                    view: serde_json::from_value(json!(view))?,
-                    revision: revision.clone(),
-                    max_rows: limits.max_rows,
-                    ..Default::default()
-                };
-                let mut bytes = Vec::new();
-                engine
-                    .write_sparql(
-                        &parsed,
-                        vec![],
-                        &Default::default(),
-                        &options,
-                        false,
-                        &mut bytes,
-                    )
-                    .map_err(|e| {
-                        if e.to_string().contains("budget") {
-                            anyhow::anyhow!("BUDGET_EXHAUSTED|{e}")
-                        } else {
-                            anyhow::anyhow!("INVALID_QUERY|{e}")
-                        }
-                    })?;
-                let reply: Value = serde_json::from_slice(&bytes)?;
-                json!({"query_type":if reply.get("boolean").is_some(){"ASK"}else{"SELECT"},
-                    "variables":reply["head"].get("vars").cloned().unwrap_or(json!([])),
-                    "items":reply["results"].get("bindings").cloned().unwrap_or(json!([])),"boolean":reply["boolean"]})
-            } else if let Some(pack) = pack_v4 {
                 ensure!(
                     revision.is_none(),
                     "UNSUPPORTED_CAPABILITY|revision selection is unavailable for Pack v4"
@@ -833,7 +770,6 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
             let Dataset {
                 meta,
                 pack,
-                pack_v4,
                 manifest_sha256,
             } = worker_dataset(path, &value)?;
             check_content_digest(&meta, expected_content_digest.as_deref())?;
@@ -841,7 +777,7 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                 manifest_sha256.as_deref(),
                 expected_manifest_sha256.as_deref(),
             )?;
-            if let Some(pack) = pack_v4 {
+            if let Some(pack) = pack {
                 let engine = crate::engine::OntologyEngine::from_pack(pack)
                     .map_err(|e| anyhow::anyhow!("INVALID_DATASET|{e}"))?;
                 let selected: Option<std::collections::BTreeSet<String>> = selected_shapes
@@ -889,10 +825,6 @@ pub(crate) fn execute_worker(value: Value) -> Result<Value> {
                     "report":report["report"]
                 })
             } else {
-                ensure!(
-                    pack.is_none(),
-                    "UNSUPPORTED_CAPABILITY|SHACL requires an RDF dataset artifact"
-                );
                 let copy = tempfile::tempdir()?;
                 let snapshot = read_snapshot(
                     path,
