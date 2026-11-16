@@ -1,5 +1,4 @@
-sparopt
-=======
+# sparopt
 
 [![Latest Version](https://img.shields.io/crates/v/sparopt.svg)](https://crates.io/crates/sparopt)
 [![Released API docs](https://docs.rs/sparopt/badge.svg)](https://docs.rs/sparopt)

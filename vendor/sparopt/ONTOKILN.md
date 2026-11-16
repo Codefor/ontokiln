@@ -1,6 +1,6 @@
 # Local changes to sparopt 0.3.9
 
-Base: published [Sparopt 0.3.9](https://docs.rs/crate/sparopt/0.3.9/source/) from Oxigraph. Original crate SHA-256: `8c1d1327a49bef5f6f294a2ddcf01635c5449a0654e9a35d3f50d7a45e4ecc78`. The included MIT license is one of the upstream dual-license options. Sources and the normalized manifest come from that archive; only the changes below are local.
+Base: published [Sparopt 0.3.9](https://docs.rs/crate/sparopt/0.3.9/source/) from Oxigraph. Original crate SHA-256: `8c1d1327a49bef5f6f294a2ddcf01635c5449a0654e9a35d3f50d7a45e4ecc78`. The included MIT license is one of the upstream dual-license options. Sources and the normalized manifest come from that archive; only the changes below and the README heading format (to pass conflict-marker checks) are local.
 
 * Add `Optimizer::optimize_graph_pattern_with_initial_variables`; retain the original method as the empty-input entry point. Initial variable names seed guaranteed-bound, otherwise unrestricted RDF term types in normalization, join ordering and filter pushing. Exact values remain in Spareval's runtime binding map. BOUND may be folded only where the initial value is in scope; no concrete datatype is inferred. Existing projection/template admission keeps accepted initial variables available to the evaluator.
 * Restrict input types to the projected variables in all three Project handlers, matching existing type inference and evaluator scope. Hidden variables do not receive an outer binding.
