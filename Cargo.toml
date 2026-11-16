@@ -43,6 +43,9 @@ sha2 = "0.10"
 
 [dev-dependencies]
 tempfile.workspace = true
+spareval = "0.2"
+sparesults = "0.3"
 
 [patch.crates-io]
 spareval = { path = "vendor/spareval" }
+sparopt = { path = "vendor/sparopt" }

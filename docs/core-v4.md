@@ -34,6 +34,7 @@ let loaded = OntologyEngine::load_pack(std::path::Path::new("/data/ontology.pack
 - SHACL 校验的 Data Graph 是所有已存储四元组的 SPO 去重并集（显式 + 推导，跨具名图），不依赖查询视图。可以使用 Pack 内的 Shapes，也可以按摘要核验加载外部 Shapes。
 - 可用规则 profile：`no-rules-v1`、`datalog-v1`、`rdfs-supported-v1`、`rdfs-property-chain-v1`。规则的三元组 Atom 固定作用于物理默认图，四元组 Atom 可显式指定图；SPARQL 默认图并集不会改变规则求值范围。
 - 本地 SPARQL 支持 SELECT/ASK、显式参数、初始 RDF 变量绑定与 VALUES。CONSTRUCT/SELECT 派生查询仅产生本次请求的 Overlay，不写回 Pack，也不加入具名图。
+- `query_bound` 和 `query_with_derived` 的初始变量会在规划前提供给逻辑优化器，绑定值仍由原求值器按 RDF 词项处理。优化器保守地保留输入变量，不将其跨投影替换为常量；子查询仅接收其投影允许的输入。现有参数、VALUES 槽、公开列、重复行和绑定准入规则保持不变；仅在 ASK/CONSTRUCT 的 FILTER 中出现、未进入内部投影的绑定仍按既有规则拒绝。
 - SHACL 支持内核已实现的 Core、Property Path 与本地 SHACL-SPARQL/自定义目标；不承诺 SHACL JS、任意 OWL 推理或外部 I/O。
 
 ## FaaS 边界

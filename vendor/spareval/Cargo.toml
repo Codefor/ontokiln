@@ -94,6 +94,7 @@ version = "=0.3.5"
 version = "=0.4.8"
 
 [dependencies.sparopt]
+path = "../sparopt"
 version = "=0.3.9"
 
 [dependencies.thiserror]

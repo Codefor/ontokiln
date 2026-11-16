@@ -1125,6 +1125,8 @@ dependencies = [
  "sha2",
  "shacl_ir",
  "shacl_validation",
+ "sparesults",
+ "spareval",
  "spargebra",
  "tempfile",
  "walkdir",
@@ -2225,8 +2227,6 @@ dependencies = [
 [[package]]
 name = "sparopt"
 version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c1d1327a49bef5f6f294a2ddcf01635c5449a0654e9a35d3f50d7a45e4ecc78"
 dependencies = [
  "oxrdf",
  "rand 0.9.5",
