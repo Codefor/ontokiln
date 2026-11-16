@@ -7,6 +7,7 @@ use ontokiln::rdf_graph::Graph;
 use ontokiln_compiler::v4::{Source, compile_sources};
 use ontokiln_compiler::v4_materialize::{Rule, materialize};
 use ontokiln_pack::v4::View;
+use ontokiln_reasoner::parameters::{Parameter, ValuesTable};
 use oxigraph::io::{RdfFormat, RdfParser};
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -44,6 +45,28 @@ struct QueryCase {
     name: String,
     query: String,
     view: String,
+    #[serde(default)]
+    parameters: BTreeMap<String, Parameter>,
+    #[serde(default)]
+    rdf_bindings: BTreeMap<String, String>,
+    #[serde(default)]
+    values: Vec<ValuesTable>,
+}
+
+impl QueryCase {
+    fn execute(&self, engine: &OntologyEngine, view: View) -> Result<Vec<u8>> {
+        if self.parameters.is_empty() && self.rdf_bindings.is_empty() && self.values.is_empty() {
+            engine.query(&self.query, view)
+        } else {
+            engine.query_bound(
+                &self.query,
+                view,
+                &self.parameters,
+                &self.rdf_bindings,
+                &self.values,
+            )
+        }
+    }
 }
 
 fn view(value: &str) -> Result<View> {
@@ -180,9 +203,9 @@ fn main() -> Result<()> {
     let mut measured_queries = BTreeMap::new();
     for case in cases {
         let view = view(&case.view)?;
-        let original: Value = serde_json::from_slice(&engine.query(&case.query, view)?)?;
+        let original: Value = serde_json::from_slice(&case.execute(&engine, view)?)?;
         let loaded_first_start = Instant::now();
-        let first: Value = serde_json::from_slice(&loaded.query(&case.query, view)?)?;
+        let first: Value = serde_json::from_slice(&case.execute(&loaded, view)?)?;
         let first_ms = loaded_first_start.elapsed().as_secs_f64() * 1e3;
         ensure!(
             original == first,
@@ -190,7 +213,7 @@ fn main() -> Result<()> {
             case.name
         );
         let (result, timings) = sample(args.warmups, args.samples, || {
-            Ok(serde_json::from_slice(&loaded.query(&case.query, view)?)?)
+            Ok(serde_json::from_slice(&case.execute(&loaded, view)?)?)
         })?;
         ensure!(first == result, "cold/warm query result mismatch");
         measured_queries.insert(

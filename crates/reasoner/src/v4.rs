@@ -111,13 +111,9 @@ impl EngineV4 {
             names,
             overlay: &overlay,
         };
-        // Input variables can appear only inside FILTER/BOUND. Avoid logical
-        // rewrites that fold them as unbound before substitutions are applied.
-        let evaluator = if bindings.is_empty() {
-            QueryEvaluator::new()
-        } else {
-            QueryEvaluator::new().without_optimizations()
-        };
+        // Spareval exposes initial variables to all optimizer passes before
+        // evaluation, preserving FILTER-only inputs and projection scopes.
+        let evaluator = QueryEvaluator::new();
         let mut prepared = evaluator.prepare(query);
         for (variable, term) in bindings {
             prepared = prepared.substitute_variable(variable.clone(), term.clone());

@@ -698,7 +698,10 @@ impl PreparedQuery<'_> {
             } => {
                 let mut pattern = GraphPattern::from(pattern);
                 if !self.evaluator.without_optimizations {
-                    pattern = Optimizer::optimize_graph_pattern(pattern);
+                    pattern = Optimizer::optimize_graph_pattern_with_initial_variables(
+                        pattern,
+                        self.substitutions.keys().cloned(),
+                    );
                 }
                 let planning_duration = start_planning.elapsed();
                 let (results, explanation) =
@@ -720,7 +723,10 @@ impl PreparedQuery<'_> {
             } => {
                 let mut pattern = GraphPattern::from(pattern);
                 if !self.evaluator.without_optimizations {
-                    pattern = Optimizer::optimize_graph_pattern(pattern);
+                    pattern = Optimizer::optimize_graph_pattern_with_initial_variables(
+                        pattern,
+                        self.substitutions.keys().cloned(),
+                    );
                 }
                 let planning_duration = start_planning.elapsed();
                 let (results, explanation) =
@@ -745,7 +751,10 @@ impl PreparedQuery<'_> {
             } => {
                 let mut pattern = GraphPattern::from(pattern);
                 if !self.evaluator.without_optimizations {
-                    pattern = Optimizer::optimize_graph_pattern(pattern);
+                    pattern = Optimizer::optimize_graph_pattern_with_initial_variables(
+                        pattern,
+                        self.substitutions.keys().cloned(),
+                    );
                 }
                 let planning_duration = start_planning.elapsed();
                 let (results, explanation) =
@@ -769,7 +778,10 @@ impl PreparedQuery<'_> {
             } => {
                 let mut pattern = GraphPattern::from(pattern);
                 if !self.evaluator.without_optimizations {
-                    pattern = Optimizer::optimize_graph_pattern(pattern);
+                    pattern = Optimizer::optimize_graph_pattern_with_initial_variables(
+                        pattern,
+                        self.substitutions.keys().cloned(),
+                    );
                 }
                 let planning_duration = start_planning.elapsed();
                 let (results, explanation) =

@@ -11,6 +11,8 @@ on:
       - crates/compiler/src/v4.rs
       - crates/compiler/src/v4_materialize.rs
       - crates/reasoner/src/v4.rs
+      - vendor/spareval/**
+      - vendor/sparopt/**
       - src/engine.rs
       - src/rdf_graph.rs
       - src/shacl.rs
